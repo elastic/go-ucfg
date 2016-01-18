@@ -25,7 +25,7 @@ func TestPrimitives(t *testing.T) {
 		F float64
 		S string
 	}{}
-	err = c.Materialize(&verify)
+	err = c.Unpack(&verify)
 	assert.Nil(t, err)
 
 	assert.Equal(t, true, verify.B)

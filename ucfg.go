@@ -1,9 +1,12 @@
 package ucfg
 
-import "errors"
+import (
+	"errors"
+	"reflect"
+)
 
 type Config struct {
-	fields map[string]interface{}
+	fields map[string]value
 }
 
 var (
@@ -11,14 +14,23 @@ var (
 
 	ErrTypeNoArray = errors.New("field is no array")
 
-	ErrTypeMismatch = errors.New("...")
+	ErrTypeMismatch = errors.New("type mismatch")
 
 	ErrIndexOutOfRange = errors.New("index out of range")
+
+	ErrTODO = errors.New("TODO")
+)
+
+var (
+	tConfig         = reflect.TypeOf(Config{})
+	tConfigMap      = reflect.TypeOf((map[string]interface{})(nil))
+	tInterfaceArray = reflect.TypeOf([]interface{}(nil))
+	tInterface      = reflect.TypeOf(interface{}(nil))
 )
 
 func New() *Config {
 	return &Config{
-		fields: make(map[string]interface{}),
+		fields: make(map[string]value),
 	}
 }
 

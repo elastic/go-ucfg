@@ -1,7 +1,5 @@
 package ucfg
 
-import "reflect"
-
 // ******************************************************************************
 // Low level getters and setters (do we actually need this?)
 // ******************************************************************************
@@ -9,161 +7,112 @@ import "reflect"
 // number of elements for this field. If config value is a list, returns number
 // of elements in list
 func (c *Config) CountField(name string) (int, error) {
-	ifc, ok := c.fields[name]
-	if !ok {
-		return -1, ErrMissing
+	if v, ok := c.fields[name]; ok {
+		return v.Len(), nil
 	}
-
-	value := reflect.ValueOf(ifc)
-	if value.Kind() != reflect.Array {
-		return 1, nil
-	}
-	return value.Len(), nil
+	return -1, ErrMissing
 }
 
-// Config getters. If config value is actually a list, idx can be used to access
-// values at said index
-
-var (
-	tBool   = reflect.TypeOf(false)
-	tInt    = reflect.TypeOf(int64(0))
-	tFloat  = reflect.TypeOf(float64(0.0))
-	tString = reflect.TypeOf(string("string"))
-
-	tConfigMap = reflect.TypeOf(map[string]interface{}(nil))
-)
-
 func (c *Config) Bool(name string, idx int) (bool, error) {
-	value, err := c.getFieldValue(name, idx, tBool)
+	v, err := c.getField(name, idx)
 	if err != nil {
 		return false, err
 	}
-	return value.Bool(), nil
+	return v.toBool()
 }
 
 func (c *Config) String(name string, idx int) (string, error) {
-	value, err := c.getFieldValue(name, idx, tString)
+	v, err := c.getField(name, idx)
 	if err != nil {
 		return "", err
 	}
-	return value.String(), nil
+	return v.toString()
 }
 
-func (c *Config) Int(name string, idx int) (int, error) {
-	value, err := c.getFieldValue(name, idx, tInt)
+func (c *Config) Int(name string, idx int) (int64, error) {
+	v, err := c.getField(name, idx)
 	if err != nil {
 		return 0, err
 	}
-	return int(value.Int()), nil
+	return v.toInt()
 }
 
 func (c *Config) Float(name string, idx int) (float64, error) {
-	value, err := c.getFieldValue(name, idx, tFloat)
+	v, err := c.getField(name, idx)
 	if err != nil {
 		return 0, err
 	}
-	return float64(value.Float()), nil
+	return v.toFloat()
 }
 
 func (c *Config) Child(name string, idx int) (*Config, error) {
-	value, err := c.getFieldValue(name, idx, tConfigMap)
+	v, err := c.getField(name, idx)
 	if err != nil {
-		if err == ErrTypeMismatch {
-			value, err = c.getFieldValue(name, idx, reflect.TypeOf(c))
-			if err != nil {
-				return nil, err
-			}
-			return value.Interface().(*Config), nil
-		}
 		return nil, err
 	}
-
-	return &Config{value.Interface().(map[string]interface{})}, nil
+	return v.toConfig()
 }
 
 func (c *Config) SetBool(name string, idx int, value bool) {
-	c.setValue(name, idx, reflect.ValueOf(value))
+	c.setField(name, idx, &cfgBool{b: value})
 }
 
-func (c *Config) SetInt(name string, idx int, value int) {
-	c.setValue(name, idx, reflect.ValueOf(value))
+func (c *Config) SetInt(name string, idx int, value int64) {
+	c.setField(name, idx, &cfgInt{i: value})
 }
 
 func (c *Config) SetFloat(name string, idx int, value float64) {
-	c.setValue(name, idx, reflect.ValueOf(value))
+	c.setField(name, idx, &cfgFloat{f: value})
 }
 
 func (c *Config) SetString(name string, idx int, value string) {
-	c.setValue(name, idx, reflect.ValueOf(value))
+	c.setField(name, idx, &cfgString{s: value})
 }
 
 func (c *Config) SetChild(name string, idx int, value *Config) {
-	c.setValue(name, idx, reflect.ValueOf(value.fields))
+	c.setField(name, idx, cfgSub{c: value})
 }
 
-func (c *Config) setValue(name string, idx int, newValue reflect.Value) {
+func (c *Config) getField(name string, idx int) (value, error) {
+	v, ok := c.fields[name]
+	if !ok {
+		return nil, ErrMissing
+	}
+
+	if idx >= v.Len() {
+		return nil, ErrIndexOutOfRange
+	}
+
+	if arr, ok := v.(*cfgArray); ok {
+		v = arr.arr[idx]
+		if v == nil {
+			return nil, ErrMissing
+		}
+		return arr.arr[idx], nil
+	}
+	return v, nil
+}
+
+func (c *Config) setField(name string, idx int, v value) {
 	old, ok := c.fields[name]
 	if !ok {
-		if idx == 0 {
-			c.fields[name] = newValue.Interface()
-		} else {
-			slice := make([]interface{}, idx+1)
-			slice[idx] = newValue.Interface()
-			c.fields[name] = slice
+		if idx > 0 {
+			slice := &cfgArray{arr: make([]value, idx+1)}
+			slice.arr[idx] = v
+			v = slice
 		}
-		return
-	}
-
-	vOld := reflect.ValueOf(old)
-	tOld := vOld.Type()
-	if tOld.Kind() != reflect.Array {
-		if idx == 0 {
-			c.fields[name] = newValue.Interface()
-		} else {
-			slice := make([]interface{}, idx+1)
-			slice[idx] = newValue.Interface()
-			c.fields[name] = slice
+	} else if slice, ok := old.(*cfgArray); ok {
+		for idx >= len(slice.arr) {
+			slice.arr = append(slice.arr, nil)
 		}
-		return
+		slice.arr[idx] = v
+		v = slice
+	} else if idx > 0 {
+		slice := &cfgArray{arr: make([]value, idx+1)}
+		slice.arr[0] = old
+		slice.arr[idx] = v
+		v = slice
 	}
 
-	if idx >= vOld.Len() {
-		vOld.SetLen(idx + 1)
-	}
-	vOld.Index(idx).Set(newValue)
-}
-
-func (c *Config) getFieldValue(
-	name string,
-	idx int,
-	typ reflect.Type,
-) (reflect.Value, error) {
-	ifc, ok := c.fields[name]
-	if !ok {
-		return errGet(ErrMissing)
-	}
-
-	value := reflect.ValueOf(ifc)
-	kind := value.Kind()
-	if kind != reflect.Array && idx > 0 {
-		return errGet(ErrTypeNoArray)
-	} else if kind == reflect.Array {
-		if idx >= value.Len() {
-			return errGet(ErrIndexOutOfRange)
-		}
-
-		value = reflect.ValueOf(value.Index(idx).Interface())
-		kind = value.Kind()
-	}
-
-	tValue := value.Type()
-	if !tValue.ConvertibleTo(typ) {
-		return errGet(ErrTypeMismatch)
-	}
-
-	return value.Convert(typ), nil
-}
-
-func errGet(err error) (reflect.Value, error) {
-	return reflect.Value{}, err
+	c.fields[name] = v
 }

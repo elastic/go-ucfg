@@ -3,30 +3,49 @@ package ucfg
 import "reflect"
 
 func (c *Config) Merge(from interface{}) error {
-	return mergeInto(c.fields, from)
+	return mergeInto(c.fields, reflect.ValueOf(from))
 }
 
-func mergeInto(to map[string]interface{}, from interface{}) error {
-	from = chasePointers(reflect.ValueOf(from)).Interface()
-	switch from.(type) {
-	case Config:
-		return mergeMap(to, from.(Config).fields)
-	case map[string]interface{}:
-		return mergeMap(to, from.(map[string]interface{}))
+func mergeInto(to map[string]value, from reflect.Value) error {
+	vFrom := chaseValuePointers(from)
+
+	switch vFrom.Type() {
+	case tConfig:
+		return mergeConfig(to, vFrom.Convert(tConfig).Interface().(Config).fields)
+	case tConfigMap:
+		return mergeMap(to, vFrom)
 	default:
-		if !isStruct(from) {
-			return ErrTypeMismatch
+		switch vFrom.Kind() {
+		case reflect.Struct:
+			return mergeStruct(to, vFrom)
+		case reflect.Map:
+			return mergeMap(to, vFrom)
 		}
-		return mergeStruct(to, from)
+
+		return ErrTypeMismatch
 	}
 }
 
-func mergeMap(to, from map[string]interface{}) error {
+func mergeConfig(to, from map[string]value) error {
 	for k, v := range from {
-		var new interface{}
+		to[k] = v
+	}
+	return nil
+}
+
+func mergeMap(to map[string]value, from reflect.Value) error {
+	if from.Type().Key().Kind() != reflect.String {
+		return ErrTypeMismatch
+	}
+
+	for _, k := range from.MapKeys() {
+		key := k.String()
+		v := from.MapIndex(k)
+
+		var new value
 		var err error
 
-		if old, ok := to[k]; ok {
+		if old, ok := to[key]; ok {
 			new, err = mergeValue(old, v)
 		} else {
 			new, err = normalizeValue(v)
@@ -35,13 +54,14 @@ func mergeMap(to, from map[string]interface{}) error {
 		if err != nil {
 			return err
 		}
-		to[k] = new
+
+		to[key] = new
 	}
 	return nil
 }
 
-func mergeStruct(to map[string]interface{}, from interface{}) error {
-	v := reflect.ValueOf(from)
+func mergeStruct(to map[string]value, from reflect.Value) error {
+	v := chaseValuePointers(from)
 	numField := v.NumField()
 
 	for i := 0; i < numField; i++ {
@@ -51,12 +71,13 @@ func mergeStruct(to map[string]interface{}, from interface{}) error {
 		if opts.squash {
 			var err error
 
-			vField := chasePointers(v.Field(i))
-			if vField.Kind() == reflect.Struct {
-				err = mergeStruct(to, vField.Interface())
-			} else if mapField, ok := vField.Interface().(map[string]interface{}); ok {
-				err = mergeMap(to, mapField)
-			} else {
+			vField := chaseValuePointers(v.Field(i))
+			switch vField.Kind() {
+			case reflect.Struct:
+				err = mergeStruct(to, vField)
+			case reflect.Map:
+				err = mergeMap(to, vField)
+			default:
 				err = ErrTypeMismatch
 			}
 
@@ -65,13 +86,13 @@ func mergeStruct(to map[string]interface{}, from interface{}) error {
 			}
 		} else {
 			name = fieldName(name, stField.Name)
-			var new interface{}
+			var new value
 			var err error
 
 			if old, ok := to[name]; ok {
-				new, err = mergeValue(old, v.Field(i).Interface())
+				new, err = mergeValue(old, v.Field(i))
 			} else {
-				new, err = normalizeValue(v.Field(i).Interface())
+				new, err = normalizeValue(v.Field(i))
 			}
 
 			if err != nil {
@@ -85,129 +106,73 @@ func mergeStruct(to map[string]interface{}, from interface{}) error {
 	return nil
 }
 
-func mergeValue(old, new interface{}) (interface{}, error) {
-	vNew := chasePointers(reflect.ValueOf(new))
-	if isPrimitive(vNew.Kind()) {
-		return vNew.Interface(), nil
-	}
-
-	if vNew.IsNil() {
-		return nil, nil
-	}
-
-	if vNew.Kind() == reflect.Array || vNew.Kind() == reflect.Slice {
-		return normalizeArray(vNew)
-	}
-
-	if vNew.Kind() == reflect.Map {
-		if newMap, ok := vNew.Interface().(map[string]interface{}); ok {
-			oldMap, ok := old.(map[string]interface{})
-			if ok {
-				err := mergeMap(oldMap, newMap)
-				return oldMap, err
-			}
-			return normalizeMap(newMap)
+func mergeValue(old value, new reflect.Value) (value, error) {
+	if sub, ok := old.(cfgSub); ok {
+		v := chaseValuePointers(new)
+		t := v.Type()
+		k := t.Kind()
+		isSub := t == tConfig || t == tConfigMap ||
+			k == reflect.Struct || k == reflect.Map
+		if isSub {
+			err := mergeInto(sub.c.fields, new)
+			return sub, err
 		}
-		return nil, ErrTypeMismatch
 	}
-
-	if vNew.Kind() == reflect.Struct {
-		oldMap, ok := old.(map[string]interface{})
-		if !ok {
-			oldMap = make(map[string]interface{})
-		}
-		err := mergeStruct(oldMap, vNew.Interface())
-		return oldMap, err
-	}
-
-	return nil, ErrTypeMismatch
+	return normalizeValue(new)
 }
 
-func normalizeValue(ifc interface{}) (interface{}, error) {
-	v := chasePointers(reflect.ValueOf(ifc))
-	if isPrimitive(v.Kind()) {
-		return v.Interface(), nil
-	}
+func normalizeValue(v reflect.Value) (value, error) {
+	v = chaseValuePointers(v)
 
-	if v.IsNil() {
-		return nil, nil
-	}
-
-	if v.Kind() == reflect.Array || v.Kind() == reflect.Slice {
+	// handle primitives
+	switch v.Kind() {
+	case reflect.Bool:
+		return &cfgBool{b: v.Bool()}, nil
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return &cfgInt{i: v.Int()}, nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return &cfgInt{i: v.Int()}, nil
+	case reflect.Float32, reflect.Float64:
+		return &cfgFloat{f: v.Float()}, nil
+	case reflect.String:
+		return &cfgString{s: v.String()}, nil
+	case reflect.Array, reflect.Slice:
 		return normalizeArray(v)
-	}
+	case reflect.Map:
+		return normalizeMap(v)
+	case reflect.Struct:
+		tmp := make(map[string]value)
 
-	if v.Kind() == reflect.Map {
-		if inMap, ok := v.Interface().(map[string]interface{}); ok {
-			return normalizeMap(inMap)
-		}
-		return nil, ErrTypeMismatch
-	}
-
-	if v.Kind() == reflect.Struct {
-		tmp := make(map[string]interface{})
-		if err := mergeStruct(tmp, v.Interface()); err != nil {
+		if v.Type().ConvertibleTo(tConfig) {
+			c := v.Addr().Interface().(*Config)
+			mergeConfig(tmp, c.fields)
+		} else if err := mergeStruct(tmp, v); err != nil {
 			return nil, err
 		}
-		return tmp, nil
-	}
 
-	return nil, ErrTypeMismatch
+		return cfgSub{c: &Config{tmp}}, nil
+	default:
+		return nil, ErrTypeMismatch
+	}
 }
 
-func normalizeArray(v reflect.Value) (interface{}, error) {
+func normalizeArray(v reflect.Value) (value, error) {
 	l := v.Len()
-	out := make([]interface{}, 0, l)
+	out := make([]value, 0, l)
 	for i := 0; i < l; i++ {
-		tmp, err := normalizeValue(v.Field(i).Interface())
+		tmp, err := normalizeValue(v.Index(i))
 		if err != nil {
 			return nil, err
 		}
 		out = append(out, tmp)
 	}
-	return out, nil
+	return &cfgArray{arr: out}, nil
 }
 
-func normalizeMap(v map[string]interface{}) (interface{}, error) {
-	tmp := make(map[string]interface{})
-	if err := mergeMap(tmp, v); err != nil {
+func normalizeMap(m reflect.Value) (value, error) {
+	to := make(map[string]value)
+	if err := mergeMap(to, m); err != nil {
 		return nil, err
 	}
-	return tmp, nil
-}
-
-func chasePointers(v reflect.Value) reflect.Value {
-	for {
-		k := v.Kind()
-		if k != reflect.Ptr && k != reflect.Interface {
-			return v
-		}
-		v = v.Elem()
-	}
-}
-
-func isStruct(v interface{}) bool {
-	return isKind(v, reflect.Struct)
-}
-
-func isPtr(v interface{}) bool {
-	return isKind(v, reflect.Ptr)
-}
-
-func isKind(v interface{}, k reflect.Kind) bool {
-	return reflect.TypeOf(v).Kind() == k
-}
-
-func isPrimitive(k reflect.Kind) bool {
-	switch k {
-	case reflect.Bool,
-		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
-		reflect.Float32, reflect.Float64,
-		reflect.Complex64, reflect.Complex128,
-		reflect.String:
-		return true
-	default:
-		return false
-	}
+	return cfgSub{&Config{to}}, nil
 }

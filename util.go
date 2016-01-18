@@ -1,6 +1,9 @@
 package ucfg
 
-import "strings"
+import (
+	"reflect"
+	"strings"
+)
 
 type tagOptions struct {
 	squash bool
@@ -22,4 +25,18 @@ func fieldName(tagName, structName string) string {
 		return tagName
 	}
 	return strings.ToLower(structName)
+}
+
+func chaseValuePointers(v reflect.Value) reflect.Value {
+	for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
+		v = v.Elem()
+	}
+	return v
+}
+
+func chaseTypePointers(t reflect.Type) reflect.Type {
+	for t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	return t
 }
