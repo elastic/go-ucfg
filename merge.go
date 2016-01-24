@@ -1,13 +1,16 @@
 package ucfg
 
-import "reflect"
+import (
+	"fmt"
+	"reflect"
+)
 
 func (c *Config) Merge(from interface{}) error {
 	return mergeInto(c.fields, reflect.ValueOf(from))
 }
 
 func mergeInto(to map[string]value, from reflect.Value) error {
-	vFrom := chaseValuePointers(from)
+	vFrom := chaseValue(from)
 
 	switch vFrom.Type() {
 	case tConfig:
@@ -27,8 +30,31 @@ func mergeInto(to map[string]value, from reflect.Value) error {
 }
 
 func mergeConfig(to, from map[string]value) error {
+	fmt.Printf("mergeConfig, to=%v, from=%v\n", to, from)
+
 	for k, v := range from {
-		to[k] = v
+		old, ok := to[k]
+		if !ok {
+			to[k] = v
+			continue
+		}
+
+		subOld, ok := old.(cfgSub)
+		if !ok {
+			to[k] = v
+			continue
+		}
+
+		subFrom, ok := v.(cfgSub)
+		if !ok {
+			to[k] = v
+			continue
+		}
+
+		err := mergeConfig(subOld.c.fields, subFrom.c.fields)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -61,7 +87,7 @@ func mergeMap(to map[string]value, from reflect.Value) error {
 }
 
 func mergeStruct(to map[string]value, from reflect.Value) error {
-	v := chaseValuePointers(from)
+	v := chaseValue(from)
 	numField := v.NumField()
 
 	for i := 0; i < numField; i++ {
@@ -71,7 +97,7 @@ func mergeStruct(to map[string]value, from reflect.Value) error {
 		if opts.squash {
 			var err error
 
-			vField := chaseValuePointers(v.Field(i))
+			vField := chaseValue(v.Field(i))
 			switch vField.Kind() {
 			case reflect.Struct:
 				err = mergeStruct(to, vField)
@@ -108,7 +134,7 @@ func mergeStruct(to map[string]value, from reflect.Value) error {
 
 func mergeValue(old value, new reflect.Value) (value, error) {
 	if sub, ok := old.(cfgSub); ok {
-		v := chaseValuePointers(new)
+		v := chaseValue(new)
 		t := v.Type()
 		k := t.Kind()
 		isSub := t == tConfig || t == tConfigMap ||
@@ -122,7 +148,7 @@ func mergeValue(old value, new reflect.Value) (value, error) {
 }
 
 func normalizeValue(v reflect.Value) (value, error) {
-	v = chaseValuePointers(v)
+	v = chaseValue(v)
 
 	// handle primitives
 	switch v.Kind() {
@@ -144,7 +170,14 @@ func normalizeValue(v reflect.Value) (value, error) {
 		tmp := make(map[string]value)
 
 		if v.Type().ConvertibleTo(tConfig) {
-			c := v.Addr().Interface().(*Config)
+			var c *Config
+			if !v.CanAddr() {
+				vTmp := reflect.New(tConfig)
+				vTmp.Elem().Set(v)
+				c = vTmp.Interface().(*Config)
+			} else {
+				c = v.Addr().Interface().(*Config)
+			}
 			mergeConfig(tmp, c.fields)
 		} else if err := mergeStruct(tmp, v); err != nil {
 			return nil, err

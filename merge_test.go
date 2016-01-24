@@ -99,6 +99,10 @@ func TestMergeNested(t *testing.T) {
 			node{"b": true},
 		},
 		struct{ C *Config }{sub},
+		struct{ C struct{ B bool } }{struct{ B bool }{true}},
+		struct{ C interface{} }{struct{ B bool }{true}},
+		struct{ C interface{} }{struct{ B interface{} }{true}},
+		struct{ C struct{ B interface{} } }{struct{ B interface{} }{true}},
 
 		c,
 	}
@@ -150,7 +154,6 @@ func TestMergeArray(t *testing.T) {
 			assert.Equal(t, i+1, int(v))
 		}
 	}
-
 }
 
 func TestMergeMixedArray(t *testing.T) {

@@ -18,14 +18,15 @@ var (
 
 	ErrIndexOutOfRange = errors.New("index out of range")
 
-	ErrTODO = errors.New("TODO")
+	ErrPointerRequired = errors.New("requires pointer for unpacking")
+
+	ErrTODO = errors.New("TODO - implement me")
 )
 
 var (
 	tConfig         = reflect.TypeOf(Config{})
 	tConfigMap      = reflect.TypeOf((map[string]interface{})(nil))
 	tInterfaceArray = reflect.TypeOf([]interface{}(nil))
-	tInterface      = reflect.TypeOf(interface{}(nil))
 )
 
 func New() *Config {

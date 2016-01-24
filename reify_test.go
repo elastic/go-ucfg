@@ -1,6 +1,7 @@
 package ucfg
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -74,5 +75,150 @@ func TestUnpackPrimitiveValues(t *testing.T) {
 		assert.Equal(t, 42, int(i))
 		assert.Equal(t, 3.14, f)
 		assert.Equal(t, "string", s)
+	}
+}
+
+func TestUnpackNested(t *testing.T) {
+	var genSub = func(name string) *Config {
+		s := New()
+		s.SetBool(name, 0, false)
+		return s
+	}
+
+	sub := New()
+	sub.SetBool("b", 0, true)
+	c := New()
+	c.SetChild("c", 0, sub)
+
+	t.Logf("sub: %v", sub)
+	t.Logf("c: %v", c)
+
+	tests := []interface{}{
+		New(),
+
+		map[string]interface{}{},
+		map[string]*Config{},
+		map[string]map[string]bool{},
+		map[string]map[string]interface{}{},
+		map[string]interface{}{
+			"c": map[string]interface{}{
+				"b": false,
+			},
+		},
+		map[string]interface{}{
+			"c": nil,
+		},
+		map[string]*Config{
+			"c": nil,
+		},
+		map[string]interface{}{
+			"c": New(),
+		},
+		map[string]interface{}{
+			"c": genSub("b"),
+		},
+		map[string]interface{}{
+			"c": genSub("d"),
+		},
+		map[string]*struct{ B bool }{},
+		map[string]*struct{ B bool }{"c": nil},
+		map[string]struct{ B bool }{},
+
+		node{},
+		node{"c": node{}},
+		node{"c": node{"b": false}},
+		node{"c": genSub("d")},
+
+		&struct{ C *Config }{},
+		&struct{ C *Config }{sub},
+		&struct{ C *Config }{genSub("d")},
+		&struct{ C map[string]interface{} }{},
+		&struct{ C node }{},
+		&struct{ C struct{ B bool } }{},
+		&struct{ C *struct{ B bool } }{&struct{ B bool }{}},
+		&struct{ C *struct{ B bool } }{},
+	}
+
+	for i, out := range tests {
+		t.Logf("test unpack nested(%v) into: %v", i, out)
+		fmt.Printf("test unpack nested(%v) into: %v\n", i, out)
+		err := c.Unpack(out)
+		if err != nil {
+			t.Fatalf("failed to unpack: %v", err)
+		}
+	}
+
+	fmt.Println("sub: ", sub, &sub)
+	fmt.Println("c: ", c, &c)
+
+	// validate content by merging struct
+	for i, in := range tests {
+		t.Logf("test unpack nested(%v) check: %v", i, in)
+		fmt.Printf("test unpack nested(%v) check: %v\n", i, in)
+
+		fmt.Println("sub: ", sub, &sub)
+		fmt.Println("c: ", c, &c)
+
+		c := New()
+		err := c.Merge(in)
+		if err != nil {
+			fmt.Println("failed: ", err)
+			t.Errorf("failed")
+			continue
+		}
+
+		sub, err := c.Child("c", 0)
+		assert.NoError(t, err)
+
+		b, err := sub.Bool("b", 0)
+		assert.NoError(t, err)
+		assert.True(t, b)
+	}
+}
+
+func TestUnpackArray(t *testing.T) {
+	c := New()
+	c.SetInt("a", 0, 1)
+	c.SetInt("a", 1, 2)
+	c.SetInt("a", 2, 3)
+
+	tests := []interface{}{
+		/*
+			map[string]interface{}{},
+		*/
+		map[string]interface{}{
+			"a": []int{},
+		},
+
+		/*
+			node{},
+		*/
+	}
+
+	for i, out := range tests {
+		t.Logf("test unpack array(%v) into: %v", i, out)
+		err := c.Unpack(out)
+		if err != nil {
+			t.Fatalf("failed to unpack: %v", err)
+		}
+	}
+
+	// validate content by merging struct
+	for i, in := range tests {
+		t.Logf("test unpack nested(%v) check: %v", i, in)
+
+		c := New()
+		err := c.Merge(in)
+		if err != nil {
+			fmt.Println("failed: ", err)
+			t.Errorf("failed")
+			continue
+		}
+
+		for i := 0; i < 3; i++ {
+			v, err := c.Int("a", i)
+			assert.NoError(t, err)
+			assert.Equal(t, i+1, int(v))
+		}
 	}
 }
