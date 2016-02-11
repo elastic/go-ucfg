@@ -1,9 +1,6 @@
 package ucfg
 
-import (
-	"fmt"
-	"reflect"
-)
+import "reflect"
 
 func (c *Config) Unpack(to interface{}) error {
 	vTo := reflect.ValueOf(to)
@@ -31,14 +28,11 @@ func reifyInto(to reflect.Value, from map[string]value) error {
 }
 
 func reifyMap(to reflect.Value, from map[string]value) error {
-	fmt.Printf("reifyMap, to=%v, from=%v\n", to, from)
-
 	if to.Type().Key().Kind() != reflect.String {
 		return ErrTypeMismatch
 	}
 
 	if to.IsNil() {
-		fmt.Println("to is nil")
 		to.Set(reflect.MakeMap(to.Type()))
 	}
 
@@ -49,7 +43,6 @@ func reifyMap(to reflect.Value, from map[string]value) error {
 		var v reflect.Value
 		var err error
 
-		fmt.Println("key: ", k)
 		if !old.IsValid() {
 			v, err = reifyValue(to.Type().Elem(), value)
 		} else {
@@ -66,8 +59,6 @@ func reifyMap(to reflect.Value, from map[string]value) error {
 }
 
 func reifyStruct(to reflect.Value, from map[string]value) error {
-	fmt.Printf("reifyStruct, to=%v, from=%v\n", to, from)
-
 	to = chaseValuePointers(to)
 	numField := to.NumField()
 
@@ -78,7 +69,6 @@ func reifyStruct(to reflect.Value, from map[string]value) error {
 
 		value, ok := from[name]
 		if !ok {
-			fmt.Println("config missing")
 			// TODO: handle missing config
 			continue
 		}
@@ -94,21 +84,18 @@ func reifyStruct(to reflect.Value, from map[string]value) error {
 	return nil
 }
 
-func reifyValue(t reflect.Type, value value) (reflect.Value, error) {
-	fmt.Printf("reifyValue, t=%v, value=%v\n", t, value)
-
+func reifyValue(t reflect.Type, val value) (reflect.Value, error) {
 	if t.Kind() == reflect.Interface && t.NumMethod() == 0 {
-		fmt.Println("return interface")
-		return reflect.ValueOf(value.reify()), nil
+		return reflect.ValueOf(val.reify()), nil
 	}
 
 	baseType := chaseTypePointers(t)
 	if baseType == tConfig {
-		if _, ok := value.(cfgSub); !ok {
+		if _, ok := val.(cfgSub); !ok {
 			return reflect.Value{}, ErrTypeMismatch
 		}
 
-		v := value.reflect()
+		v := val.reflect()
 		if t == baseType { // copy config
 			v = v.Elem()
 		} else {
@@ -118,12 +105,12 @@ func reifyValue(t reflect.Type, value value) (reflect.Value, error) {
 	}
 
 	if baseType.Kind() == reflect.Struct {
-		if _, ok := value.(cfgSub); !ok {
+		if _, ok := val.(cfgSub); !ok {
 			return reflect.Value{}, ErrTypeMismatch
 		}
 
 		newSt := reflect.New(baseType)
-		if err := reifyInto(newSt, value.(cfgSub).c.fields); err != nil {
+		if err := reifyInto(newSt, val.(cfgSub).c.fields); err != nil {
 			return reflect.Value{}, err
 		}
 
@@ -134,7 +121,7 @@ func reifyValue(t reflect.Type, value value) (reflect.Value, error) {
 	}
 
 	if baseType.Kind() == reflect.Map {
-		if _, ok := value.(cfgSub); !ok {
+		if _, ok := val.(cfgSub); !ok {
 			return reflect.Value{}, ErrTypeMismatch
 		}
 
@@ -143,13 +130,26 @@ func reifyValue(t reflect.Type, value value) (reflect.Value, error) {
 		}
 
 		newMap := reflect.MakeMap(baseType)
-		if err := reifyInto(newMap, value.(cfgSub).c.fields); err != nil {
+		if err := reifyInto(newMap, val.(cfgSub).c.fields); err != nil {
 			return reflect.Value{}, err
 		}
 		return newMap, nil
 	}
 
-	v := value.reflect()
+	if baseType.Kind() == reflect.Slice {
+		arr, ok := val.(*cfgArray)
+		if !ok {
+			arr = &cfgArray{arr: []value{val}}
+		}
+
+		v, err := reifySlice(baseType, arr)
+		if err != nil {
+			return reflect.Value{}, err
+		}
+		return pointerize(t, baseType, v), nil
+	}
+
+	v := val.reflect()
 	if v.Type().ConvertibleTo(baseType) {
 		v = pointerize(t, baseType, v.Convert(baseType))
 		return v, nil
@@ -158,26 +158,17 @@ func reifyValue(t reflect.Type, value value) (reflect.Value, error) {
 	return reflect.Value{}, ErrTypeMismatch
 }
 
-func reifyMergeValue(oldValue reflect.Value, value value) (reflect.Value, error) {
-	fmt.Println("reifyMergeValue")
-
+func reifyMergeValue(oldValue reflect.Value, val value) (reflect.Value, error) {
 	old := chaseValueInterfaces(oldValue)
 	t := old.Type()
 	old = chaseValuePointers(old)
 	if (old.Kind() == reflect.Ptr || old.Kind() == reflect.Interface) && old.IsNil() {
-		return reifyValue(t, value)
+		return reifyValue(t, val)
 	}
 
 	baseType := chaseTypePointers(old.Type())
-	fmt.Println("old:", old)
-	fmt.Println("baseType: ", baseType)
-
-	fmt.Println("test config")
 	if baseType == tConfig {
-		fmt.Println("is config")
-
-		sub, ok := value.(cfgSub)
-		fmt.Println("is cfgSub:", ok)
+		sub, ok := val.(cfgSub)
 		if !ok {
 			return reflect.Value{}, ErrTypeMismatch
 		}
@@ -189,58 +180,85 @@ func reifyMergeValue(oldValue reflect.Value, value value) (reflect.Value, error)
 
 		// check if old is nil -> copy reference only
 		if old.Kind() == reflect.Ptr && old.IsNil() {
-			fmt.Println("is nil")
-			return pointerize(t, baseType, value.reflect()), nil
+			return pointerize(t, baseType, val.reflect()), nil
 		}
 
 		// check if old == value
 		subOld := chaseValuePointers(old).Addr().Interface().(*Config)
-		fmt.Println("old config")
 		if sub.c == subOld {
-			fmt.Println("same pointer")
 			return oldValue, nil
 		}
 
 		// old != value -> merge value into old
-		fmt.Println("merge configs")
 		err := mergeConfig(subOld.fields, sub.c.fields)
 		return oldValue, err
 	}
 
 	switch baseType.Kind() {
 	case reflect.Map:
-		fmt.Println("is map")
-		sub, ok := value.(cfgSub)
+		sub, ok := val.(cfgSub)
 		if !ok {
 			return reflect.Value{}, ErrTypeMismatch
 		}
 		err := reifyMap(old, sub.c.fields)
 		return old, err
 	case reflect.Struct:
-		fmt.Println("is struct")
-		sub, ok := value.(cfgSub)
+		sub, ok := val.(cfgSub)
 		if !ok {
 			return reflect.Value{}, ErrTypeMismatch
 		}
 		err := reifyStruct(old, sub.c.fields)
 		return oldValue, err
-	case reflect.Array, reflect.Slice:
-		fmt.Println("is array")
-		_, ok := value.(*cfgArray)
+	case reflect.Array:
+		arr, ok := val.(*cfgArray)
 		if !ok {
-			return reflect.Value{}, ErrTODO
+			// convert single value to array for merging
+			arr = &cfgArray{
+				arr: []value{val},
+			}
 		}
-		return reflect.Value{}, ErrTODO
+		return reifyArray(old, baseType, arr)
+	case reflect.Slice:
+		arr, ok := val.(*cfgArray)
+		if !ok {
+			// convert single value to array for merging
+			arr = &cfgArray{
+				arr: []value{val},
+			}
+		}
+		return reifySlice(baseType, arr)
 	}
 
 	// try primitive conversion
-	v := value.reflect()
-	fmt.Println("test convertible")
+	v := val.reflect()
 	if v.Type().ConvertibleTo(baseType) {
 		return pointerize(t, baseType, v.Convert(baseType)), nil
 	}
 
 	return reflect.Value{}, ErrTODO
+}
+
+func reifyArray(to reflect.Value, tTo reflect.Type, arr *cfgArray) (reflect.Value, error) {
+	if arr.Len() != tTo.Len() {
+		return reflect.Value{}, ErrArraySizeMistach
+	}
+	return reifyDoArray(to, tTo.Elem(), arr)
+}
+
+func reifySlice(tTo reflect.Type, arr *cfgArray) (reflect.Value, error) {
+	to := reflect.MakeSlice(tTo, arr.Len(), arr.Len())
+	return reifyDoArray(to, tTo.Elem(), arr)
+}
+
+func reifyDoArray(to reflect.Value, elemT reflect.Type, arr *cfgArray) (reflect.Value, error) {
+	for i, from := range arr.arr {
+		v, err := reifyValue(elemT, from)
+		if err != nil {
+			return reflect.Value{}, ErrTODO
+		}
+		to.Index(i).Set(v)
+	}
+	return to, nil
 }
 
 func pointerize(t, base reflect.Type, v reflect.Value) reflect.Value {

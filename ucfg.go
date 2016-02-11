@@ -20,6 +20,8 @@ var (
 
 	ErrPointerRequired = errors.New("requires pointer for unpacking")
 
+	ErrArraySizeMistach = errors.New("Array size mismatch")
+
 	ErrTODO = errors.New("TODO - implement me")
 )
 

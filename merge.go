@@ -1,9 +1,6 @@
 package ucfg
 
-import (
-	"fmt"
-	"reflect"
-)
+import "reflect"
 
 func (c *Config) Merge(from interface{}) error {
 	return mergeInto(c.fields, reflect.ValueOf(from))
@@ -30,8 +27,6 @@ func mergeInto(to map[string]value, from reflect.Value) error {
 }
 
 func mergeConfig(to, from map[string]value) error {
-	fmt.Printf("mergeConfig, to=%v, from=%v\n", to, from)
-
 	for k, v := range from {
 		old, ok := to[k]
 		if !ok {
@@ -60,11 +55,17 @@ func mergeConfig(to, from map[string]value) error {
 }
 
 func mergeMap(to map[string]value, from reflect.Value) error {
-	if from.Type().Key().Kind() != reflect.String {
+	k := from.Type().Key().Kind()
+	if k != reflect.String && k != reflect.Interface {
 		return ErrTypeMismatch
 	}
 
 	for _, k := range from.MapKeys() {
+		k = chaseValueInterfaces(k)
+		if k.Kind() != reflect.String {
+			return ErrTypeMismatch
+		}
+
 		key := k.String()
 		v := from.MapIndex(k)
 
@@ -157,7 +158,7 @@ func normalizeValue(v reflect.Value) (value, error) {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return &cfgInt{i: v.Int()}, nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return &cfgInt{i: v.Int()}, nil
+		return &cfgInt{i: int64(v.Uint())}, nil
 	case reflect.Float32, reflect.Float64:
 		return &cfgFloat{f: v.Float()}, nil
 	case reflect.String:

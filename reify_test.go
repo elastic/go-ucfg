@@ -1,7 +1,6 @@
 package ucfg
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -141,28 +140,19 @@ func TestUnpackNested(t *testing.T) {
 
 	for i, out := range tests {
 		t.Logf("test unpack nested(%v) into: %v", i, out)
-		fmt.Printf("test unpack nested(%v) into: %v\n", i, out)
 		err := c.Unpack(out)
 		if err != nil {
 			t.Fatalf("failed to unpack: %v", err)
 		}
 	}
 
-	fmt.Println("sub: ", sub, &sub)
-	fmt.Println("c: ", c, &c)
-
 	// validate content by merging struct
 	for i, in := range tests {
 		t.Logf("test unpack nested(%v) check: %v", i, in)
-		fmt.Printf("test unpack nested(%v) check: %v\n", i, in)
-
-		fmt.Println("sub: ", sub, &sub)
-		fmt.Println("c: ", c, &c)
 
 		c := New()
 		err := c.Merge(in)
 		if err != nil {
-			fmt.Println("failed: ", err)
 			t.Errorf("failed")
 			continue
 		}
@@ -183,16 +173,33 @@ func TestUnpackArray(t *testing.T) {
 	c.SetInt("a", 2, 3)
 
 	tests := []interface{}{
-		/*
-			map[string]interface{}{},
-		*/
+		map[string]interface{}{},
 		map[string]interface{}{
 			"a": []int{},
 		},
+		map[string][]int{
+			"a": []int{},
+		},
+		map[string]interface{}{
+			"a": []interface{}{},
+		},
+		map[string][]int{},
 
-		/*
-			node{},
-		*/
+		node{},
+		node{
+			"a": []int{},
+		},
+		node{
+			"a": []interface{}{},
+		},
+
+		&struct{ A []int }{},
+		&struct{ A []uint }{},
+		&struct{ A []interface{} }{},
+		&struct{ A interface{} }{},
+		&struct{ A [3]int }{},
+		&struct{ A [3]uint }{},
+		&struct{ A [3]interface{} }{},
 	}
 
 	for i, out := range tests {
@@ -210,7 +217,6 @@ func TestUnpackArray(t *testing.T) {
 		c := New()
 		err := c.Merge(in)
 		if err != nil {
-			fmt.Println("failed: ", err)
 			t.Errorf("failed")
 			continue
 		}
