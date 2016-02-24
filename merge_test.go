@@ -124,6 +124,43 @@ func TestMergeNested(t *testing.T) {
 	}
 }
 
+func TestMergeNestedPath(t *testing.T) {
+	tests := []interface{}{
+		map[string]interface{}{
+			"c.b": true,
+		},
+
+		map[string]bool{
+			"c.b": true,
+		},
+
+		node{
+			"c.b": true,
+		},
+
+		struct {
+			B bool `config:"c.b"`
+		}{true},
+	}
+
+	for i, in := range tests {
+		t.Logf("merge nested test(%v), %+v", i, in)
+
+		c := New()
+		err := c.Merge(in, PathSep("."))
+
+		assert.NoError(t, err)
+
+		sub, err := c.Child("c", 0)
+		assert.NoError(t, err)
+
+		b, err := sub.Bool("b", 0)
+		assert.NoError(t, err)
+
+		assert.True(t, b)
+	}
+}
+
 func TestMergeArray(t *testing.T) {
 	tests := []interface{}{
 		map[string]interface{}{

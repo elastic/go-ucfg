@@ -25,6 +25,8 @@ var (
 
 	ErrArraySizeMistach = errors.New("Array size mismatch")
 
+	ErrExpectedObject = errors.New("expected object")
+
 	ErrNilConfig = errors.New("config is nil")
 
 	ErrNilValue = errors.New("unexpected nil value")
@@ -44,9 +46,9 @@ func New() *Config {
 	}
 }
 
-func NewFrom(from interface{}) (*Config, error) {
+func NewFrom(from interface{}, opts ...MergeOption) (*Config, error) {
 	c := New()
-	if err := c.Merge(from); err != nil {
+	if err := c.Merge(from, opts...); err != nil {
 		return nil, err
 	}
 	return c, nil

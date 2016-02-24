@@ -1,11 +1,15 @@
 package ucfg
 
-import "reflect"
+import (
+	"reflect"
+	"strings"
+)
 
 type MergeOption func(mergeOpts) mergeOpts
 
 type mergeOpts struct {
-	tag string
+	tag     string
+	pathSep string
 }
 
 func StructTag(tag string) MergeOption {
@@ -15,9 +19,17 @@ func StructTag(tag string) MergeOption {
 	}
 }
 
+func PathSep(sep string) MergeOption {
+	return func(opts mergeOpts) mergeOpts {
+		opts.pathSep = sep
+		return opts
+	}
+}
+
 func makeMergeOpts(options []MergeOption) mergeOpts {
 	opts := mergeOpts{
-		tag: "config",
+		tag:     "config",
+		pathSep: "", // no separator by default
 	}
 	for _, opt := range options {
 		opts = opt(opts)
@@ -84,6 +96,36 @@ func normalize(opts mergeOpts, from interface{}) (*Config, error) {
 	return nil, ErrTypeMismatch
 }
 
+func normalizeCfgPath(cfg *Config, opts mergeOpts, field string) (*Config, string, error) {
+	if opts.pathSep == "" {
+		return cfg, field, nil
+	}
+
+	path := strings.Split(field, opts.pathSep)
+	for len(path) > 1 {
+		field = path[0]
+		path = path[1:]
+
+		sub, exists := cfg.fields[field]
+		if exists {
+			vSub, ok := sub.(cfgSub)
+			if !ok {
+				return nil, "", ErrExpectedObject
+			}
+
+			cfg = vSub.c
+			continue
+		}
+
+		next := New()
+		cfg.fields[field] = cfgSub{next}
+		cfg = next
+	}
+	field = path[0]
+
+	return cfg, field, nil
+}
+
 func normalizeMap(opts mergeOpts, from reflect.Value) (*Config, error) {
 	cfg := New()
 	if err := normalizeMapInto(cfg, opts, from); err != nil {
@@ -104,16 +146,10 @@ func normalizeMapInto(cfg *Config, opts mergeOpts, from reflect.Value) error {
 			return ErrKeyTypeNotString
 		}
 
-		name := k.String()
-		if cfg.HasField(name) {
-			return errDuplicateKey(name)
-		}
-
-		v, err := normalizeValue(opts, from.MapIndex(k))
+		err := normalizeSetField(cfg, opts, k.String(), from.MapIndex(k))
 		if err != nil {
 			return err
 		}
-		cfg.fields[name] = v
 	}
 	return nil
 }
@@ -150,19 +186,31 @@ func normalizeStructInto(cfg *Config, opts mergeOpts, from reflect.Value) error 
 				return err
 			}
 		} else {
-			v, err := normalizeValue(opts, v.Field(i))
+			name = fieldName(name, stField.Name)
+			err := normalizeSetField(cfg, opts, name, v.Field(i))
 			if err != nil {
 				return err
 			}
-
-			name = fieldName(name, stField.Name)
-			if cfg.HasField(name) {
-				return errDuplicateKey(name)
-			}
-
-			cfg.fields[name] = v
 		}
 	}
+	return nil
+}
+
+func normalizeSetField(cfg *Config, opts mergeOpts, name string, v reflect.Value) error {
+	to, name, err := normalizeCfgPath(cfg, opts, name)
+	if err != nil {
+		return err
+	}
+	if to.HasField(name) {
+		return errDuplicateKey(name)
+	}
+
+	val, err := normalizeValue(opts, v)
+	if err != nil {
+		return err
+	}
+
+	to.fields[name] = val
 	return nil
 }
 
