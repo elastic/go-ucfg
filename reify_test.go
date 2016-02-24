@@ -259,3 +259,60 @@ func TestUnpackArray(t *testing.T) {
 		}
 	}
 }
+
+func TestUnpackInline(t *testing.T) {
+	type subType struct{ B bool }
+	type subInterface struct{ B interface{} }
+
+	tests := []interface{}{
+		&struct {
+			C subType `config:",inline"`
+		}{subType{true}},
+		&struct {
+			subType `config:",inline"`
+		}{subType{true}},
+
+		&struct {
+			C subInterface `config:",inline"`
+		}{subInterface{true}},
+		&struct {
+			subInterface `config:",inline"`
+		}{subInterface{true}},
+
+		&struct {
+			C map[string]bool `config:",inline"`
+		}{map[string]bool{"b": true}},
+
+		&struct {
+			C map[string]interface{} `config:",inline"`
+		}{map[string]interface{}{"b": true}},
+
+		&struct {
+			C node `config:",inline"`
+		}{node{"b": true}},
+	}
+
+	c, _ := NewFrom(map[string]bool{"b": true})
+
+	for i, out := range tests {
+		t.Logf("test unpack with inline(%v) into: %v", i, out)
+		err := c.Unpack(out)
+		if err != nil {
+			t.Fatalf("failed to unpack: %v", err)
+		}
+	}
+
+	// validate content by merging struct
+	for i, in := range tests {
+		t.Logf("test unpack inlined(%v) check: %v", i, in)
+
+		c, err := NewFrom(in)
+		if err != nil {
+			t.Fatalf("failed with: %v", err)
+		}
+
+		b, err := c.Bool("b", 0)
+		assert.NoError(t, err)
+		assert.Equal(t, true, b)
+	}
+}
