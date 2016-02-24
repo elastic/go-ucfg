@@ -76,10 +76,11 @@ func reifyStruct(opts options, to reflect.Value, cfg *Config) error {
 	for i := 0; i < numField; i++ {
 		var err error
 		stField := to.Type().Field(i)
+		vField := to.Field(i)
 		name, tagOpts := parseTags(stField.Tag.Get(opts.tag))
 
 		if tagOpts.squash {
-			vField := chaseValue(to.Field(i))
+			vField := chaseValue(vField)
 			switch vField.Kind() {
 			case reflect.Struct, reflect.Map:
 				err = reifyInto(opts, vField, cfg)
@@ -88,7 +89,7 @@ func reifyStruct(opts options, to reflect.Value, cfg *Config) error {
 			}
 		} else {
 			name = fieldName(name, stField.Name)
-			err = reifyGetField(cfg, opts, name, to.Field(i))
+			err = reifyGetField(cfg, opts, name, vField)
 		}
 
 		if err != nil {
@@ -115,6 +116,7 @@ func reifyGetField(cfg *Config, opts options, name string, to reflect.Value) err
 	if err != nil {
 		return err
 	}
+
 	to.Set(v)
 	return nil
 }
@@ -296,8 +298,16 @@ func reifyMergeValue(
 
 	// try primitive conversion
 	v := val.reflect()
-	if v.Type().ConvertibleTo(baseType) {
+	if v.Type() == baseType {
+		return pointerize(t, baseType, v), nil
+	} else if v.Type().ConvertibleTo(baseType) {
 		return pointerize(t, baseType, v.Convert(baseType)), nil
+	} else if baseType.Kind() == reflect.String {
+		s, err := val.toString()
+		if err != nil {
+			return reflect.Value{}, err
+		}
+		return pointerize(t, baseType, reflect.ValueOf(s)), nil
 	}
 
 	return reflect.Value{}, ErrTODO
