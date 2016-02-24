@@ -135,11 +135,11 @@ func normalizeStructInto(cfg *Config, opts options, from reflect.Value) error {
 	numField := v.NumField()
 
 	for i := 0; i < numField; i++ {
+		var err error
 		stField := v.Type().Field(i)
 		name, tagOpts := parseTags(stField.Tag.Get(opts.tag))
-		if tagOpts.squash {
-			var err error
 
+		if tagOpts.squash {
 			vField := chaseValue(v.Field(i))
 			switch vField.Kind() {
 			case reflect.Struct:
@@ -149,16 +149,13 @@ func normalizeStructInto(cfg *Config, opts options, from reflect.Value) error {
 			default:
 				err = ErrTypeMismatch
 			}
-
-			if err != nil {
-				return err
-			}
 		} else {
 			name = fieldName(name, stField.Name)
-			err := normalizeSetField(cfg, opts, name, v.Field(i))
-			if err != nil {
-				return err
-			}
+			err = normalizeSetField(cfg, opts, name, v.Field(i))
+		}
+
+		if err != nil {
+			return err
 		}
 	}
 	return nil

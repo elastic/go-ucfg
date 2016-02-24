@@ -74,29 +74,48 @@ func reifyStruct(opts options, to reflect.Value, cfg *Config) error {
 	numField := to.NumField()
 
 	for i := 0; i < numField; i++ {
+		var err error
 		stField := to.Type().Field(i)
-		name, _ := parseTags(stField.Tag.Get(opts.tag))
-		name = fieldName(name, stField.Name)
+		name, tagOpts := parseTags(stField.Tag.Get(opts.tag))
 
-		from, field, err := reifyCfgPath(cfg, opts, name)
+		if tagOpts.squash {
+			vField := chaseValue(to.Field(i))
+			switch vField.Kind() {
+			case reflect.Struct, reflect.Map:
+				err = reifyInto(opts, vField, cfg)
+			default:
+				err = ErrTypeMismatch
+			}
+		} else {
+			name = fieldName(name, stField.Name)
+			err = reifyGetField(cfg, opts, name, to.Field(i))
+		}
+
 		if err != nil {
 			return err
 		}
-
-		value, ok := from.fields[field]
-		if !ok {
-			// TODO: handle missing config
-			continue
-		}
-
-		vField := to.Field(i)
-		v, err := reifyMergeValue(opts, vField, value)
-		if err != nil {
-			return err
-		}
-		vField.Set(v)
 	}
 
+	return nil
+}
+
+func reifyGetField(cfg *Config, opts options, name string, to reflect.Value) error {
+	from, field, err := reifyCfgPath(cfg, opts, name)
+	if err != nil {
+		return err
+	}
+
+	value, ok := from.fields[field]
+	if !ok {
+		// TODO: handle missing config
+		return nil
+	}
+
+	v, err := reifyMergeValue(opts, to, value)
+	if err != nil {
+		return err
+	}
+	to.Set(v)
 	return nil
 }
 
