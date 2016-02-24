@@ -80,11 +80,16 @@ func normalizeMapInto(cfg *Config, from reflect.Value) error {
 			return ErrKeyTypeNotString
 		}
 
+		name := k.String()
+		if cfg.HasField(name) {
+			return errDuplicateKey(name)
+		}
+
 		v, err := normalizeValue(from.MapIndex(k))
 		if err != nil {
 			return err
 		}
-		cfg.fields[k.String()] = v
+		cfg.fields[name] = v
 	}
 	return nil
 }
@@ -128,6 +133,10 @@ func normalizeStructInto(cfg *Config, from reflect.Value) error {
 			}
 
 			name = fieldName(name, stField.Name)
+			if cfg.HasField(name) {
+				return errDuplicateKey(name)
+			}
+
 			cfg.fields[name] = v
 		}
 	}

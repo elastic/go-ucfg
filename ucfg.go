@@ -2,6 +2,7 @@ package ucfg
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 )
 
@@ -62,4 +63,8 @@ func (c *Config) GetFields() []string {
 func (c *Config) HasField(name string) bool {
 	_, ok := c.fields[name]
 	return ok
+}
+
+func errDuplicateKey(name string) error {
+	return fmt.Errorf("duplicate field key '%v'", name)
 }
