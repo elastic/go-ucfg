@@ -163,6 +163,44 @@ func TestUnpackNested(t *testing.T) {
 	}
 }
 
+func TestUnpackNestedPath(t *testing.T) {
+	tests := []interface{}{
+		&struct {
+			B bool `config:"c.b"`
+		}{},
+
+		&struct {
+			B interface{} `config:"c.b"`
+		}{},
+	}
+
+	sub, _ := NewFrom(node{"b": true})
+	c, _ := NewFrom(node{"c": sub})
+
+	for i, out := range tests {
+		t.Logf("test unpack nested path(%v) into: %v", i, out)
+		err := c.Unpack(out, PathSep("."))
+		if err != nil {
+			t.Fatalf("failed to unpack: %v", err)
+		}
+	}
+
+	// validate content by merging struct (unnested)
+	for i, in := range tests {
+		t.Logf("test unpack nested(%v) check: %v", i, in)
+
+		c, err := NewFrom(in)
+		if err != nil {
+			t.Errorf("failed")
+			continue
+		}
+
+		b, err := c.Bool("c.b", 0)
+		assert.NoError(t, err)
+		assert.True(t, b)
+	}
+}
+
 func TestUnpackArray(t *testing.T) {
 	c, _ := NewFrom(node{"a": []int{1, 2, 3}})
 

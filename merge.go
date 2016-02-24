@@ -78,7 +78,7 @@ func normalizeCfgPath(cfg *Config, opts options, field string) (*Config, string,
 		if exists {
 			vSub, ok := sub.(cfgSub)
 			if !ok {
-				return nil, "", ErrExpectedObject
+				return nil, field, ErrExpectedObject
 			}
 
 			cfg = vSub.c

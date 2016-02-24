@@ -1,6 +1,9 @@
 package ucfg
 
-import "reflect"
+import (
+	"reflect"
+	"strings"
+)
 
 func (c *Config) Unpack(to interface{}, options ...Option) error {
 	if c == nil {
@@ -66,7 +69,7 @@ func reifyMap(opts options, to reflect.Value, from *Config) error {
 	return nil
 }
 
-func reifyStruct(opts options, to reflect.Value, from *Config) error {
+func reifyStruct(opts options, to reflect.Value, cfg *Config) error {
 	to = chaseValuePointers(to)
 	numField := to.NumField()
 
@@ -75,7 +78,12 @@ func reifyStruct(opts options, to reflect.Value, from *Config) error {
 		name, _ := parseTags(stField.Tag.Get(opts.tag))
 		name = fieldName(name, stField.Name)
 
-		value, ok := from.fields[name]
+		from, field, err := reifyCfgPath(cfg, opts, name)
+		if err != nil {
+			return err
+		}
+
+		value, ok := from.fields[field]
 		if !ok {
 			// TODO: handle missing config
 			continue
@@ -90,6 +98,33 @@ func reifyStruct(opts options, to reflect.Value, from *Config) error {
 	}
 
 	return nil
+}
+
+func reifyCfgPath(cfg *Config, opts options, field string) (*Config, string, error) {
+	if opts.pathSep == "" {
+		return cfg, field, nil
+	}
+
+	path := strings.Split(field, opts.pathSep)
+	for len(path) > 1 {
+		field = path[0]
+		path = path[1:]
+
+		sub, exists := cfg.fields[field]
+		if !exists {
+			return nil, field, ErrMissing
+		}
+
+		vSub, ok := sub.(cfgSub)
+		if !ok {
+			return nil, field, ErrExpectedObject
+		}
+
+		cfg = vSub.c
+	}
+	field = path[0]
+
+	return cfg, field, nil
 }
 
 func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, error) {
