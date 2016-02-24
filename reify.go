@@ -15,14 +15,14 @@ func (c *Config) Unpack(to interface{}, options ...Option) error {
 	if to == nil || (vTo.Kind() != reflect.Ptr && vTo.Kind() != reflect.Map) {
 		return ErrPointerRequired
 	}
-	return reifyInto(opts, vTo, c.fields)
+	return reifyInto(opts, vTo, c)
 }
 
-func reifyInto(opts options, to reflect.Value, from map[string]value) error {
+func reifyInto(opts options, to reflect.Value, from *Config) error {
 	to = chaseValuePointers(to)
 
 	if to.Type() == tConfig {
-		return mergeConfig(to.Addr().Interface().(*Config).fields, from)
+		return mergeConfig(to.Addr().Interface().(*Config).fields, from.fields)
 	}
 
 	switch to.Kind() {
@@ -35,7 +35,7 @@ func reifyInto(opts options, to reflect.Value, from map[string]value) error {
 	return ErrTypeMismatch
 }
 
-func reifyMap(opts options, to reflect.Value, from map[string]value) error {
+func reifyMap(opts options, to reflect.Value, from *Config) error {
 	if to.Type().Key().Kind() != reflect.String {
 		return ErrTypeMismatch
 	}
@@ -44,7 +44,7 @@ func reifyMap(opts options, to reflect.Value, from map[string]value) error {
 		to.Set(reflect.MakeMap(to.Type()))
 	}
 
-	for k, value := range from {
+	for k, value := range from.fields {
 		key := reflect.ValueOf(k)
 
 		old := to.MapIndex(key)
@@ -66,7 +66,7 @@ func reifyMap(opts options, to reflect.Value, from map[string]value) error {
 	return nil
 }
 
-func reifyStruct(opts options, to reflect.Value, from map[string]value) error {
+func reifyStruct(opts options, to reflect.Value, from *Config) error {
 	to = chaseValuePointers(to)
 	numField := to.NumField()
 
@@ -75,7 +75,7 @@ func reifyStruct(opts options, to reflect.Value, from map[string]value) error {
 		name, _ := parseTags(stField.Tag.Get(opts.tag))
 		name = fieldName(name, stField.Name)
 
-		value, ok := from[name]
+		value, ok := from.fields[name]
 		if !ok {
 			// TODO: handle missing config
 			continue
@@ -118,7 +118,7 @@ func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, error) 
 		}
 
 		newSt := reflect.New(baseType)
-		if err := reifyInto(opts, newSt, val.(cfgSub).c.fields); err != nil {
+		if err := reifyInto(opts, newSt, val.(cfgSub).c); err != nil {
 			return reflect.Value{}, err
 		}
 
@@ -138,7 +138,7 @@ func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, error) 
 		}
 
 		newMap := reflect.MakeMap(baseType)
-		if err := reifyInto(opts, newMap, val.(cfgSub).c.fields); err != nil {
+		if err := reifyInto(opts, newMap, val.(cfgSub).c); err != nil {
 			return reflect.Value{}, err
 		}
 		return newMap, nil
@@ -211,14 +211,14 @@ func reifyMergeValue(
 		if !ok {
 			return reflect.Value{}, ErrTypeMismatch
 		}
-		err := reifyMap(opts, old, sub.c.fields)
+		err := reifyMap(opts, old, sub.c)
 		return old, err
 	case reflect.Struct:
 		sub, ok := val.(cfgSub)
 		if !ok {
 			return reflect.Value{}, ErrTypeMismatch
 		}
-		err := reifyStruct(opts, old, sub.c.fields)
+		err := reifyStruct(opts, old, sub.c)
 		return oldValue, err
 	case reflect.Array:
 		arr, ok := val.(*cfgArray)
