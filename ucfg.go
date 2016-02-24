@@ -16,6 +16,8 @@ var (
 
 	ErrTypeMismatch = errors.New("type mismatch")
 
+	ErrKeyTypeNotString = errors.New("key must be a string")
+
 	ErrIndexOutOfRange = errors.New("index out of range")
 
 	ErrPointerRequired = errors.New("requires pointer for unpacking")
