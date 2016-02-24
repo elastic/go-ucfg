@@ -5,40 +5,8 @@ import (
 	"strings"
 )
 
-type MergeOption func(mergeOpts) mergeOpts
-
-type mergeOpts struct {
-	tag     string
-	pathSep string
-}
-
-func StructTag(tag string) MergeOption {
-	return func(opts mergeOpts) mergeOpts {
-		opts.tag = tag
-		return opts
-	}
-}
-
-func PathSep(sep string) MergeOption {
-	return func(opts mergeOpts) mergeOpts {
-		opts.pathSep = sep
-		return opts
-	}
-}
-
-func makeMergeOpts(options []MergeOption) mergeOpts {
-	opts := mergeOpts{
-		tag:     "config",
-		pathSep: "", // no separator by default
-	}
-	for _, opt := range options {
-		opts = opt(opts)
-	}
-	return opts
-}
-
-func (c *Config) Merge(from interface{}, options ...MergeOption) error {
-	opts := makeMergeOpts(options)
+func (c *Config) Merge(from interface{}, options ...Option) error {
+	opts := makeOptions(options)
 	other, err := normalize(opts, from)
 	if err != nil {
 		return err
@@ -76,7 +44,7 @@ func mergeConfig(to, from map[string]value) error {
 
 // convert from into normalized *Config checking for errors
 // before merging generated(normalized) config with current config
-func normalize(opts mergeOpts, from interface{}) (*Config, error) {
+func normalize(opts options, from interface{}) (*Config, error) {
 	vFrom := chaseValue(reflect.ValueOf(from))
 
 	switch vFrom.Type() {
@@ -96,7 +64,7 @@ func normalize(opts mergeOpts, from interface{}) (*Config, error) {
 	return nil, ErrTypeMismatch
 }
 
-func normalizeCfgPath(cfg *Config, opts mergeOpts, field string) (*Config, string, error) {
+func normalizeCfgPath(cfg *Config, opts options, field string) (*Config, string, error) {
 	if opts.pathSep == "" {
 		return cfg, field, nil
 	}
@@ -126,7 +94,7 @@ func normalizeCfgPath(cfg *Config, opts mergeOpts, field string) (*Config, strin
 	return cfg, field, nil
 }
 
-func normalizeMap(opts mergeOpts, from reflect.Value) (*Config, error) {
+func normalizeMap(opts options, from reflect.Value) (*Config, error) {
 	cfg := New()
 	if err := normalizeMapInto(cfg, opts, from); err != nil {
 		return nil, err
@@ -134,7 +102,7 @@ func normalizeMap(opts mergeOpts, from reflect.Value) (*Config, error) {
 	return cfg, nil
 }
 
-func normalizeMapInto(cfg *Config, opts mergeOpts, from reflect.Value) error {
+func normalizeMapInto(cfg *Config, opts options, from reflect.Value) error {
 	k := from.Type().Key().Kind()
 	if k != reflect.String && k != reflect.Interface {
 		return ErrTypeMismatch
@@ -154,7 +122,7 @@ func normalizeMapInto(cfg *Config, opts mergeOpts, from reflect.Value) error {
 	return nil
 }
 
-func normalizeStruct(opts mergeOpts, from reflect.Value) (*Config, error) {
+func normalizeStruct(opts options, from reflect.Value) (*Config, error) {
 	cfg := New()
 	if err := normalizeStructInto(cfg, opts, from); err != nil {
 		return nil, err
@@ -162,7 +130,7 @@ func normalizeStruct(opts mergeOpts, from reflect.Value) (*Config, error) {
 	return cfg, nil
 }
 
-func normalizeStructInto(cfg *Config, opts mergeOpts, from reflect.Value) error {
+func normalizeStructInto(cfg *Config, opts options, from reflect.Value) error {
 	v := chaseValue(from)
 	numField := v.NumField()
 
@@ -196,7 +164,7 @@ func normalizeStructInto(cfg *Config, opts mergeOpts, from reflect.Value) error 
 	return nil
 }
 
-func normalizeSetField(cfg *Config, opts mergeOpts, name string, v reflect.Value) error {
+func normalizeSetField(cfg *Config, opts options, name string, v reflect.Value) error {
 	to, name, err := normalizeCfgPath(cfg, opts, name)
 	if err != nil {
 		return err
@@ -214,7 +182,7 @@ func normalizeSetField(cfg *Config, opts mergeOpts, name string, v reflect.Value
 	return nil
 }
 
-func normalizeStructValue(opts mergeOpts, from reflect.Value) (value, error) {
+func normalizeStructValue(opts options, from reflect.Value) (value, error) {
 	sub, err := normalizeStruct(opts, from)
 	if err != nil {
 		return nil, err
@@ -222,7 +190,7 @@ func normalizeStructValue(opts mergeOpts, from reflect.Value) (value, error) {
 	return cfgSub{sub}, nil
 }
 
-func normalizeMapValue(opts mergeOpts, from reflect.Value) (value, error) {
+func normalizeMapValue(opts options, from reflect.Value) (value, error) {
 	sub, err := normalizeMap(opts, from)
 	if err != nil {
 		return nil, err
@@ -230,7 +198,7 @@ func normalizeMapValue(opts mergeOpts, from reflect.Value) (value, error) {
 	return cfgSub{sub}, nil
 }
 
-func normalizeArray(opts mergeOpts, v reflect.Value) (value, error) {
+func normalizeArray(opts options, v reflect.Value) (value, error) {
 	l := v.Len()
 	out := make([]value, 0, l)
 	for i := 0; i < l; i++ {
@@ -243,7 +211,7 @@ func normalizeArray(opts mergeOpts, v reflect.Value) (value, error) {
 	return &cfgArray{arr: out}, nil
 }
 
-func normalizeValue(opts mergeOpts, v reflect.Value) (value, error) {
+func normalizeValue(opts options, v reflect.Value) (value, error) {
 	v = chaseValue(v)
 
 	// handle primitives

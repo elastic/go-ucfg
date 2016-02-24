@@ -10,6 +10,13 @@ type Config struct {
 	fields map[string]value
 }
 
+type Option func(*options)
+
+type options struct {
+	tag     string
+	pathSep string
+}
+
 var (
 	ErrMissing = errors.New("field name missing")
 
@@ -46,7 +53,7 @@ func New() *Config {
 	}
 }
 
-func NewFrom(from interface{}, opts ...MergeOption) (*Config, error) {
+func NewFrom(from interface{}, opts ...Option) (*Config, error) {
 	c := New()
 	if err := c.Merge(from, opts...); err != nil {
 		return nil, err
@@ -65,6 +72,29 @@ func (c *Config) GetFields() []string {
 func (c *Config) HasField(name string) bool {
 	_, ok := c.fields[name]
 	return ok
+}
+
+func StructTag(tag string) Option {
+	return func(o *options) {
+		o.tag = tag
+	}
+}
+
+func PathSep(sep string) Option {
+	return func(o *options) {
+		o.pathSep = sep
+	}
+}
+
+func makeOptions(opts []Option) options {
+	o := options{
+		tag:     "config",
+		pathSep: "", // no separator by default
+	}
+	for _, opt := range opts {
+		opt(&o)
+	}
+	return o
 }
 
 func errDuplicateKey(name string) error {

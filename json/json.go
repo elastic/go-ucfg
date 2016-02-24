@@ -7,7 +7,7 @@ import (
 	"github.com/urso/ucfg"
 )
 
-func NewConfig(in []byte, opts ...ucfg.MergeOption) (*ucfg.Config, error) {
+func NewConfig(in []byte, opts ...ucfg.Option) (*ucfg.Config, error) {
 	var m map[string]interface{}
 	if err := json.Unmarshal(in, &m); err != nil {
 		return nil, err
@@ -15,7 +15,7 @@ func NewConfig(in []byte, opts ...ucfg.MergeOption) (*ucfg.Config, error) {
 	return ucfg.NewFrom(m, opts...)
 }
 
-func NewConfigWithFile(name string, opts ...ucfg.MergeOption) (*ucfg.Config, error) {
+func NewConfigWithFile(name string, opts ...ucfg.Option) (*ucfg.Config, error) {
 	input, err := ioutil.ReadFile(name)
 	if err != nil {
 		return nil, err
