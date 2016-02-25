@@ -3,6 +3,7 @@ package ucfg
 import (
 	"reflect"
 	"strings"
+	"time"
 )
 
 func (c *Config) Unpack(to interface{}, options ...Option) error {
@@ -43,10 +44,13 @@ func reifyMap(opts options, to reflect.Value, from *Config) error {
 		return ErrTypeMismatch
 	}
 
+	if len(from.fields) == 0 {
+		return nil
+	}
+
 	if to.IsNil() {
 		to.Set(reflect.MakeMap(to.Type()))
 	}
-
 	for k, value := range from.fields {
 		key := reflect.ValueOf(k)
 
@@ -296,18 +300,42 @@ func reifyMergeValue(
 		return reifySlice(opts, baseType, arr)
 	}
 
+	return reifyPrimitive(opts, val, t, baseType)
+}
+
+func reifyPrimitive(
+	opts options,
+	val value,
+	t, baseType reflect.Type,
+) (reflect.Value, error) {
 	// try primitive conversion
 	v := val.reflect()
-	if v.Type() == baseType {
+	switch {
+	case v.Type() == baseType:
 		return pointerize(t, baseType, v), nil
-	} else if v.Type().ConvertibleTo(baseType) {
+
+	case v.Type().ConvertibleTo(baseType):
 		return pointerize(t, baseType, v.Convert(baseType)), nil
-	} else if baseType.Kind() == reflect.String {
+
+	case baseType.Kind() == reflect.String:
 		s, err := val.toString()
 		if err != nil {
 			return reflect.Value{}, err
 		}
 		return pointerize(t, baseType, reflect.ValueOf(s)), nil
+
+	case baseType == tDuration:
+		s, err := val.toString()
+		if err != nil {
+			return reflect.Value{}, err
+		}
+
+		d, err := time.ParseDuration(s)
+		if err != nil {
+			return reflect.Value{}, err
+		}
+
+		return pointerize(t, baseType, reflect.ValueOf(d)), nil
 	}
 
 	return reflect.Value{}, ErrTODO

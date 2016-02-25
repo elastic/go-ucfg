@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"time"
 )
 
 type Config struct {
@@ -45,6 +46,7 @@ var (
 	tConfig         = reflect.TypeOf(Config{})
 	tConfigMap      = reflect.TypeOf((map[string]interface{})(nil))
 	tInterfaceArray = reflect.TypeOf([]interface{}(nil))
+	tDuration       = reflect.TypeOf(time.Duration(0))
 )
 
 func New() *Config {
