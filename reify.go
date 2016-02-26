@@ -218,9 +218,8 @@ func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, error) 
 		return pointerize(t, baseType, v), nil
 	}
 
-	v := val.reflect()
-	if v.Type().ConvertibleTo(baseType) {
-		v = pointerize(t, baseType, v.Convert(baseType))
+	if val.typ().ConvertibleTo(baseType) {
+		v := pointerize(t, baseType, val.reflect().Convert(baseType))
 		return v, nil
 	}
 
@@ -309,14 +308,18 @@ func reifyPrimitive(
 	val value,
 	t, baseType reflect.Type,
 ) (reflect.Value, error) {
-	// try primitive conversion
-	v := val.reflect()
-	switch {
-	case v.Type() == baseType:
-		return pointerize(t, baseType, v), nil
+	// zero initialize value if val==nil
+	if _, ok := val.(cfgNil); ok {
+		return pointerize(t, baseType, reflect.Zero(baseType)), nil
+	}
 
-	case v.Type().ConvertibleTo(baseType):
-		return pointerize(t, baseType, v.Convert(baseType)), nil
+	// try primitive conversion
+	switch {
+	case val.typ() == baseType:
+		return pointerize(t, baseType, val.reflect()), nil
+
+	case val.typ().ConvertibleTo(baseType):
+		return pointerize(t, baseType, val.reflect().Convert(baseType)), nil
 
 	case baseType.Kind() == reflect.String:
 		s, err := val.toString()

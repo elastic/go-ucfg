@@ -47,6 +47,11 @@ var (
 	tConfigMap      = reflect.TypeOf((map[string]interface{})(nil))
 	tInterfaceArray = reflect.TypeOf([]interface{}(nil))
 	tDuration       = reflect.TypeOf(time.Duration(0))
+
+	tBool    = reflect.TypeOf(true)
+	tInt64   = reflect.TypeOf(int64(0))
+	tFloat64 = reflect.TypeOf(float64(0))
+	tString  = reflect.TypeOf("")
 )
 
 func New() *Config {
