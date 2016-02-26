@@ -47,6 +47,8 @@ type cfgSub struct {
 	c *Config
 }
 
+type cfgNil struct{ cfgPrimitive }
+
 type cfgPrimitive struct{}
 
 func (cfgPrimitive) Len() int                   { return 1 }
@@ -65,6 +67,13 @@ func (c *cfgArray) reify() interface{} {
 	}
 	return r
 }
+
+func (cfgNil) toString() (string, error)  { return "null", nil }
+func (cfgNil) toInt() (int64, error)      { return 0, ErrTypeMismatch }
+func (cfgNil) toFloat() (float64, error)  { return 0, ErrTypeMismatch }
+func (cfgNil) toConfig() (*Config, error) { return New(), nil }
+func (cfgNil) reflect() reflect.Value     { return reflect.ValueOf(nil) }
+func (cfgNil) reify() interface{}         { return nil }
 
 func (c *cfgBool) toBool() (bool, error)     { return c.b, nil }
 func (c *cfgBool) reflect() reflect.Value    { return reflect.ValueOf(c.b) }

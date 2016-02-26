@@ -22,19 +22,19 @@ func mergeConfig(to, from map[string]value) error {
 			continue
 		}
 
-		subOld, ok := old.(cfgSub)
-		if !ok {
+		subOld, err := old.toConfig()
+		if err != nil {
 			to[k] = v
 			continue
 		}
 
-		subFrom, ok := v.(cfgSub)
-		if !ok {
+		subFrom, err := v.toConfig()
+		if err != nil {
 			to[k] = v
 			continue
 		}
 
-		err := mergeConfig(subOld.c.fields, subFrom.c.fields)
+		err = mergeConfig(subOld.fields, subFrom.fields)
 		if err != nil {
 			return err
 		}
@@ -241,6 +241,9 @@ func normalizeValue(opts options, v reflect.Value) (value, error) {
 		}
 		return normalizeStructValue(opts, v)
 	default:
+		if v.IsNil() {
+			return cfgNil{}, nil
+		}
 		return nil, ErrTypeMismatch
 	}
 }

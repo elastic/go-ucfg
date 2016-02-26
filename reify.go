@@ -140,12 +140,11 @@ func reifyCfgPath(cfg *Config, opts options, field string) (*Config, string, err
 			return nil, field, ErrMissing
 		}
 
-		vSub, ok := sub.(cfgSub)
-		if !ok {
+		cSub, err := sub.toConfig()
+		if err != nil {
 			return nil, field, ErrExpectedObject
 		}
-
-		cfg = vSub.c
+		cfg = cSub
 	}
 	field = path[0]
 
@@ -159,7 +158,7 @@ func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, error) 
 
 	baseType := chaseTypePointers(t)
 	if baseType == tConfig {
-		if _, ok := val.(cfgSub); !ok {
+		if _, err := val.toConfig(); err != nil {
 			return reflect.Value{}, ErrTypeMismatch
 		}
 
@@ -173,12 +172,13 @@ func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, error) 
 	}
 
 	if baseType.Kind() == reflect.Struct {
-		if _, ok := val.(cfgSub); !ok {
+		sub, err := val.toConfig()
+		if err != nil {
 			return reflect.Value{}, ErrTypeMismatch
 		}
 
 		newSt := reflect.New(baseType)
-		if err := reifyInto(opts, newSt, val.(cfgSub).c); err != nil {
+		if err := reifyInto(opts, newSt, sub); err != nil {
 			return reflect.Value{}, err
 		}
 
@@ -189,7 +189,8 @@ func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, error) 
 	}
 
 	if baseType.Kind() == reflect.Map {
-		if _, ok := val.(cfgSub); !ok {
+		sub, err := val.toConfig()
+		if err != nil {
 			return reflect.Value{}, ErrTypeMismatch
 		}
 
@@ -198,7 +199,7 @@ func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, error) 
 		}
 
 		newMap := reflect.MakeMap(baseType)
-		if err := reifyInto(opts, newMap, val.(cfgSub).c); err != nil {
+		if err := reifyInto(opts, newMap, sub); err != nil {
 			return reflect.Value{}, err
 		}
 		return newMap, nil
@@ -239,8 +240,8 @@ func reifyMergeValue(
 
 	baseType := chaseTypePointers(old.Type())
 	if baseType == tConfig {
-		sub, ok := val.(cfgSub)
-		if !ok {
+		sub, err := val.toConfig()
+		if err != nil {
 			return reflect.Value{}, ErrTypeMismatch
 		}
 
@@ -256,29 +257,29 @@ func reifyMergeValue(
 
 		// check if old == value
 		subOld := chaseValuePointers(old).Addr().Interface().(*Config)
-		if sub.c == subOld {
+		if sub == subOld {
 			return oldValue, nil
 		}
 
 		// old != value -> merge value into old
-		err := mergeConfig(subOld.fields, sub.c.fields)
+		err = mergeConfig(subOld.fields, sub.fields)
 		return oldValue, err
 	}
 
 	switch baseType.Kind() {
 	case reflect.Map:
-		sub, ok := val.(cfgSub)
-		if !ok {
+		sub, err := val.toConfig()
+		if err != nil {
 			return reflect.Value{}, ErrTypeMismatch
 		}
-		err := reifyMap(opts, old, sub.c)
+		err = reifyMap(opts, old, sub)
 		return old, err
 	case reflect.Struct:
-		sub, ok := val.(cfgSub)
-		if !ok {
+		sub, err := val.toConfig()
+		if err != nil {
 			return reflect.Value{}, ErrTypeMismatch
 		}
-		err := reifyStruct(opts, old, sub.c)
+		err = reifyStruct(opts, old, sub)
 		return oldValue, err
 	case reflect.Array:
 		arr, ok := val.(*cfgArray)
