@@ -81,19 +81,19 @@ func (cfgNil) typ() reflect.Type          { return reflect.PtrTo(tConfig) }
 func (c *cfgBool) toBool() (bool, error)     { return c.b, nil }
 func (c *cfgBool) reflect() reflect.Value    { return reflect.ValueOf(c.b) }
 func (c *cfgBool) reify() interface{}        { return c.b }
-func (c *cfgBool) toString() (string, error) { return fmt.Sprintf("%v", c.b), nil }
+func (c *cfgBool) toString() (string, error) { return fmt.Sprintf("%t", c.b), nil }
 func (c *cfgBool) typ() reflect.Type         { return tBool }
 
 func (c *cfgInt) toInt() (int64, error)     { return c.i, nil }
 func (c *cfgInt) reflect() reflect.Value    { return reflect.ValueOf(c.i) }
 func (c *cfgInt) reify() interface{}        { return c.i }
-func (c *cfgInt) toString() (string, error) { return fmt.Sprintf("%v", c.i), nil }
+func (c *cfgInt) toString() (string, error) { return fmt.Sprintf("%d", c.i), nil }
 func (c *cfgInt) typ() reflect.Type         { return tInt64 }
 
 func (c *cfgFloat) toFloat() (float64, error) { return c.f, nil }
 func (c *cfgFloat) reflect() reflect.Value    { return reflect.ValueOf(c.f) }
 func (c *cfgFloat) reify() interface{}        { return c.f }
-func (c *cfgFloat) toString() (string, error) { return fmt.Sprintf("%v", c.f), nil }
+func (c *cfgFloat) toString() (string, error) { return fmt.Sprintf("%f", c.f), nil }
 func (c *cfgFloat) typ() reflect.Type         { return tFloat64 }
 
 func (c *cfgString) toString() (string, error) { return c.s, nil }

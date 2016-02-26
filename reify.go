@@ -325,9 +325,6 @@ func reifyPrimitive(
 	case val.typ() == baseType:
 		return pointerize(t, baseType, val.reflect()), nil
 
-	case val.typ().ConvertibleTo(baseType):
-		return pointerize(t, baseType, val.reflect().Convert(baseType)), nil
-
 	case baseType.Kind() == reflect.String:
 		s, err := val.toString()
 		if err != nil {
@@ -347,6 +344,10 @@ func reifyPrimitive(
 		}
 
 		return pointerize(t, baseType, reflect.ValueOf(d)), nil
+
+	case val.typ().ConvertibleTo(baseType):
+		return pointerize(t, baseType, val.reflect().Convert(baseType)), nil
+
 	}
 
 	return reflect.Value{}, raise(ErrTODO)
