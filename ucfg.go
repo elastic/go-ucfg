@@ -107,3 +107,8 @@ func makeOptions(opts []Option) options {
 func errDuplicateKey(name string) error {
 	return fmt.Errorf("duplicate field key '%v'", name)
 }
+
+func raise(err error) error {
+	// fmt.Println(string(debug.Stack()))
+	return err
+}

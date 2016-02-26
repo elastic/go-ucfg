@@ -261,23 +261,23 @@ func TestUnpackArray(t *testing.T) {
 }
 
 func TestUnpackInline(t *testing.T) {
-	type subType struct{ B bool }
-	type subInterface struct{ B interface{} }
+	type SubType struct{ B bool }
+	type SubInterface struct{ B interface{} }
 
 	tests := []interface{}{
 		&struct {
-			C subType `config:",inline"`
-		}{subType{true}},
+			C SubType `config:",inline"`
+		}{SubType{true}},
 		&struct {
-			subType `config:",inline"`
-		}{subType{true}},
+			SubType `config:",inline"`
+		}{SubType{true}},
 
 		&struct {
-			C subInterface `config:",inline"`
-		}{subInterface{true}},
+			C SubInterface `config:",inline"`
+		}{SubInterface{true}},
 		&struct {
-			subInterface `config:",inline"`
-		}{subInterface{true}},
+			SubInterface `config:",inline"`
+		}{SubInterface{true}},
 
 		&struct {
 			C map[string]bool `config:",inline"`

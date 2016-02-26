@@ -61,7 +61,7 @@ func normalize(opts options, from interface{}) (*Config, error) {
 		}
 	}
 
-	return nil, ErrTypeMismatch
+	return nil, raise(ErrTypeMismatch)
 }
 
 func normalizeCfgPath(cfg *Config, opts options, field string) (*Config, string, error) {
@@ -78,7 +78,7 @@ func normalizeCfgPath(cfg *Config, opts options, field string) (*Config, string,
 		if exists {
 			vSub, ok := sub.(cfgSub)
 			if !ok {
-				return nil, field, ErrExpectedObject
+				return nil, field, raise(ErrExpectedObject)
 			}
 
 			cfg = vSub.c
@@ -105,13 +105,13 @@ func normalizeMap(opts options, from reflect.Value) (*Config, error) {
 func normalizeMapInto(cfg *Config, opts options, from reflect.Value) error {
 	k := from.Type().Key().Kind()
 	if k != reflect.String && k != reflect.Interface {
-		return ErrTypeMismatch
+		return raise(ErrTypeMismatch)
 	}
 
 	for _, k := range from.MapKeys() {
 		k = chaseValueInterfaces(k)
 		if k.Kind() != reflect.String {
-			return ErrKeyTypeNotString
+			return raise(ErrKeyTypeNotString)
 		}
 
 		err := normalizeSetField(cfg, opts, k.String(), from.MapIndex(k))
@@ -147,7 +147,7 @@ func normalizeStructInto(cfg *Config, opts options, from reflect.Value) error {
 			case reflect.Map:
 				err = normalizeMapInto(cfg, opts, vField)
 			default:
-				err = ErrTypeMismatch
+				return raise(ErrTypeMismatch)
 			}
 		} else {
 			name = fieldName(name, stField.Name)
@@ -244,6 +244,6 @@ func normalizeValue(opts options, v reflect.Value) (value, error) {
 		if v.IsNil() {
 			return cfgNil{}, nil
 		}
-		return nil, ErrTypeMismatch
+		return nil, raise(ErrTypeMismatch)
 	}
 }
