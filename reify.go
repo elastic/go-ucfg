@@ -195,7 +195,8 @@ func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, error) 
 		return pointerize(t, baseType, newSt), nil
 	}
 
-	if baseType.Kind() == reflect.Map {
+	switch baseType.Kind() {
+	case reflect.Map:
 		sub, err := val.toConfig()
 		if err != nil {
 			return reflect.Value{}, raise(ErrTypeMismatch)
@@ -210,27 +211,16 @@ func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, error) 
 			return reflect.Value{}, err
 		}
 		return newMap, nil
-	}
 
-	if baseType.Kind() == reflect.Slice {
-		arr, ok := val.(*cfgArray)
-		if !ok {
-			arr = &cfgArray{arr: []value{val}}
-		}
-
-		v, err := reifySlice(opts, baseType, arr)
+	case reflect.Slice:
+		v, err := reifySlice(opts, baseType, castArr(val))
 		if err != nil {
 			return reflect.Value{}, err
 		}
 		return pointerize(t, baseType, v), nil
 	}
 
-	if val.typ().ConvertibleTo(baseType) {
-		v := pointerize(t, baseType, val.reflect().Convert(baseType))
-		return v, nil
-	}
-
-	return reflect.Value{}, raise(ErrTypeMismatch)
+	return reifyPrimitive(opts, val, t, baseType)
 }
 
 func reifyMergeValue(
@@ -280,6 +270,7 @@ func reifyMergeValue(
 		}
 		err = reifyMap(opts, old, sub)
 		return old, err
+
 	case reflect.Struct:
 		sub, err := val.toConfig()
 		if err != nil {
@@ -287,28 +278,12 @@ func reifyMergeValue(
 		}
 		err = reifyStruct(opts, old, sub)
 		return oldValue, err
+
 	case reflect.Array:
-		arr, ok := val.(*cfgArray)
-		if !ok {
-			// convert single value to array for merging
-			arr = &cfgArray{
-				arr: []value{val},
-			}
-		}
-		return reifyArray(opts, old, baseType, arr)
+		return reifyArray(opts, old, baseType, castArr(val))
+
 	case reflect.Slice:
-		arr, ok := val.(*cfgArray)
-		if !ok {
-			if val.Len() == 0 {
-				arr = &cfgArray{}
-			} else {
-				// convert single value to array for merging
-				arr = &cfgArray{
-					arr: []value{val},
-				}
-			}
-		}
-		return reifySlice(opts, baseType, arr)
+		return reifySlice(opts, baseType, castArr(val))
 	}
 
 	return reifyPrimitive(opts, val, t, baseType)
@@ -381,6 +356,20 @@ func reifyDoArray(
 		to.Index(i).Set(v)
 	}
 	return to, nil
+}
+
+func castArr(v value) *cfgArray {
+	if arr, ok := v.(*cfgArray); ok {
+		return arr
+	}
+
+	if v.Len() == 0 {
+		return &cfgArray{}
+	}
+
+	return &cfgArray{
+		arr: []value{v},
+	}
 }
 
 func pointerize(t, base reflect.Type, v reflect.Value) reflect.Value {
