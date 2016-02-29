@@ -299,9 +299,13 @@ func reifyMergeValue(
 	case reflect.Slice:
 		arr, ok := val.(*cfgArray)
 		if !ok {
-			// convert single value to array for merging
-			arr = &cfgArray{
-				arr: []value{val},
+			if val.Len() == 0 {
+				arr = &cfgArray{}
+			} else {
+				// convert single value to array for merging
+				arr = &cfgArray{
+					arr: []value{val},
+				}
 			}
 		}
 		return reifySlice(opts, baseType, arr)

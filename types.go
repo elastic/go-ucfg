@@ -70,6 +70,7 @@ func (c *cfgArray) reify() interface{} {
 	return r
 }
 
+func (cfgNil) Len() int                   { return 0 }
 func (cfgNil) toString() (string, error)  { return "null", nil }
 func (cfgNil) toInt() (int64, error)      { return 0, raise(ErrTypeMismatch) }
 func (cfgNil) toFloat() (float64, error)  { return 0, raise(ErrTypeMismatch) }
@@ -93,7 +94,7 @@ func (c *cfgInt) typ() reflect.Type         { return tInt64 }
 func (c *cfgFloat) toFloat() (float64, error) { return c.f, nil }
 func (c *cfgFloat) reflect() reflect.Value    { return reflect.ValueOf(c.f) }
 func (c *cfgFloat) reify() interface{}        { return c.f }
-func (c *cfgFloat) toString() (string, error) { return fmt.Sprintf("%f", c.f), nil }
+func (c *cfgFloat) toString() (string, error) { return fmt.Sprintf("%v", c.f), nil }
 func (c *cfgFloat) typ() reflect.Type         { return tFloat64 }
 
 func (c *cfgString) toString() (string, error) { return c.s, nil }
