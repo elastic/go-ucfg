@@ -1,5 +1,7 @@
 package ucfg
 
+import "fmt"
+
 // ******************************************************************************
 // Low level getters and setters (do we actually need this?)
 // ******************************************************************************
@@ -7,7 +9,7 @@ package ucfg
 // number of elements for this field. If config value is a list, returns number
 // of elements in list
 func (c *Config) CountField(name string) (int, error) {
-	if v, ok := c.fields[name]; ok {
+	if v, ok := c.fields.fields[name]; ok {
 		return v.Len(), nil
 	}
 	return -1, raise(ErrMissing)
@@ -74,7 +76,7 @@ func (c *Config) SetChild(name string, idx int, value *Config) {
 }
 
 func (c *Config) getField(name string, idx int) (value, error) {
-	v, ok := c.fields[name]
+	v, ok := c.fields.fields[name]
 	if !ok {
 		return nil, raise(ErrMissing)
 	}
@@ -94,12 +96,23 @@ func (c *Config) getField(name string, idx int) (value, error) {
 }
 
 func (c *Config) setField(name string, idx int, v value) {
-	old, ok := c.fields[name]
+	ctx := context{
+		parent: cfgSub{c},
+		field:  name,
+	}
+	orig := v
+
+	old, ok := c.fields.fields[name]
 	if !ok {
 		if idx > 0 {
-			slice := &cfgArray{arr: make([]value, idx+1)}
+			slice := &cfgArray{
+				cfgPrimitive: cfgPrimitive{ctx: ctx},
+				arr:          make([]value, idx+1),
+			}
 			slice.arr[idx] = v
 			v = slice
+		} else {
+			idx = -1
 		}
 	} else if slice, ok := old.(*cfgArray); ok {
 		for idx >= len(slice.arr) {
@@ -108,11 +121,21 @@ func (c *Config) setField(name string, idx int, v value) {
 		slice.arr[idx] = v
 		v = slice
 	} else if idx > 0 {
-		slice := &cfgArray{arr: make([]value, idx+1)}
+		slice := &cfgArray{
+			cfgPrimitive: cfgPrimitive{ctx: ctx},
+			arr:          make([]value, idx+1),
+		}
 		slice.arr[0] = old
 		slice.arr[idx] = v
 		v = slice
+	} else {
+		idx = -1
 	}
 
-	c.fields[name] = v
+	if idx >= 0 {
+		ctx.parent = v
+		ctx.field = fmt.Sprintf("%v", idx)
+	}
+	orig.SetContext(ctx)
+	c.fields.fields[name] = v
 }

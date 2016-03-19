@@ -1,6 +1,7 @@
 package ucfg
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -50,6 +51,9 @@ func TestMergePrimitives(t *testing.T) {
 		c := New()
 		err := c.Merge(in)
 		assert.NoError(t, err)
+
+		path := c.Path(".")
+		assert.Equal(t, "", path)
 
 		b, err := c.Bool("b", 0)
 		assert.NoError(t, err)
@@ -133,8 +137,10 @@ func TestMergeNested(t *testing.T) {
 
 		b, err := sub.Bool("b", 0)
 		assert.NoError(t, err)
-
 		assert.True(t, b)
+
+		assert.Equal(t, "", c.Path("."))
+		assert.Equal(t, "c", sub.Path("."))
 	}
 }
 
@@ -170,8 +176,10 @@ func TestMergeNestedPath(t *testing.T) {
 
 		b, err := sub.Bool("b", 0)
 		assert.NoError(t, err)
-
 		assert.True(t, b)
+
+		assert.Equal(t, "", c.Path("."))
+		assert.Equal(t, "c", sub.Path("."))
 	}
 }
 
@@ -257,6 +265,9 @@ func TestMergeMixedArray(t *testing.T) {
 		b, err = sub.Bool("b", 0)
 		assert.NoError(t, err)
 		assert.Equal(t, true, b)
+
+		assert.Equal(t, "", c.Path("."))
+		assert.Equal(t, "a.4", sub.Path("."))
 	}
 }
 
@@ -309,6 +320,9 @@ func TestMergeChildArray(t *testing.T) {
 			v, err := sub.Int("i", 0)
 			assert.NoError(t, err)
 			assert.Equal(t, i+1, int(v))
+
+			assert.Equal(t, "", c.Path("."))
+			assert.Equal(t, fmt.Sprintf("a.%v", i), sub.Path("."))
 		}
 	}
 }

@@ -1,6 +1,7 @@
 package ucfg
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 )
@@ -11,30 +12,35 @@ func (c *Config) Merge(from interface{}, options ...Option) error {
 	if err != nil {
 		return err
 	}
-	return mergeConfig(c.fields, other.fields)
+	return mergeConfig(c, other)
 }
 
-func mergeConfig(to, from map[string]value) error {
-	for k, v := range from {
-		old, ok := to[k]
+func mergeConfig(to, from *Config) error {
+	for k, v := range from.fields.fields {
+		ctx := context{
+			parent: cfgSub{to},
+			field:  k,
+		}
+
+		old, ok := to.fields.fields[k]
 		if !ok {
-			to[k] = v
+			to.fields.fields[k] = v.cpy(ctx)
 			continue
 		}
 
 		subOld, err := old.toConfig()
 		if err != nil {
-			to[k] = v
+			to.fields.fields[k] = v.cpy(ctx)
 			continue
 		}
 
 		subFrom, err := v.toConfig()
 		if err != nil {
-			to[k] = v
+			to.fields.fields[k] = v.cpy(ctx)
 			continue
 		}
 
-		err = mergeConfig(subOld.fields, subFrom.fields)
+		err = mergeConfig(subOld, subFrom)
 		if err != nil {
 			return err
 		}
@@ -81,7 +87,7 @@ func normalizeCfgPath(cfg *Config, opts options, field string) (*Config, string,
 		field = path[0]
 		path = path[1:]
 
-		sub, exists := cfg.fields[field]
+		sub, exists := cfg.fields.fields[field]
 		if exists {
 			vSub, ok := sub.(cfgSub)
 			if !ok {
@@ -93,7 +99,12 @@ func normalizeCfgPath(cfg *Config, opts options, field string) (*Config, string,
 		}
 
 		next := New()
-		cfg.fields[field] = cfgSub{next}
+		v := cfgSub{next}
+		v.SetContext(context{
+			parent: cfgSub{cfg},
+			field:  field,
+		})
+		cfg.fields.fields[field] = v
 		cfg = next
 	}
 	field = path[0]
@@ -177,73 +188,94 @@ func normalizeSetField(cfg *Config, opts options, name string, v reflect.Value) 
 		return errDuplicateKey(name)
 	}
 
-	val, err := normalizeValue(opts, v)
+	ctx := context{
+		parent: cfgSub{cfg},
+		field:  name,
+	}
+	val, err := normalizeValue(opts, ctx, v)
 	if err != nil {
 		return err
 	}
 
-	to.fields[name] = val
+	to.fields.fields[name] = val
 	return nil
 }
 
-func normalizeStructValue(opts options, from reflect.Value) (value, error) {
+func normalizeStructValue(opts options, ctx context, from reflect.Value) (value, error) {
 	sub, err := normalizeStruct(opts, from)
 	if err != nil {
 		return nil, err
 	}
-	return cfgSub{sub}, nil
+	v := cfgSub{sub}
+	v.SetContext(ctx)
+	return v, nil
 }
 
-func normalizeMapValue(opts options, from reflect.Value) (value, error) {
+func normalizeMapValue(opts options, ctx context, from reflect.Value) (value, error) {
 	sub, err := normalizeMap(opts, from)
 	if err != nil {
 		return nil, err
 	}
-	return cfgSub{sub}, nil
+	v := cfgSub{sub}
+	v.SetContext(ctx)
+	return v, nil
 }
 
-func normalizeArray(opts options, v reflect.Value) (value, error) {
+func normalizeArray(opts options, ctx context, v reflect.Value) (value, error) {
 	l := v.Len()
 	out := make([]value, 0, l)
+
+	arr := &cfgArray{cfgPrimitive{ctx}, nil}
+
 	for i := 0; i < l; i++ {
-		tmp, err := normalizeValue(opts, v.Index(i))
+		ctx := context{
+			parent: arr,
+			field:  fmt.Sprintf("%v", i),
+		}
+		tmp, err := normalizeValue(opts, ctx, v.Index(i))
 		if err != nil {
 			return nil, err
 		}
 		out = append(out, tmp)
 	}
-	return &cfgArray{arr: out}, nil
+
+	arr.arr = out
+	return arr, nil
 }
 
-func normalizeValue(opts options, v reflect.Value) (value, error) {
+func normalizeValue(opts options, ctx context, v reflect.Value) (value, error) {
 	v = chaseValue(v)
 
 	// handle primitives
 	switch v.Kind() {
 	case reflect.Bool:
-		return &cfgBool{b: v.Bool()}, nil
+		return newBool(ctx, v.Bool()), nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return &cfgInt{i: v.Int()}, nil
+		return newInt(ctx, v.Int()), nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return &cfgInt{i: int64(v.Uint())}, nil
+		return newInt(ctx, int64(v.Uint())), nil
 	case reflect.Float32, reflect.Float64:
-		return &cfgFloat{f: v.Float()}, nil
+		return newFloat(ctx, v.Float()), nil
 	case reflect.String:
-		return &cfgString{s: v.String()}, nil
+		return newString(ctx, v.String()), nil
 	case reflect.Array, reflect.Slice:
-		return normalizeArray(opts, v)
+		return normalizeArray(opts, ctx, v)
 	case reflect.Map:
-		return normalizeMapValue(opts, v)
+		return normalizeMapValue(opts, ctx, v)
 	case reflect.Struct:
 		if v, ok := tryTConfig(v); ok {
 			c := v.Addr().Interface().(*Config)
-			return cfgSub{c}, nil
+			ret := cfgSub{c}
+			if ret.Context().parent != ctx.parent {
+				ret.SetContext(ctx)
+			}
+			return ret, nil
 		}
 
-		return normalizeStructValue(opts, v)
+		return normalizeStructValue(opts, ctx, v)
 	default:
 		if v.IsNil() {
-			return cfgNil{}, nil
+			return cfgNil{cfgPrimitive{ctx}}, nil
 		}
 		return nil, raise(ErrTypeMismatch)
 	}

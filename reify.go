@@ -26,7 +26,7 @@ func reifyInto(opts options, to reflect.Value, from *Config) error {
 	to = chaseValuePointers(to)
 
 	if to, ok := tryTConfig(to); ok {
-		return mergeConfig(to.Addr().Interface().(*Config).fields, from.fields)
+		return mergeConfig(to.Addr().Interface().(*Config), from)
 	}
 
 	tTo := chaseTypePointers(to.Type())
@@ -45,14 +45,14 @@ func reifyMap(opts options, to reflect.Value, from *Config) error {
 		return raise(ErrTypeMismatch)
 	}
 
-	if len(from.fields) == 0 {
+	if len(from.fields.fields) == 0 {
 		return nil
 	}
 
 	if to.IsNil() {
 		to.Set(reflect.MakeMap(to.Type()))
 	}
-	for k, value := range from.fields {
+	for k, value := range from.fields.fields {
 		key := reflect.ValueOf(k)
 
 		old := to.MapIndex(key)
@@ -117,7 +117,7 @@ func reifyGetField(cfg *Config, opts options, name string, to reflect.Value) err
 		return err
 	}
 
-	value, ok := from.fields[field]
+	value, ok := from.fields.fields[field]
 	if !ok {
 		// TODO: handle missing config
 		return nil
@@ -142,7 +142,7 @@ func reifyCfgPath(cfg *Config, opts options, field string) (*Config, string, err
 		field = path[0]
 		path = path[1:]
 
-		sub, exists := cfg.fields[field]
+		sub, exists := cfg.fields.fields[field]
 		if !exists {
 			return nil, field, raise(ErrMissing)
 		}
@@ -259,7 +259,7 @@ func reifyMergeValue(
 		}
 
 		// old != value -> merge value into old
-		err = mergeConfig(subOld.fields, sub.fields)
+		err = mergeConfig(subOld, sub)
 		return oldValue, err
 	}
 

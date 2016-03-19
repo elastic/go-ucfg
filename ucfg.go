@@ -7,6 +7,11 @@ import (
 )
 
 type Config struct {
+	ctx    context
+	fields *fields
+}
+
+type fields struct {
 	fields map[string]value
 }
 
@@ -32,7 +37,7 @@ var (
 
 func New() *Config {
 	return &Config{
-		fields: make(map[string]value),
+		fields: &fields{map[string]value{}},
 	}
 }
 
@@ -46,15 +51,44 @@ func NewFrom(from interface{}, opts ...Option) (*Config, error) {
 
 func (c *Config) GetFields() []string {
 	var names []string
-	for k := range c.fields {
+	for k := range c.fields.fields {
 		names = append(names, k)
 	}
 	return names
 }
 
 func (c *Config) HasField(name string) bool {
-	_, ok := c.fields[name]
+	_, ok := c.fields.fields[name]
 	return ok
+}
+
+func (c *Config) Path(sep string) string {
+	return c.ctx.path(sep)
+}
+
+func (c *Config) Parent() *Config {
+	ctx := c.ctx
+	for {
+		if ctx.parent == nil {
+			return nil
+		}
+
+		switch p := ctx.parent.(type) {
+		case *cfgArray:
+			ctx = p.Context()
+		case cfgSub:
+			return p.c
+		default:
+			return nil
+		}
+	}
+}
+
+func (c *Config) PathOf(field, sep string) string {
+	if p := c.Path(sep); p != "" {
+		return fmt.Sprintf("%v%v%v", p, sep, field)
+	}
+	return field
 }
 
 func StructTag(tag string) Option {
