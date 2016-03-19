@@ -15,13 +15,6 @@ type fields struct {
 	fields map[string]value
 }
 
-type Option func(*options)
-
-type options struct {
-	tag     string
-	pathSep string
-}
-
 var (
 	tConfig         = reflect.TypeOf(Config{})
 	tConfigPtr      = reflect.PtrTo(tConfig)
@@ -89,31 +82,4 @@ func (c *Config) PathOf(field, sep string) string {
 		return fmt.Sprintf("%v%v%v", p, sep, field)
 	}
 	return field
-}
-
-func StructTag(tag string) Option {
-	return func(o *options) {
-		o.tag = tag
-	}
-}
-
-func PathSep(sep string) Option {
-	return func(o *options) {
-		o.pathSep = sep
-	}
-}
-
-func makeOptions(opts []Option) options {
-	o := options{
-		tag:     "config",
-		pathSep: "", // no separator by default
-	}
-	for _, opt := range opts {
-		opt(&o)
-	}
-	return o
-}
-
-func errDuplicateKey(name string) error {
-	return fmt.Errorf("duplicate field key '%v'", name)
 }

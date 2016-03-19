@@ -1,6 +1,9 @@
 package ucfg
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 var (
 	ErrMissing = errors.New("field name missing")
@@ -29,4 +32,8 @@ var (
 func raise(err error) error {
 	// fmt.Println(string(debug.Stack()))
 	return err
+}
+
+func errDuplicateKey(name string) error {
+	return fmt.Errorf("duplicate field key '%v'", name)
 }
