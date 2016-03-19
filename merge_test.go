@@ -13,6 +13,12 @@ func TestMergePrimitives(t *testing.T) {
 	c.SetFloat("f", 0, 3.14)
 	c.SetString("s", 0, "string")
 
+	c2 := newC()
+	c2.SetBool("b", 0, true)
+	c2.SetInt("i", 0, 42)
+	c2.SetFloat("f", 0, 3.14)
+	c2.SetString("s", 0, "string")
+
 	tests := []interface{}{
 		map[string]interface{}{
 			"b": true,
@@ -32,7 +38,10 @@ func TestMergePrimitives(t *testing.T) {
 			F float64
 			S string
 		}{true, 42, 3.14, "string"},
+
 		c,
+
+		c2,
 	}
 
 	for i, in := range tests {
@@ -67,6 +76,9 @@ func TestMergeNested(t *testing.T) {
 
 	c := New()
 	c.SetChild("c", 0, sub)
+
+	c2 := newC()
+	c2.SetChild("c", 0, fromConfig(sub))
 
 	tests := []interface{}{
 		map[string]interface{}{
@@ -105,6 +117,8 @@ func TestMergeNested(t *testing.T) {
 		struct{ C struct{ B interface{} } }{struct{ B interface{} }{true}},
 
 		c,
+
+		c2,
 	}
 
 	for i, in := range tests {
@@ -257,19 +271,28 @@ func TestMergeChildArray(t *testing.T) {
 	s2 := mk(2)
 	s3 := mk(3)
 
-	tests := []interface{}{
-		map[string]interface{}{
-			"a": []interface{}{s1, s2, s3},
-		},
-		map[string]interface{}{
-			"a": []*Config{s1, s2, s3},
-		},
-		node{
-			"a": []*Config{s1, s2, s3},
-		},
+	arrConfig := []*Config{s1, s2, s3}
+	arrC := []*C{fromConfig(s1), fromConfig(s2), fromConfig(s3)}
+	arrIConfig := []interface{}{s1, s2, s3}
+	arrIC := []interface{}{fromConfig(s1), fromConfig(s2), fromConfig(s3)}
 
-		struct{ A []interface{} }{[]interface{}{s1, s2, s3}},
-		struct{ A []*Config }{[]*Config{s1, s2, s3}},
+	tests := []interface{}{
+		map[string]interface{}{"a": arrIConfig},
+		map[string]interface{}{"a": arrIC},
+
+		map[string]interface{}{"a": arrConfig},
+		map[string]interface{}{"a": arrC},
+
+		node{"a": arrIConfig},
+		node{"a": arrIC},
+
+		node{"a": arrConfig},
+		node{"a": arrC},
+
+		struct{ A []interface{} }{arrIConfig},
+		struct{ A []interface{} }{arrIC},
+		struct{ A []*Config }{A: arrConfig},
+		struct{ A []*C }{arrC},
 	}
 
 	for i, in := range tests {

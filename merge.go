@@ -53,12 +53,19 @@ func normalize(opts options, from interface{}) (*Config, error) {
 	case tConfigMap:
 		return normalizeMap(opts, vFrom)
 	default:
+		// try to convert vFrom into Config (rebranding)
+		if v, ok := tryTConfig(vFrom); ok {
+			return v.Addr().Interface().(*Config), nil
+		}
+
+		// normalize given map/struct value
 		switch vFrom.Kind() {
 		case reflect.Struct:
 			return normalizeStruct(opts, vFrom)
 		case reflect.Map:
 			return normalizeMap(opts, vFrom)
 		}
+
 	}
 
 	return nil, raise(ErrTypeMismatch)
@@ -228,17 +235,11 @@ func normalizeValue(opts options, v reflect.Value) (value, error) {
 	case reflect.Map:
 		return normalizeMapValue(opts, v)
 	case reflect.Struct:
-		if v.Type().ConvertibleTo(tConfig) {
-			var c *Config
-			if !v.CanAddr() {
-				vTmp := reflect.New(tConfig)
-				vTmp.Elem().Set(v)
-				c = vTmp.Interface().(*Config)
-			} else {
-				c = v.Addr().Interface().(*Config)
-			}
+		if v, ok := tryTConfig(v); ok {
+			c := v.Addr().Interface().(*Config)
 			return cfgSub{c}, nil
 		}
+
 		return normalizeStructValue(opts, v)
 	default:
 		if v.IsNil() {

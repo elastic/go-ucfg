@@ -25,7 +25,7 @@ func (c *Config) Unpack(to interface{}, options ...Option) error {
 func reifyInto(opts options, to reflect.Value, from *Config) error {
 	to = chaseValuePointers(to)
 
-	if to.Type() == tConfig {
+	if to, ok := tryTConfig(to); ok {
 		return mergeConfig(to.Addr().Interface().(*Config).fields, from.fields)
 	}
 
@@ -164,12 +164,12 @@ func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, error) 
 	}
 
 	baseType := chaseTypePointers(t)
-	if baseType == tConfig {
+	if tConfig.ConvertibleTo(baseType) {
 		if _, err := val.toConfig(); err != nil {
 			return reflect.Value{}, raise(ErrTypeMismatch)
 		}
 
-		v := val.reflect()
+		v := val.reflect().Convert(reflect.PtrTo(baseType))
 		if t == baseType { // copy config
 			v = v.Elem()
 		} else {
@@ -235,7 +235,7 @@ func reifyMergeValue(
 	}
 
 	baseType := chaseTypePointers(old.Type())
-	if baseType == tConfig {
+	if tConfig.ConvertibleTo(baseType) {
 		sub, err := val.toConfig()
 		if err != nil {
 			return reflect.Value{}, raise(ErrTypeMismatch)
@@ -248,11 +248,12 @@ func reifyMergeValue(
 
 		// check if old is nil -> copy reference only
 		if old.Kind() == reflect.Ptr && old.IsNil() {
-			return pointerize(t, baseType, val.reflect()), nil
+			v := val.reflect().Convert(reflect.PtrTo(baseType))
+			return pointerize(t, baseType, v), nil
 		}
 
 		// check if old == value
-		subOld := chaseValuePointers(old).Addr().Interface().(*Config)
+		subOld := chaseValuePointers(old).Addr().Convert(tConfigPtr).Interface().(*Config)
 		if sub == subOld {
 			return oldValue, nil
 		}
@@ -370,25 +371,4 @@ func castArr(v value) *cfgArray {
 	return &cfgArray{
 		arr: []value{v},
 	}
-}
-
-func pointerize(t, base reflect.Type, v reflect.Value) reflect.Value {
-	if t == base {
-		return v
-	}
-
-	if t.Kind() == reflect.Interface {
-		return v
-	}
-
-	for t != v.Type() {
-		if !v.CanAddr() {
-			tmp := reflect.New(v.Type())
-			tmp.Elem().Set(v)
-			v = tmp
-		} else {
-			v = v.Addr()
-		}
-	}
-	return v
 }
