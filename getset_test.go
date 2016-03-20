@@ -76,6 +76,28 @@ func TestSetGetChild(t *testing.T) {
 	assert.Equal(t, c, child.Parent())
 }
 
+func TestSetGetChildPath(t *testing.T) {
+	c := New()
+
+	err := c.SetInt("sub.test", 0, 42, PathSep("."))
+	assert.NoError(t, err)
+
+	sub, err := c.Child("sub", 0)
+	assert.Nil(t, err)
+
+	i, err := sub.Int("test", 0)
+	assert.Nil(t, err)
+	assert.Equal(t, 42, int(i))
+
+	i, err = c.Int("sub.test", 0, PathSep("."))
+	assert.Nil(t, err)
+	assert.Equal(t, 42, int(i))
+
+	assert.Equal(t, "", c.Path("."))
+	assert.Equal(t, "sub", sub.Path("."))
+	assert.Equal(t, c, sub.Parent())
+}
+
 func TestSetGetArray(t *testing.T) {
 	c := New()
 
