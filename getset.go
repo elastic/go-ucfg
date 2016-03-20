@@ -12,7 +12,7 @@ func (c *Config) CountField(name string) (int, error) {
 	if v, ok := c.fields.fields[name]; ok {
 		return v.Len(), nil
 	}
-	return -1, raise(ErrMissing)
+	return -1, raiseMissing(c, name)
 }
 
 func (c *Config) Bool(name string, idx int, opts ...Option) (bool, error) {
@@ -85,17 +85,17 @@ func (c *Config) getField(name string, idx int, options []Option) (value, error)
 
 	v, ok := cfg.fields.fields[field]
 	if !ok {
-		return nil, raise(ErrMissing)
+		return nil, raiseMissing(cfg, field)
 	}
 
 	if idx >= v.Len() {
-		return nil, raise(ErrIndexOutOfRange)
+		return nil, raiseIndexOutOfBounds(c, field, idx)
 	}
 
 	if arr, ok := v.(*cfgArray); ok {
 		v = arr.arr[idx]
 		if v == nil {
-			return nil, raise(ErrMissing)
+			return nil, raiseMissingArr(cfg, field, idx)
 		}
 		return arr.arr[idx], nil
 	}
