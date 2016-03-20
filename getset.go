@@ -6,6 +6,13 @@ import "fmt"
 // Low level getters and setters (do we actually need this?)
 // ******************************************************************************
 
+func convertErr(v value, err error, to string) Error {
+	if err == nil {
+		return nil
+	}
+	return raiseConversion(v, err, to)
+}
+
 // number of elements for this field. If config value is a list, returns number
 // of elements in list
 func (c *Config) CountField(name string) (int, error) {
@@ -20,7 +27,8 @@ func (c *Config) Bool(name string, idx int, opts ...Option) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return v.toBool()
+	b, fail := v.toBool()
+	return b, convertErr(v, fail, "bool")
 }
 
 func (c *Config) String(name string, idx int, opts ...Option) (string, error) {
@@ -28,7 +36,8 @@ func (c *Config) String(name string, idx int, opts ...Option) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return v.toString()
+	s, fail := v.toString()
+	return s, convertErr(v, fail, "string")
 }
 
 func (c *Config) Int(name string, idx int, opts ...Option) (int64, error) {
@@ -36,7 +45,8 @@ func (c *Config) Int(name string, idx int, opts ...Option) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return v.toInt()
+	i, fail := v.toInt()
+	return i, convertErr(v, fail, "int")
 }
 
 func (c *Config) Float(name string, idx int, opts ...Option) (float64, error) {
@@ -44,7 +54,8 @@ func (c *Config) Float(name string, idx int, opts ...Option) (float64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return v.toFloat()
+	f, fail := v.toFloat()
+	return f, convertErr(v, fail, "float")
 }
 
 func (c *Config) Child(name string, idx int, opts ...Option) (*Config, error) {
@@ -52,7 +63,8 @@ func (c *Config) Child(name string, idx int, opts ...Option) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	return v.toConfig()
+	c, fail := v.toConfig()
+	return c, convertErr(v, fail, "object")
 }
 
 func (c *Config) SetBool(name string, idx int, value bool, opts ...Option) error {
@@ -75,7 +87,7 @@ func (c *Config) SetChild(name string, idx int, value *Config, opts ...Option) e
 	return c.setField(name, idx, cfgSub{c: value}, opts)
 }
 
-func (c *Config) getField(name string, idx int, options []Option) (value, error) {
+func (c *Config) getField(name string, idx int, options []Option) (value, Error) {
 	opts := makeOptions(options)
 
 	cfg, field, err := reifyCfgPath(c, opts, name)
@@ -88,21 +100,26 @@ func (c *Config) getField(name string, idx int, options []Option) (value, error)
 		return nil, raiseMissing(cfg, field)
 	}
 
-	if idx >= v.Len() {
-		return nil, raiseIndexOutOfBounds(c, field, idx)
-	}
-
 	if arr, ok := v.(*cfgArray); ok {
+		if idx >= arr.Len() {
+			return nil, raiseMissingArr(arr, idx)
+		}
+
 		v = arr.arr[idx]
 		if v == nil {
-			return nil, raiseMissingArr(cfg, field, idx)
+			return nil, raiseMissingArr(arr, idx)
 		}
 		return arr.arr[idx], nil
 	}
+
+	if idx > 0 {
+		return nil, raiseIndexOutOfBounds(c, field, idx, v)
+	}
+
 	return v, nil
 }
 
-func (c *Config) setField(name string, idx int, v value, options []Option) error {
+func (c *Config) setField(name string, idx int, v value, options []Option) Error {
 	opts := makeOptions(options)
 	ctx := context{
 		parent: cfgSub{c},

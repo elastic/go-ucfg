@@ -108,11 +108,11 @@ func (p *cfgPrimitive) SetContext(c context)    { p.ctx = c }
 func (p *cfgPrimitive) meta() *Meta             { return p.metadata }
 func (p *cfgPrimitive) setMeta(m *Meta)         { p.metadata = m }
 func (cfgPrimitive) Len() int                   { return 1 }
-func (cfgPrimitive) toBool() (bool, error)      { return false, raiseValueNotBool() }
-func (cfgPrimitive) toString() (string, error)  { return "", raiseValueNotString() }
-func (cfgPrimitive) toInt() (int64, error)      { return 0, raiseValueNotInt() }
-func (cfgPrimitive) toFloat() (float64, error)  { return 0, raiseValueNotFloat() }
-func (cfgPrimitive) toConfig() (*Config, error) { return nil, raiseValueNotObject() }
+func (cfgPrimitive) toBool() (bool, error)      { return false, ErrTypeMismatch }
+func (cfgPrimitive) toString() (string, error)  { return "", ErrTypeMismatch }
+func (cfgPrimitive) toInt() (int64, error)      { return 0, ErrTypeMismatch }
+func (cfgPrimitive) toFloat() (float64, error)  { return 0, ErrTypeMismatch }
+func (cfgPrimitive) toConfig() (*Config, error) { return nil, ErrTypeMismatch }
 
 func (c *cfgArray) Len() int               { return len(c.arr) }
 func (c *cfgArray) reflect() reflect.Value { return reflect.ValueOf(c.arr) }
@@ -133,18 +133,18 @@ func (c *cfgArray) reify() interface{} {
 func (c *cfgNil) cpy(ctx context) value   { return &cfgNil{cfgPrimitive{ctx, c.metadata}} }
 func (*cfgNil) Len() int                  { return 0 }
 func (*cfgNil) toString() (string, error) { return "null", nil }
-func (*cfgNil) toInt() (int64, error)     { return 0, raiseValueNotInt() }
-func (*cfgNil) toFloat() (float64, error) { return 0, raiseValueNotFloat() }
+func (*cfgNil) toInt() (int64, error)     { return 0, ErrTypeMismatch }
+func (*cfgNil) toFloat() (float64, error) { return 0, ErrTypeMismatch }
 func (*cfgNil) reflect() reflect.Value    { return reflect.ValueOf(nil) }
 func (*cfgNil) reify() interface{}        { return nil }
 func (*cfgNil) typ() reflect.Type         { return reflect.PtrTo(tConfig) }
 func (c *cfgNil) meta() *Meta             { return c.metadata }
 func (c *cfgNil) setMeta(m *Meta)         { c.metadata = m }
 
-func (n *cfgNil) toConfig() (*Config, error) {
-	c := New()
-	c.ctx = n.ctx
-	return c, nil
+func (c *cfgNil) toConfig() (*Config, error) {
+	n := New()
+	n.ctx = c.ctx
+	return n, nil
 }
 
 func (c *cfgBool) cpy(ctx context) value     { return newBool(ctx, c.meta(), c.b) }
@@ -176,10 +176,10 @@ func (c *cfgString) typ() reflect.Type         { return tString }
 
 func (cfgSub) Len() int                     { return 1 }
 func (c cfgSub) Context() context           { return c.c.ctx }
-func (cfgSub) toBool() (bool, error)        { return false, raiseValueNotBool() }
-func (cfgSub) toString() (string, error)    { return "", raiseValueNotString() }
-func (cfgSub) toInt() (int64, error)        { return 0, raiseValueNotInt() }
-func (cfgSub) toFloat() (float64, error)    { return 0, raiseValueNotFloat() }
+func (cfgSub) toBool() (bool, error)        { return false, ErrTypeMismatch }
+func (cfgSub) toString() (string, error)    { return "", ErrTypeMismatch }
+func (cfgSub) toInt() (int64, error)        { return 0, ErrTypeMismatch }
+func (cfgSub) toFloat() (float64, error)    { return 0, ErrTypeMismatch }
 func (c cfgSub) toConfig() (*Config, error) { return c.c, nil }
 func (cfgSub) typ() reflect.Type            { return reflect.PtrTo(tConfig) }
 func (c cfgSub) reflect() reflect.Value     { return reflect.ValueOf(c.c) }

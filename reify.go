@@ -22,7 +22,7 @@ func (c *Config) Unpack(to interface{}, options ...Option) error {
 	return reifyInto(opts, vTo, c)
 }
 
-func reifyInto(opts options, to reflect.Value, from *Config) error {
+func reifyInto(opts options, to reflect.Value, from *Config) Error {
 	to = chaseValuePointers(to)
 
 	if to, ok := tryTConfig(to); ok {
@@ -40,7 +40,7 @@ func reifyInto(opts options, to reflect.Value, from *Config) error {
 	return raiseInvalidTopLevelType(to.Interface())
 }
 
-func reifyMap(opts options, to reflect.Value, from *Config) error {
+func reifyMap(opts options, to reflect.Value, from *Config) Error {
 	if to.Type().Key().Kind() != reflect.String {
 		return raiseKeyInvalidType()
 	}
@@ -57,7 +57,7 @@ func reifyMap(opts options, to reflect.Value, from *Config) error {
 
 		old := to.MapIndex(key)
 		var v reflect.Value
-		var err error
+		var err Error
 
 		if !old.IsValid() {
 			v, err = reifyValue(opts, to.Type().Elem(), value)
@@ -74,7 +74,7 @@ func reifyMap(opts options, to reflect.Value, from *Config) error {
 	return nil
 }
 
-func reifyStruct(opts options, orig reflect.Value, cfg *Config) error {
+func reifyStruct(opts options, orig reflect.Value, cfg *Config) Error {
 	orig = chaseValuePointers(orig)
 
 	to := chaseValuePointers(reflect.New(chaseTypePointers(orig.Type())))
@@ -84,7 +84,7 @@ func reifyStruct(opts options, orig reflect.Value, cfg *Config) error {
 
 	numField := to.NumField()
 	for i := 0; i < numField; i++ {
-		var err error
+		var err Error
 		stField := to.Type().Field(i)
 		vField := to.Field(i)
 		name, tagOpts := parseTags(stField.Tag.Get(opts.tag))
@@ -111,7 +111,7 @@ func reifyStruct(opts options, orig reflect.Value, cfg *Config) error {
 	return nil
 }
 
-func reifyGetField(cfg *Config, opts options, name string, to reflect.Value) error {
+func reifyGetField(cfg *Config, opts options, name string, to reflect.Value) Error {
 	from, field, err := reifyCfgPath(cfg, opts, name)
 	if err != nil {
 		return err
@@ -132,7 +132,7 @@ func reifyGetField(cfg *Config, opts options, name string, to reflect.Value) err
 	return nil
 }
 
-func reifyCfgPath(cfg *Config, opts options, field string) (*Config, string, error) {
+func reifyCfgPath(cfg *Config, opts options, field string) (*Config, string, Error) {
 	if opts.pathSep == "" {
 		return cfg, field, nil
 	}
@@ -158,7 +158,7 @@ func reifyCfgPath(cfg *Config, opts options, field string) (*Config, string, err
 	return cfg, field, nil
 }
 
-func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, error) {
+func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, Error) {
 	if t.Kind() == reflect.Interface && t.NumMethod() == 0 {
 		return reflect.ValueOf(val.reify()), nil
 	}
@@ -226,7 +226,7 @@ func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, error) 
 func reifyMergeValue(
 	opts options,
 	oldValue reflect.Value, val value,
-) (reflect.Value, error) {
+) (reflect.Value, Error) {
 	old := chaseValueInterfaces(oldValue)
 	t := old.Type()
 	old = chaseValuePointers(old)
@@ -259,8 +259,7 @@ func reifyMergeValue(
 		}
 
 		// old != value -> merge value into old
-		err = mergeConfig(subOld, sub)
-		return oldValue, err
+		return oldValue, mergeConfig(subOld, sub)
 	}
 
 	switch baseType.Kind() {
@@ -269,16 +268,14 @@ func reifyMergeValue(
 		if err != nil {
 			return reflect.Value{}, raiseExpectedObject(nil, "", val)
 		}
-		err = reifyMap(opts, old, sub)
-		return old, err
+		return old, reifyMap(opts, old, sub)
 
 	case reflect.Struct:
 		sub, err := val.toConfig()
 		if err != nil {
 			return reflect.Value{}, raiseExpectedObject(nil, "", val)
 		}
-		err = reifyStruct(opts, old, sub)
-		return oldValue, err
+		return oldValue, reifyStruct(opts, old, sub)
 
 	case reflect.Array:
 		return reifyArray(opts, old, baseType, castArr(val))
@@ -294,7 +291,7 @@ func reifyPrimitive(
 	opts options,
 	val value,
 	t, baseType reflect.Type,
-) (reflect.Value, error) {
+) (reflect.Value, Error) {
 	// zero initialize value if val==nil
 	if _, ok := val.(*cfgNil); ok {
 		return pointerize(t, baseType, reflect.Zero(baseType)), nil
@@ -308,19 +305,19 @@ func reifyPrimitive(
 	case baseType.Kind() == reflect.String:
 		s, err := val.toString()
 		if err != nil {
-			return reflect.Value{}, err
+			return reflect.Value{}, raiseConversion(val, err, "string")
 		}
 		return pointerize(t, baseType, reflect.ValueOf(s)), nil
 
 	case baseType == tDuration:
 		s, err := val.toString()
 		if err != nil {
-			return reflect.Value{}, err
+			return reflect.Value{}, raiseConversion(val, err, "duration")
 		}
 
 		d, err := time.ParseDuration(s)
 		if err != nil {
-			return reflect.Value{}, err
+			return reflect.Value{}, raiseConversion(val, err, "duration")
 		}
 
 		return pointerize(t, baseType, reflect.ValueOf(d)), nil
@@ -333,22 +330,27 @@ func reifyPrimitive(
 	return reflect.Value{}, raiseToTypeNotSupported()
 }
 
-func reifyArray(opts options, to reflect.Value, tTo reflect.Type, arr *cfgArray) (reflect.Value, error) {
+func reifyArray(
+	opts options,
+	to reflect.Value, tTo reflect.Type,
+	arr *cfgArray,
+) (reflect.Value, Error) {
 	if arr.Len() != tTo.Len() {
 		return reflect.Value{}, raiseArraySize()
 	}
 	return reifyDoArray(opts, to, tTo.Elem(), arr)
 }
 
-func reifySlice(opts options, tTo reflect.Type, arr *cfgArray) (reflect.Value, error) {
+func reifySlice(opts options, tTo reflect.Type, arr *cfgArray) (reflect.Value, Error) {
 	to := reflect.MakeSlice(tTo, arr.Len(), arr.Len())
 	return reifyDoArray(opts, to, tTo.Elem(), arr)
 }
 
 func reifyDoArray(
 	opts options,
-	to reflect.Value, elemT reflect.Type, arr *cfgArray,
-) (reflect.Value, error) {
+	to reflect.Value, elemT reflect.Type,
+	arr *cfgArray,
+) (reflect.Value, Error) {
 	for i, from := range arr.arr {
 		v, err := reifyValue(opts, elemT, from)
 		if err != nil {

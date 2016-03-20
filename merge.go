@@ -15,7 +15,7 @@ func (c *Config) Merge(from interface{}, options ...Option) error {
 	return mergeConfig(c, other)
 }
 
-func mergeConfig(to, from *Config) error {
+func mergeConfig(to, from *Config) Error {
 	for k, v := range from.fields.fields {
 		ctx := context{
 			parent: cfgSub{to},
@@ -40,8 +40,7 @@ func mergeConfig(to, from *Config) error {
 			continue
 		}
 
-		err = mergeConfig(subOld, subFrom)
-		if err != nil {
+		if err := mergeConfig(subOld, subFrom); err != nil {
 			return err
 		}
 	}
@@ -50,7 +49,7 @@ func mergeConfig(to, from *Config) error {
 
 // convert from into normalized *Config checking for errors
 // before merging generated(normalized) config with current config
-func normalize(opts options, from interface{}) (*Config, error) {
+func normalize(opts options, from interface{}) (*Config, Error) {
 	vFrom := chaseValue(reflect.ValueOf(from))
 
 	switch vFrom.Type() {
@@ -77,7 +76,7 @@ func normalize(opts options, from interface{}) (*Config, error) {
 	return nil, raiseInvalidTopLevelType(from)
 }
 
-func normalizeCfgPath(cfg *Config, opts options, field string) (*Config, string, error) {
+func normalizeCfgPath(cfg *Config, opts options, field string) (*Config, string, Error) {
 	if opts.pathSep == "" {
 		return cfg, field, nil
 	}
@@ -113,7 +112,7 @@ func normalizeCfgPath(cfg *Config, opts options, field string) (*Config, string,
 	return cfg, field, nil
 }
 
-func normalizeMap(opts options, from reflect.Value) (*Config, error) {
+func normalizeMap(opts options, from reflect.Value) (*Config, Error) {
 	cfg := New()
 	cfg.metadata = opts.meta
 	if err := normalizeMapInto(cfg, opts, from); err != nil {
@@ -122,7 +121,7 @@ func normalizeMap(opts options, from reflect.Value) (*Config, error) {
 	return cfg, nil
 }
 
-func normalizeMapInto(cfg *Config, opts options, from reflect.Value) error {
+func normalizeMapInto(cfg *Config, opts options, from reflect.Value) Error {
 	k := from.Type().Key().Kind()
 	if k != reflect.String && k != reflect.Interface {
 		return raiseKeyInvalidType()
@@ -142,7 +141,7 @@ func normalizeMapInto(cfg *Config, opts options, from reflect.Value) error {
 	return nil
 }
 
-func normalizeStruct(opts options, from reflect.Value) (*Config, error) {
+func normalizeStruct(opts options, from reflect.Value) (*Config, Error) {
 	cfg := New()
 	cfg.metadata = opts.meta
 	if err := normalizeStructInto(cfg, opts, from); err != nil {
@@ -151,12 +150,12 @@ func normalizeStruct(opts options, from reflect.Value) (*Config, error) {
 	return cfg, nil
 }
 
-func normalizeStructInto(cfg *Config, opts options, from reflect.Value) error {
+func normalizeStructInto(cfg *Config, opts options, from reflect.Value) Error {
 	v := chaseValue(from)
 	numField := v.NumField()
 
 	for i := 0; i < numField; i++ {
-		var err error
+		var err Error
 		stField := v.Type().Field(i)
 		name, tagOpts := parseTags(stField.Tag.Get(opts.tag))
 
@@ -182,13 +181,13 @@ func normalizeStructInto(cfg *Config, opts options, from reflect.Value) error {
 	return nil
 }
 
-func normalizeSetField(cfg *Config, opts options, name string, v reflect.Value) error {
+func normalizeSetField(cfg *Config, opts options, name string, v reflect.Value) Error {
 	to, name, err := normalizeCfgPath(cfg, opts, name)
 	if err != nil {
 		return err
 	}
 	if to.HasField(name) {
-		return errDuplicateKey(name)
+		return raiseDuplicateKey(to, name)
 	}
 
 	ctx := context{
@@ -204,7 +203,7 @@ func normalizeSetField(cfg *Config, opts options, name string, v reflect.Value) 
 	return nil
 }
 
-func normalizeStructValue(opts options, ctx context, from reflect.Value) (value, error) {
+func normalizeStructValue(opts options, ctx context, from reflect.Value) (value, Error) {
 	sub, err := normalizeStruct(opts, from)
 	if err != nil {
 		return nil, err
@@ -214,7 +213,7 @@ func normalizeStructValue(opts options, ctx context, from reflect.Value) (value,
 	return v, nil
 }
 
-func normalizeMapValue(opts options, ctx context, from reflect.Value) (value, error) {
+func normalizeMapValue(opts options, ctx context, from reflect.Value) (value, Error) {
 	sub, err := normalizeMap(opts, from)
 	if err != nil {
 		return nil, err
@@ -224,7 +223,7 @@ func normalizeMapValue(opts options, ctx context, from reflect.Value) (value, er
 	return v, nil
 }
 
-func normalizeArray(opts options, ctx context, v reflect.Value) (value, error) {
+func normalizeArray(opts options, ctx context, v reflect.Value) (value, Error) {
 	l := v.Len()
 	out := make([]value, 0, l)
 
@@ -246,7 +245,7 @@ func normalizeArray(opts options, ctx context, v reflect.Value) (value, error) {
 	return arr, nil
 }
 
-func normalizeValue(opts options, ctx context, v reflect.Value) (value, error) {
+func normalizeValue(opts options, ctx context, v reflect.Value) (value, Error) {
 	v = chaseValue(v)
 
 	// handle primitives

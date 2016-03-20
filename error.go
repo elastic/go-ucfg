@@ -3,11 +3,30 @@ package ucfg
 import (
 	"errors"
 	"fmt"
+	"runtime/debug"
 )
 
 type Error interface {
 	error
 	Reason() error
+	Class() error
+	Trace() string // optional stack trace
+}
+
+type baseError struct {
+	reason error
+	class  error
+}
+
+type criticalError struct {
+	baseError
+	trace string
+}
+
+type pathError struct {
+	baseError
+	meta *Meta
+	path string
 }
 
 type ValueError struct {
@@ -15,6 +34,7 @@ type ValueError struct {
 	value  value
 }
 
+// error Reasons
 var (
 	ErrMissing = errors.New("field name missing")
 
@@ -39,6 +59,29 @@ var (
 	ErrTODO = errors.New("TODO - implement me")
 )
 
+// error classes
+var (
+	ErrConfig         = errors.New("Configuration error")
+	ErrImplementation = errors.New("Implementation error")
+	ErrUnknown        = errors.New("Unspecified")
+)
+
+func (e baseError) Error() string {
+	return e.reason.Error()
+}
+
+func (e baseError) Reason() error {
+	return e.reason
+}
+
+func (e baseError) Class() error {
+	return e.class
+}
+
+func (e baseError) Trace() string {
+	return ""
+}
+
 func (v ValueError) Error() string {
 	return v.reason.Error()
 }
@@ -47,90 +90,103 @@ func (v ValueError) Reason() error {
 	return v.reason
 }
 
-/*
-func raise(err error, value) error {
-	// fmt.Println(string(debug.Stack()))
-	return Error{err, value}
-}
-*/
-
-func errDuplicateKey(name string) error {
-	return fmt.Errorf("duplicate field key '%v'", name)
+func raiseErr(reason error) Error {
+	return baseError{
+		reason: reason,
+		class:  ErrConfig,
+	}
 }
 
-func raiseMissing(c *Config, field string) error {
-	return ErrMissing
+func raiseImplErr(reason error) Error {
+	return baseError{
+		reason: reason,
+		class:  ErrImplementation,
+	}
 }
 
-func raiseMissingArr(c *Config, field string, idx int) error {
-	return ErrMissing
+func raiseCritical(reason error) Error {
+	return criticalError{
+		baseError{reason, ErrImplementation},
+		string(debug.Stack()),
+	}
 }
 
-func raiseIndexOutOfBounds(c *Config, field string, idx int) error {
-	return ErrIndexOutOfRange
+func raisePathErr(reason error, meta *Meta, path string) Error {
+	return pathError{
+		baseError{reason, ErrConfig},
+		meta,
+		path,
+	}
 }
 
-func raiseInvalidTopLevelType(v interface{}) error {
-	return ErrTypeMismatch
+func raiseDuplicateKey(cfg *Config, name string) Error {
+	return raiseErr(
+		fmt.Errorf("duplicate field key '%v'", name))
 }
 
-func raiseExpectedObject(cfg *Config, field string, v value) error {
-	return ErrExpectedObject
+func raiseMissing(c *Config, field string) Error {
+	// error reading field from config, as missing in c
+	return raisePathErr(ErrMissing, c.metadata, c.PathOf(field, "."))
 }
 
-func raiseKeyInvalidType() error {
+func raiseMissingArr(arr *cfgArray, idx int) Error {
+	path := fmt.Sprintf("%v.%v", arr.ctx.path("."), idx)
+	return raisePathErr(ErrMissing, arr.meta(), path)
+}
+
+func raiseIndexOutOfBounds(c *Config, field string, idx int, value value) Error {
+	return raiseErr(ErrIndexOutOfRange)
+}
+
+func raiseInvalidTopLevelType(v interface{}) Error {
+	// t := chaseTypePointers(chaseValue(reflect.ValueOf(v)).Type())
+	// return ErrTypeMismatch
+	return raiseCritical(ErrTypeMismatch)
+}
+
+func raiseKeyInvalidType() Error {
 	// most likely developers fault
-	return ErrKeyTypeNotString
+	return raiseCritical(ErrKeyTypeNotString)
 }
 
-func raiseSquashNeedsObject() error {
+func raiseSquashNeedsObject() Error {
 	// most likely developers fault
-	return ErrTypeMismatch
+	return raiseCritical(ErrTypeMismatch)
 }
 
-func raiseInlineNeedsObject() error {
+func raiseInlineNeedsObject() Error {
 	// most likely developers fault
-	return ErrTypeMismatch
+	return raiseCritical(ErrTypeMismatch)
 }
 
-func raiseUnsupportedInputType() error {
-	return ErrTypeMismatch
+func raiseUnsupportedInputType() Error {
+	return raiseCritical(ErrTypeMismatch)
 }
 
-func raiseNil(reason error) error {
+func raiseNil(reason error) Error {
 	// programmers error (passed unexpected nil pointer)
-	return ErrNilValue
+	return raiseCritical(ErrNilValue)
 }
 
-func raisePointerRequired() error {
+func raisePointerRequired() Error {
 	// developer did not pass pointer, unpack target is not settable
-	return ErrPointerRequired
+	return raiseCritical(ErrPointerRequired)
 }
 
-func raiseToTypeNotSupported() error {
-	return ErrTODO
+func raiseToTypeNotSupported() Error {
+	return raiseCritical(ErrTODO)
 }
 
-func raiseArraySize() error {
-	return ErrArraySizeMistach
+func raiseArraySize() Error {
+	return raiseErr(ErrArraySizeMistach)
 }
 
-func raiseValueNotBool() error {
-	return ErrTypeMismatch
+func raiseExpectedObject(cfg *Config, field string, v value) Error {
+	return raiseErr(ErrExpectedObject)
 }
 
-func raiseValueNotString() error {
-	return ErrTypeMismatch
-}
-
-func raiseValueNotInt() error {
-	return ErrTypeMismatch
-}
-
-func raiseValueNotFloat() error {
-	return ErrTypeMismatch
-}
-
-func raiseValueNotObject() error {
-	return ErrTypeMismatch
+func raiseConversion(v value, err error, to string) Error {
+	ctx := v.Context()
+	path := ctx.path(".")
+	return raisePathErr(err, v.meta(), path)
 }
