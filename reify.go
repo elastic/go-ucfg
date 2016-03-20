@@ -296,7 +296,7 @@ func reifyPrimitive(
 	t, baseType reflect.Type,
 ) (reflect.Value, error) {
 	// zero initialize value if val==nil
-	if _, ok := val.(cfgNil); ok {
+	if _, ok := val.(*cfgNil); ok {
 		return pointerize(t, baseType, reflect.Zero(baseType)), nil
 	}
 

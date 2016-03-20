@@ -5,6 +5,7 @@ type Option func(*options)
 type options struct {
 	tag     string
 	pathSep string
+	meta    *Meta
 }
 
 func StructTag(tag string) Option {
@@ -16,6 +17,12 @@ func StructTag(tag string) Option {
 func PathSep(sep string) Option {
 	return func(o *options) {
 		o.pathSep = sep
+	}
+}
+
+func MetaData(meta Meta) Option {
+	return func(o *options) {
+		o.meta = &meta
 	}
 }
 

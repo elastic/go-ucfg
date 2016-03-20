@@ -99,6 +99,7 @@ func normalizeCfgPath(cfg *Config, opts options, field string) (*Config, string,
 		}
 
 		next := New()
+		next.metadata = opts.meta
 		v := cfgSub{next}
 		v.SetContext(context{
 			parent: cfgSub{cfg},
@@ -114,6 +115,7 @@ func normalizeCfgPath(cfg *Config, opts options, field string) (*Config, string,
 
 func normalizeMap(opts options, from reflect.Value) (*Config, error) {
 	cfg := New()
+	cfg.metadata = opts.meta
 	if err := normalizeMapInto(cfg, opts, from); err != nil {
 		return nil, err
 	}
@@ -142,6 +144,7 @@ func normalizeMapInto(cfg *Config, opts options, from reflect.Value) error {
 
 func normalizeStruct(opts options, from reflect.Value) (*Config, error) {
 	cfg := New()
+	cfg.metadata = opts.meta
 	if err := normalizeStructInto(cfg, opts, from); err != nil {
 		return nil, err
 	}
@@ -225,7 +228,7 @@ func normalizeArray(opts options, ctx context, v reflect.Value) (value, error) {
 	l := v.Len()
 	out := make([]value, 0, l)
 
-	arr := &cfgArray{cfgPrimitive{ctx}, nil}
+	arr := &cfgArray{cfgPrimitive{ctx, opts.meta}, nil}
 
 	for i := 0; i < l; i++ {
 		ctx := context{
@@ -249,15 +252,15 @@ func normalizeValue(opts options, ctx context, v reflect.Value) (value, error) {
 	// handle primitives
 	switch v.Kind() {
 	case reflect.Bool:
-		return newBool(ctx, v.Bool()), nil
+		return newBool(ctx, opts.meta, v.Bool()), nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return newInt(ctx, v.Int()), nil
+		return newInt(ctx, opts.meta, v.Int()), nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return newInt(ctx, int64(v.Uint())), nil
+		return newInt(ctx, opts.meta, int64(v.Uint())), nil
 	case reflect.Float32, reflect.Float64:
-		return newFloat(ctx, v.Float()), nil
+		return newFloat(ctx, opts.meta, v.Float()), nil
 	case reflect.String:
-		return newString(ctx, v.String()), nil
+		return newString(ctx, opts.meta, v.String()), nil
 	case reflect.Array, reflect.Slice:
 		return normalizeArray(opts, ctx, v)
 	case reflect.Map:
@@ -275,7 +278,7 @@ func normalizeValue(opts options, ctx context, v reflect.Value) (value, error) {
 		return normalizeStructValue(opts, ctx, v)
 	default:
 		if v.IsNil() {
-			return cfgNil{cfgPrimitive{ctx}}, nil
+			return &cfgNil{cfgPrimitive{ctx, nil}}, nil
 		}
 		return nil, raise(ErrTypeMismatch)
 	}

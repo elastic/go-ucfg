@@ -150,6 +150,11 @@ func (c *Config) setField(name string, idx int, v value, options []Option) error
 		ctx.field = fmt.Sprintf("%v", idx)
 	}
 	orig.SetContext(ctx)
+
+	if opts.meta != nil {
+		v.setMeta(opts.meta)
+	}
+
 	cfg.fields.fields[field] = v
 
 	return nil

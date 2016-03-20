@@ -7,12 +7,18 @@ import (
 )
 
 type Config struct {
-	ctx    context
-	fields *fields
+	ctx      context
+	metadata *Meta
+	fields   *fields
 }
 
 type fields struct {
 	fields map[string]value
+}
+
+// Meta holds additional meta data per config value
+type Meta struct {
+	source string
 }
 
 var (
