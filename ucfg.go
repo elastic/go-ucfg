@@ -18,7 +18,7 @@ type fields struct {
 
 // Meta holds additional meta data per config value
 type Meta struct {
-	source string
+	Source string
 }
 
 var (

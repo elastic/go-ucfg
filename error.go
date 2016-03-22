@@ -132,10 +132,10 @@ func raisePathErr(reason error, meta *Meta, message, path string) Error {
 }
 
 func messageMeta(message string, meta *Meta) string {
-	if meta == nil || meta.source == "" {
+	if meta == nil || meta.Source == "" {
 		return message
 	}
-	return fmt.Sprintf("%v (source:'%v')", message, meta.source)
+	return fmt.Sprintf("%v (source:'%v')", message, meta.Source)
 }
 
 func messagePath(reason error, meta *Meta, message, path string) string {
