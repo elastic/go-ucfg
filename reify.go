@@ -2,6 +2,7 @@ package ucfg
 
 import (
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -334,6 +335,18 @@ func reifyPrimitive(
 			return reflect.Value{}, raiseConversion(val, err, "duration")
 		}
 		return pointerize(t, baseType, reflect.ValueOf(d)), nil
+
+	case baseType == tRegexp:
+		s, err := val.toString()
+		if err != nil {
+			return reflect.Value{}, raiseConversion(val, err, "regex")
+		}
+
+		r, err := regexp.Compile(s)
+		if err != nil {
+			return reflect.Value{}, raiseConversion(val, err, "regex")
+		}
+		return pointerize(t, baseType, reflect.ValueOf(r).Elem()), nil
 
 	case val.typ().ConvertibleTo(baseType):
 		return pointerize(t, baseType, val.reflect().Convert(baseType)), nil
