@@ -1,7 +1,6 @@
 package ucfg
 
 import (
-	"fmt"
 	"reflect"
 	"time"
 )
@@ -65,6 +64,10 @@ func (c *Config) Path(sep string) string {
 	return c.ctx.path(sep)
 }
 
+func (c *Config) PathOf(field, sep string) string {
+	return c.ctx.pathOf(field, sep)
+}
+
 func (c *Config) Parent() *Config {
 	ctx := c.ctx
 	for {
@@ -81,11 +84,4 @@ func (c *Config) Parent() *Config {
 			return nil
 		}
 	}
-}
-
-func (c *Config) PathOf(field, sep string) string {
-	if p := c.Path(sep); p != "" {
-		return fmt.Sprintf("%v%v%v", p, sep, field)
-	}
-	return field
 }

@@ -90,7 +90,7 @@ func normalizeCfgPath(cfg *Config, opts options, field string) (*Config, string,
 		if exists {
 			vSub, ok := sub.(cfgSub)
 			if !ok {
-				return nil, field, raiseExpectedObject(cfg, field, sub)
+				return nil, field, raiseExpectedObject(sub)
 			}
 
 			cfg = vSub.c
@@ -124,13 +124,13 @@ func normalizeMap(opts options, from reflect.Value) (*Config, Error) {
 func normalizeMapInto(cfg *Config, opts options, from reflect.Value) Error {
 	k := from.Type().Key().Kind()
 	if k != reflect.String && k != reflect.Interface {
-		return raiseKeyInvalidType()
+		return raiseKeyInvalidTypeMerge(cfg, from.Type())
 	}
 
 	for _, k := range from.MapKeys() {
 		k = chaseValueInterfaces(k)
 		if k.Kind() != reflect.String {
-			return raiseKeyInvalidType()
+			return raiseKeyInvalidTypeMerge(cfg, from.Type())
 		}
 
 		err := normalizeSetField(cfg, opts, k.String(), from.MapIndex(k))
@@ -167,7 +167,7 @@ func normalizeStructInto(cfg *Config, opts options, from reflect.Value) Error {
 			case reflect.Map:
 				err = normalizeMapInto(cfg, opts, vField)
 			default:
-				return raiseSquashNeedsObject()
+				return raiseSquashNeedsObject(cfg, opts, stField.Name, vField.Type())
 			}
 		} else {
 			name = fieldName(name, stField.Name)
@@ -277,8 +277,8 @@ func normalizeValue(opts options, ctx context, v reflect.Value) (value, Error) {
 		return normalizeStructValue(opts, ctx, v)
 	default:
 		if v.IsNil() {
-			return &cfgNil{cfgPrimitive{ctx, nil}}, nil
+			return &cfgNil{cfgPrimitive{ctx, opts.meta}}, nil
 		}
-		return nil, raiseUnsupportedInputType()
+		return nil, raiseUnsupportedInputType(ctx, opts, v)
 	}
 }

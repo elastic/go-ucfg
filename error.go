@@ -3,19 +3,30 @@ package ucfg
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"runtime/debug"
 )
 
 type Error interface {
 	error
 	Reason() error
+
+	// error class, one of ErrConfig, ErrImplementation, ErrUnknown
 	Class() error
-	Trace() string // optional stack trace
+
+	Message() string
+
+	// [optional] path of config element error occured for
+	Path() string
+
+	// [optional] stack trace
+	Trace() string
 }
 
 type baseError struct {
-	reason error
-	class  error
+	reason  error
+	class   error
+	message string
 }
 
 type criticalError struct {
@@ -29,14 +40,9 @@ type pathError struct {
 	path string
 }
 
-type ValueError struct {
-	reason error
-	value  value
-}
-
 // error Reasons
 var (
-	ErrMissing = errors.New("field name missing")
+	ErrMissing = errors.New("missing field")
 
 	ErrTypeNoArray = errors.New("field is no array")
 
@@ -44,9 +50,9 @@ var (
 
 	ErrKeyTypeNotString = errors.New("key must be a string")
 
-	ErrIndexOutOfRange = errors.New("index out of range")
+	ErrIndexOutOfRange = errors.New("out of range index")
 
-	ErrPointerRequired = errors.New("requires pointer for unpacking")
+	ErrPointerRequired = errors.New("pointer required for unpacking configurations")
 
 	ErrArraySizeMistach = errors.New("Array size mismatch")
 
@@ -54,9 +60,11 @@ var (
 
 	ErrNilConfig = errors.New("config is nil")
 
-	ErrNilValue = errors.New("unexpected nil value")
+	ErrNilValue = errors.New("nil value is invalid")
 
 	ErrTODO = errors.New("TODO - implement me")
+
+	ErrDuplicateKeey = errors.New("duplicate key")
 )
 
 // error classes
@@ -66,34 +74,28 @@ var (
 	ErrUnknown        = errors.New("Unspecified")
 )
 
+func (e baseError) Message() string { return e.Error() }
+func (e baseError) Reason() error   { return e.reason }
+func (e baseError) Class() error    { return e.class }
+func (e baseError) Trace() string   { return "" }
+func (e baseError) Path() string    { return "" }
+
 func (e baseError) Error() string {
-	return e.reason.Error()
+	if e.message == "" {
+		return e.reason.Error()
+	}
+	return e.message
 }
 
-func (e baseError) Reason() error {
-	return e.reason
+func (e criticalError) Error() string {
+	return fmt.Sprintf("%s\nTrace:%v\n", e.baseError, e.trace)
 }
 
-func (e baseError) Class() error {
-	return e.class
-}
-
-func (e baseError) Trace() string {
-	return ""
-}
-
-func (v ValueError) Error() string {
-	return v.reason.Error()
-}
-
-func (v ValueError) Reason() error {
-	return v.reason
-}
-
-func raiseErr(reason error) Error {
+func raiseErr(reason error, message string) Error {
 	return baseError{
-		reason: reason,
-		class:  ErrConfig,
+		reason:  reason,
+		message: message,
+		class:   ErrConfig,
 	}
 }
 
@@ -104,89 +106,156 @@ func raiseImplErr(reason error) Error {
 	}
 }
 
-func raiseCritical(reason error) Error {
+func raiseCritical(reason error, message string) Error {
+	if message == "" {
+		message = reason.Error()
+	}
+	if message != "" {
+		message = fmt.Sprintf("(assert) %v", message)
+	}
 	return criticalError{
-		baseError{reason, ErrImplementation},
+		baseError{reason, ErrImplementation, message},
 		string(debug.Stack()),
 	}
 }
 
-func raisePathErr(reason error, meta *Meta, path string) Error {
+func raisePathErr(reason error, meta *Meta, message, path string) Error {
+	// fmt.Printf("path err, reason='%v', meta=%v, message='%v', path='%v'\n", reason, meta, message, path)
+	message = messagePath(reason, meta, message, path)
+	// fmt.Printf("  -> report message: %v\n", message)
+
 	return pathError{
-		baseError{reason, ErrConfig},
+		baseError{reason, ErrConfig, message},
 		meta,
 		path,
 	}
 }
 
+func messageMeta(message string, meta *Meta) string {
+	if meta == nil || meta.source == "" {
+		return message
+	}
+	return fmt.Sprintf("%v (source:'%v')", message, meta.source)
+}
+
+func messagePath(reason error, meta *Meta, message, path string) string {
+	if path == "" {
+		path = "config"
+	} else {
+		path = fmt.Sprintf("'%v'", path)
+	}
+
+	if message == "" {
+		message = reason.Error()
+	}
+
+	message = fmt.Sprintf("%v accessing %v", message, path)
+	return messageMeta(message, meta)
+}
+
 func raiseDuplicateKey(cfg *Config, name string) Error {
-	return raiseErr(
-		fmt.Errorf("duplicate field key '%v'", name))
+	return raisePathErr(ErrDuplicateKeey, cfg.metadata, "", cfg.PathOf(name, "."))
 }
 
 func raiseMissing(c *Config, field string) Error {
 	// error reading field from config, as missing in c
-	return raisePathErr(ErrMissing, c.metadata, c.PathOf(field, "."))
+	return raisePathErr(ErrMissing, c.metadata, "", c.PathOf(field, "."))
 }
 
 func raiseMissingArr(arr *cfgArray, idx int) Error {
-	path := fmt.Sprintf("%v.%v", arr.ctx.path("."), idx)
-	return raisePathErr(ErrMissing, arr.meta(), path)
+	message := fmt.Sprintf("no value in array at %v", idx)
+	return raisePathErr(ErrMissing, arr.meta(), message, arr.ctx.path("."))
 }
 
-func raiseIndexOutOfBounds(c *Config, field string, idx int, value value) Error {
-	return raiseErr(ErrIndexOutOfRange)
+func raiseIndexOutOfBounds(value value, idx int) Error {
+	reason := ErrIndexOutOfRange
+	ctx := value.Context()
+	message := fmt.Sprintf("index '%v' out of range (length=%v)", idx, value.Len())
+	return raisePathErr(reason, value.meta(), message, ctx.path("."))
 }
 
 func raiseInvalidTopLevelType(v interface{}) Error {
-	// t := chaseTypePointers(chaseValue(reflect.ValueOf(v)).Type())
-	// return ErrTypeMismatch
-	return raiseCritical(ErrTypeMismatch)
-}
-
-func raiseKeyInvalidType() Error {
 	// most likely developers fault
-	return raiseCritical(ErrKeyTypeNotString)
+	t := chaseTypePointers(chaseValue(reflect.ValueOf(v)).Type())
+	message := fmt.Sprintf("can not use go type '%v' for merging/unpacking configurations", t)
+	return raiseCritical(ErrTypeMismatch, message)
 }
 
-func raiseSquashNeedsObject() Error {
+func raiseKeyInvalidTypeUnpack(t reflect.Type, from *Config) Error {
 	// most likely developers fault
-	return raiseCritical(ErrTypeMismatch)
+	ctx := from.ctx
+	reason := ErrKeyTypeNotString
+	message := fmt.Sprintf("string key required when unpacking into '%v'", t)
+	return raiseCritical(reason, messagePath(reason, from.metadata, message, ctx.path(".")))
 }
 
-func raiseInlineNeedsObject() Error {
-	// most likely developers fault
-	return raiseCritical(ErrTypeMismatch)
+func raiseKeyInvalidTypeMerge(cfg *Config, t reflect.Type) Error {
+	ctx := cfg.ctx
+	reason := ErrKeyTypeNotString
+	message := fmt.Sprintf("string key required when merging into '%v'", t)
+	return raiseCritical(reason, messagePath(reason, cfg.metadata, message, ctx.path(".")))
 }
 
-func raiseUnsupportedInputType() Error {
-	return raiseCritical(ErrTypeMismatch)
+func raiseSquashNeedsObject(cfg *Config, opts options, f string, t reflect.Type) Error {
+	reason := ErrTypeMismatch
+	message := fmt.Sprintf("require map or struct when squash merging '%v' (%v)", f, t)
+
+	return raiseCritical(reason, messagePath(reason, opts.meta, message, cfg.Path(".")))
+}
+
+func raiseInlineNeedsObject(cfg *Config, f string, t reflect.Type) Error {
+	reason := ErrTypeMismatch
+	message := fmt.Sprintf("require map or struct when inling '%v' (%v)", f, t)
+	return raiseCritical(reason,
+		messagePath(reason, cfg.metadata, message, cfg.Path(".")))
+}
+
+func raiseUnsupportedInputType(ctx context, opts options, v reflect.Value) Error {
+	reason := ErrTypeMismatch
+	message := fmt.Sprintf("unspported input type (%v) with value '%#v'",
+		v.Type(), v)
+
+	return raiseCritical(reason, messagePath(reason, opts.meta, message, ctx.path(".")))
 }
 
 func raiseNil(reason error) Error {
 	// programmers error (passed unexpected nil pointer)
-	return raiseCritical(ErrNilValue)
+	return raiseCritical(reason, "")
 }
 
-func raisePointerRequired() Error {
+func raisePointerRequired(v reflect.Value) Error {
 	// developer did not pass pointer, unpack target is not settable
-	return raiseCritical(ErrPointerRequired)
+	return raiseCritical(ErrPointerRequired, "")
 }
 
-func raiseToTypeNotSupported() Error {
-	return raiseCritical(ErrTODO)
+func raiseToTypeNotSupported(v value, t reflect.Type) Error {
+	reason := ErrTypeMismatch
+	message := fmt.Sprintf("value of type '%v' not convertible into unsupported go type '%v'", v.typeName(), t)
+	ctx := v.Context()
+
+	return raiseCritical(reason, messagePath(reason, v.meta(), message, ctx.path(".")))
 }
 
-func raiseArraySize() Error {
-	return raiseErr(ErrArraySizeMistach)
-}
+func raiseArraySize(to reflect.Type, arr *cfgArray) Error {
+	reason := ErrArraySizeMistach
+	message := fmt.Sprintf("array of length %v does not meet required length %v",
+		arr.Len(), to.Len())
 
-func raiseExpectedObject(cfg *Config, field string, v value) Error {
-	return raiseErr(ErrExpectedObject)
+	return raisePathErr(reason, arr.meta(), message, arr.ctx.path("."))
 }
 
 func raiseConversion(v value, err error, to string) Error {
 	ctx := v.Context()
 	path := ctx.path(".")
-	return raisePathErr(err, v.meta(), path)
+	message := fmt.Sprintf("can not convert '%v' into '%v'", v.typeName(), to)
+	return raisePathErr(err, v.meta(), message, path)
+}
+
+func raiseExpectedObject(v value) Error {
+	ctx := v.Context()
+	path := ctx.path(".")
+	message := fmt.Sprintf("required 'object', but found '%v' in field '%v'",
+		v.typeName(), path)
+
+	return raiseErr(ErrExpectedObject, messageMeta(message, v.meta()))
 }

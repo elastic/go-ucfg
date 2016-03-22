@@ -102,7 +102,7 @@ func (c *Config) getField(name string, idx int, options []Option) (value, Error)
 
 	if arr, ok := v.(*cfgArray); ok {
 		if idx >= arr.Len() {
-			return nil, raiseMissingArr(arr, idx)
+			return nil, raiseIndexOutOfBounds(v, idx)
 		}
 
 		v = arr.arr[idx]
@@ -113,7 +113,7 @@ func (c *Config) getField(name string, idx int, options []Option) (value, Error)
 	}
 
 	if idx > 0 {
-		return nil, raiseIndexOutOfBounds(c, field, idx, v)
+		return nil, raiseIndexOutOfBounds(v, idx)
 	}
 
 	return v, nil

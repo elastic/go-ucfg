@@ -7,6 +7,8 @@ import (
 )
 
 func (c *Config) Unpack(to interface{}, options ...Option) error {
+	opts := makeOptions(options)
+
 	if c == nil {
 		return raiseNil(ErrNilConfig)
 	}
@@ -14,10 +16,9 @@ func (c *Config) Unpack(to interface{}, options ...Option) error {
 		return raiseNil(ErrNilValue)
 	}
 
-	opts := makeOptions(options)
 	vTo := reflect.ValueOf(to)
 	if to == nil || (vTo.Kind() != reflect.Ptr && vTo.Kind() != reflect.Map) {
-		return raisePointerRequired()
+		return raisePointerRequired(vTo)
 	}
 	return reifyInto(opts, vTo, c)
 }
@@ -42,7 +43,7 @@ func reifyInto(opts options, to reflect.Value, from *Config) Error {
 
 func reifyMap(opts options, to reflect.Value, from *Config) Error {
 	if to.Type().Key().Kind() != reflect.String {
-		return raiseKeyInvalidType()
+		return raiseKeyInvalidTypeUnpack(to.Type(), from)
 	}
 
 	if len(from.fields.fields) == 0 {
@@ -95,7 +96,7 @@ func reifyStruct(opts options, orig reflect.Value, cfg *Config) Error {
 			case reflect.Struct, reflect.Map:
 				err = reifyInto(opts, vField, cfg)
 			default:
-				return raiseInlineNeedsObject()
+				return raiseInlineNeedsObject(cfg, stField.Name, vField.Type())
 			}
 		} else {
 			name = fieldName(name, stField.Name)
@@ -149,7 +150,7 @@ func reifyCfgPath(cfg *Config, opts options, field string) (*Config, string, Err
 
 		cSub, err := sub.toConfig()
 		if err != nil {
-			return nil, field, raiseExpectedObject(cfg, field, sub)
+			return nil, field, raiseExpectedObject(sub)
 		}
 		cfg = cSub
 	}
@@ -166,7 +167,7 @@ func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, Error) 
 	baseType := chaseTypePointers(t)
 	if tConfig.ConvertibleTo(baseType) {
 		if _, err := val.toConfig(); err != nil {
-			return reflect.Value{}, raiseExpectedObject(nil, "", val)
+			return reflect.Value{}, raiseExpectedObject(val)
 		}
 
 		v := val.reflect().Convert(reflect.PtrTo(baseType))
@@ -181,7 +182,7 @@ func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, Error) 
 	if baseType.Kind() == reflect.Struct {
 		sub, err := val.toConfig()
 		if err != nil {
-			return reflect.Value{}, raiseExpectedObject(nil, "", val)
+			return reflect.Value{}, raiseExpectedObject(val)
 		}
 
 		newSt := reflect.New(baseType)
@@ -199,11 +200,11 @@ func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, Error) 
 	case reflect.Map:
 		sub, err := val.toConfig()
 		if err != nil {
-			return reflect.Value{}, raiseExpectedObject(nil, "", val)
+			return reflect.Value{}, raiseExpectedObject(val)
 		}
 
 		if baseType.Key().Kind() != reflect.String {
-			return reflect.Value{}, raiseKeyInvalidType()
+			return reflect.Value{}, raiseKeyInvalidTypeUnpack(baseType, sub)
 		}
 
 		newMap := reflect.MakeMap(baseType)
@@ -238,12 +239,12 @@ func reifyMergeValue(
 	if tConfig.ConvertibleTo(baseType) {
 		sub, err := val.toConfig()
 		if err != nil {
-			return reflect.Value{}, raiseExpectedObject(nil, "", val)
+			return reflect.Value{}, raiseExpectedObject(val)
 		}
 
 		if t == baseType {
 			// no pointer -> return type mismatch
-			return reflect.Value{}, raisePointerRequired()
+			return reflect.Value{}, raisePointerRequired(oldValue)
 		}
 
 		// check if old is nil -> copy reference only
@@ -266,14 +267,14 @@ func reifyMergeValue(
 	case reflect.Map:
 		sub, err := val.toConfig()
 		if err != nil {
-			return reflect.Value{}, raiseExpectedObject(nil, "", val)
+			return reflect.Value{}, raiseExpectedObject(val)
 		}
 		return old, reifyMap(opts, old, sub)
 
 	case reflect.Struct:
 		sub, err := val.toConfig()
 		if err != nil {
-			return reflect.Value{}, raiseExpectedObject(nil, "", val)
+			return reflect.Value{}, raiseExpectedObject(val)
 		}
 		return oldValue, reifyStruct(opts, old, sub)
 
@@ -327,7 +328,7 @@ func reifyPrimitive(
 
 	}
 
-	return reflect.Value{}, raiseToTypeNotSupported()
+	return reflect.Value{}, raiseToTypeNotSupported(val, baseType)
 }
 
 func reifyArray(
@@ -336,7 +337,7 @@ func reifyArray(
 	arr *cfgArray,
 ) (reflect.Value, Error) {
 	if arr.Len() != tTo.Len() {
-		return reflect.Value{}, raiseArraySize()
+		return reflect.Value{}, raiseArraySize(tTo, arr)
 	}
 	return reifyDoArray(opts, to, tTo.Elem(), arr)
 }

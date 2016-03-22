@@ -20,6 +20,8 @@ type value interface {
 	typ() reflect.Type
 	reify() interface{}
 
+	typeName() string
+
 	toBool() (bool, error)
 	toString() (string, error)
 	toInt() (int64, error)
@@ -87,6 +89,13 @@ func (c *context) path(sep string) string {
 	return c.field
 }
 
+func (c *context) pathOf(field, sep string) string {
+	if p := c.path(sep); p != "" {
+		return fmt.Sprintf("%v%v%v", p, sep, field)
+	}
+	return field
+}
+
 func newBool(ctx context, m *Meta, b bool) *cfgBool {
 	return &cfgBool{cfgPrimitive{ctx, m}, b}
 }
@@ -114,6 +123,7 @@ func (cfgPrimitive) toInt() (int64, error)      { return 0, ErrTypeMismatch }
 func (cfgPrimitive) toFloat() (float64, error)  { return 0, ErrTypeMismatch }
 func (cfgPrimitive) toConfig() (*Config, error) { return nil, ErrTypeMismatch }
 
+func (cfgArray) typeName() string          { return "array" }
 func (c *cfgArray) Len() int               { return len(c.arr) }
 func (c *cfgArray) reflect() reflect.Value { return reflect.ValueOf(c.arr) }
 func (cfgArray) typ() reflect.Type         { return tInterfaceArray }
@@ -132,6 +142,7 @@ func (c *cfgArray) reify() interface{} {
 
 func (c *cfgNil) cpy(ctx context) value   { return &cfgNil{cfgPrimitive{ctx, c.metadata}} }
 func (*cfgNil) Len() int                  { return 0 }
+func (*cfgNil) typeName() string          { return "any" }
 func (*cfgNil) toString() (string, error) { return "null", nil }
 func (*cfgNil) toInt() (int64, error)     { return 0, ErrTypeMismatch }
 func (*cfgNil) toFloat() (float64, error) { return 0, ErrTypeMismatch }
@@ -148,6 +159,7 @@ func (c *cfgNil) toConfig() (*Config, error) {
 }
 
 func (c *cfgBool) cpy(ctx context) value     { return newBool(ctx, c.meta(), c.b) }
+func (*cfgBool) typeName() string            { return "bool" }
 func (c *cfgBool) toBool() (bool, error)     { return c.b, nil }
 func (c *cfgBool) reflect() reflect.Value    { return reflect.ValueOf(c.b) }
 func (c *cfgBool) reify() interface{}        { return c.b }
@@ -155,6 +167,7 @@ func (c *cfgBool) toString() (string, error) { return fmt.Sprintf("%t", c.b), ni
 func (c *cfgBool) typ() reflect.Type         { return tBool }
 
 func (c *cfgInt) cpy(ctx context) value     { return newInt(ctx, c.meta(), c.i) }
+func (*cfgInt) typeName() string            { return "int" }
 func (c *cfgInt) toInt() (int64, error)     { return c.i, nil }
 func (c *cfgInt) reflect() reflect.Value    { return reflect.ValueOf(c.i) }
 func (c *cfgInt) reify() interface{}        { return c.i }
@@ -162,6 +175,7 @@ func (c *cfgInt) toString() (string, error) { return fmt.Sprintf("%d", c.i), nil
 func (c *cfgInt) typ() reflect.Type         { return tInt64 }
 
 func (c *cfgFloat) cpy(ctx context) value     { return newFloat(ctx, c.meta(), c.f) }
+func (*cfgFloat) typeName() string            { return "float" }
 func (c *cfgFloat) toFloat() (float64, error) { return c.f, nil }
 func (c *cfgFloat) reflect() reflect.Value    { return reflect.ValueOf(c.f) }
 func (c *cfgFloat) reify() interface{}        { return c.f }
@@ -169,12 +183,14 @@ func (c *cfgFloat) toString() (string, error) { return fmt.Sprintf("%v", c.f), n
 func (c *cfgFloat) typ() reflect.Type         { return tFloat64 }
 
 func (c *cfgString) cpy(ctx context) value     { return newString(ctx, c.meta(), c.s) }
+func (*cfgString) typeName() string            { return "string" }
 func (c *cfgString) toString() (string, error) { return c.s, nil }
 func (c *cfgString) reflect() reflect.Value    { return reflect.ValueOf(c.s) }
 func (c *cfgString) reify() interface{}        { return c.s }
 func (c *cfgString) typ() reflect.Type         { return tString }
 
 func (cfgSub) Len() int                     { return 1 }
+func (cfgSub) typeName() string             { return "object" }
 func (c cfgSub) Context() context           { return c.c.ctx }
 func (cfgSub) toBool() (bool, error)        { return false, ErrTypeMismatch }
 func (cfgSub) toString() (string, error)    { return "", ErrTypeMismatch }
