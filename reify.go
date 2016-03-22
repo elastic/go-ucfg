@@ -311,16 +311,28 @@ func reifyPrimitive(
 		return pointerize(t, baseType, reflect.ValueOf(s)), nil
 
 	case baseType == tDuration:
-		s, err := val.toString()
+		var d time.Duration
+		var err error
+
+		switch v := val.(type) {
+		case *cfgInt:
+			d = time.Duration(v.i) * time.Second
+		case *cfgFloat:
+			d = time.Duration(v.f * float64(time.Second))
+		case *cfgString:
+			d, err = time.ParseDuration(v.s)
+		default:
+			s, err := val.toString()
+			if err != nil {
+				return reflect.Value{}, raiseConversion(val, err, "duration")
+			}
+
+			d, err = time.ParseDuration(s)
+		}
+
 		if err != nil {
 			return reflect.Value{}, raiseConversion(val, err, "duration")
 		}
-
-		d, err := time.ParseDuration(s)
-		if err != nil {
-			return reflect.Value{}, raiseConversion(val, err, "duration")
-		}
-
 		return pointerize(t, baseType, reflect.ValueOf(d)), nil
 
 	case val.typ().ConvertibleTo(baseType):
