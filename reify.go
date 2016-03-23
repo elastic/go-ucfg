@@ -183,6 +183,11 @@ func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, Error) 
 	if baseType.Kind() == reflect.Struct {
 		sub, err := val.toConfig()
 		if err != nil {
+			// try primitive
+			if v, check := reifyPrimitive(opts, val, t, baseType); check == nil {
+				return v, nil
+			}
+
 			return reflect.Value{}, raiseExpectedObject(val)
 		}
 
