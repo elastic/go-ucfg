@@ -146,11 +146,15 @@ func (*cfgNil) typeName() string          { return "any" }
 func (*cfgNil) toString() (string, error) { return "null", nil }
 func (*cfgNil) toInt() (int64, error)     { return 0, ErrTypeMismatch }
 func (*cfgNil) toFloat() (float64, error) { return 0, ErrTypeMismatch }
-func (*cfgNil) reflect() reflect.Value    { return reflect.ValueOf(nil) }
 func (*cfgNil) reify() interface{}        { return nil }
 func (*cfgNil) typ() reflect.Type         { return reflect.PtrTo(tConfig) }
 func (c *cfgNil) meta() *Meta             { return c.metadata }
 func (c *cfgNil) setMeta(m *Meta)         { c.metadata = m }
+
+func (c *cfgNil) reflect() reflect.Value {
+	cfg, _ := c.toConfig()
+	return reflect.ValueOf(cfg)
+}
 
 func (c *cfgNil) toConfig() (*Config, error) {
 	n := New()

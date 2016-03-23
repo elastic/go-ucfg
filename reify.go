@@ -167,11 +167,12 @@ func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, Error) 
 
 	baseType := chaseTypePointers(t)
 	if tConfig.ConvertibleTo(baseType) {
-		if _, err := val.toConfig(); err != nil {
+		cfg, err := val.toConfig()
+		if err != nil {
 			return reflect.Value{}, raiseExpectedObject(val)
 		}
 
-		v := val.reflect().Convert(reflect.PtrTo(baseType))
+		v := reflect.ValueOf(cfg).Convert(reflect.PtrTo(baseType))
 		if t == baseType { // copy config
 			v = v.Elem()
 		} else {
