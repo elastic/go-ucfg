@@ -94,9 +94,7 @@ func TestMergeNested(t *testing.T) {
 			"c": sub,
 		},
 		map[string]map[string]bool{
-			"c": map[string]bool{
-				"b": true,
-			},
+			"c": {"b": true},
 		},
 
 		node{"c": map[string]interface{}{"b": true}},

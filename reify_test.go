@@ -229,9 +229,7 @@ func TestUnpackArray(t *testing.T) {
 		map[string]interface{}{
 			"a": []int{},
 		},
-		map[string][]int{
-			"a": []int{},
-		},
+		map[string][]int{"a": {}},
 		map[string]interface{}{
 			"a": []interface{}{},
 		},
