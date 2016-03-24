@@ -259,3 +259,9 @@ func raiseExpectedObject(v value) Error {
 
 	return raiseErr(ErrExpectedObject, messageMeta(message, v.meta()))
 }
+
+func raiseInvalidDuration(v value, err error) Error {
+	ctx := v.Context()
+	path := ctx.path(".")
+	return raisePathErr(err, v.meta(), "", path)
+}

@@ -338,7 +338,7 @@ func reifyPrimitive(
 		}
 
 		if err != nil {
-			return reflect.Value{}, raiseConversion(val, err, "duration")
+			return reflect.Value{}, raiseInvalidDuration(val, err)
 		}
 		return pointerize(t, baseType, reflect.ValueOf(d)), nil
 
