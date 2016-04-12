@@ -6,6 +6,7 @@ import (
 	"path"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -34,6 +35,7 @@ func TestErrorMessages(t *testing.T) {
 	arrNestedMeta := &cfgArray{
 		cfgPrimitive{metadata: testMeta, ctx: testNestedCtx},
 		make([]value, 3)}
+	_, timeErr := time.ParseDuration("1 hour")
 
 	tests := map[string]Error{
 		"duplicate_wo_meta":        raiseDuplicateKey(c, "test"),
@@ -55,6 +57,11 @@ func TestErrorMessages(t *testing.T) {
 		"arr_oob_w_meta":         raiseIndexOutOfBounds(arrMeta, 5),
 		"arr_oob_nested_wo_meta": raiseIndexOutOfBounds(arrNested, 5),
 		"arr_oob_nested_w_meta":  raiseIndexOutOfBounds(arrNestedMeta, 5),
+
+		"invalid_duration_wo_meta": raiseInvalidDuration(newString(
+			context{field: "timeout"}, nil, ""), timeErr),
+		"invalid_duration_w_meta": raiseInvalidDuration(newString(
+			context{field: "timeout"}, testMeta, ""), timeErr),
 
 		"invalid_type_top_level": raiseInvalidTopLevelType(""),
 
