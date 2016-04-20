@@ -1,10 +1,20 @@
 package ucfg
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+type myNonzeroInt int
+
+func (m myNonzeroInt) Validate() error {
+	if m == 0 {
+		return errors.New("myNonzeroInt must not be 0")
+	}
+	return nil
+}
 
 func TestValidationPass(t *testing.T) {
 	c, _ := NewFrom(map[string]interface{}{
@@ -27,6 +37,9 @@ func TestValidationPass(t *testing.T) {
 
 		&struct {
 			C int `validate:"nonzero"`
+		}{},
+		&struct {
+			C myNonzeroInt
 		}{},
 		&struct {
 			C int `validate:"positive"`
@@ -81,6 +94,9 @@ func TestValidationFail(t *testing.T) {
 	tests := []interface{}{
 		&struct {
 			X int `config:"a" validate:"nonzero"`
+		}{},
+		&struct {
+			X myNonzeroInt `config:"a"`
 		}{},
 		&struct {
 			X int `config:"a" validate:"min=10"`
