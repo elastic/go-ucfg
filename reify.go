@@ -136,7 +136,9 @@ func reifyGetField(
 
 	value, ok := from.fields.fields[field]
 	if !ok {
-		// TODO: handle missing config
+		if err := runValidators(nil, opts.validators); err != nil {
+			return raiseValidation(cfg.ctx, cfg.metadata, err)
+		}
 		return nil
 	}
 

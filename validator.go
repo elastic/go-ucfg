@@ -28,6 +28,7 @@ func init() {
 	RegisterValidator("positive", validatePositive)
 	RegisterValidator("min", validateMin)
 	RegisterValidator("max", validateMax)
+	RegisterValidator("required", validateRequired)
 }
 
 func RegisterValidator(name string, cb ValidatorCallback) error {
@@ -86,6 +87,10 @@ func runValidators(val interface{}, validators []validatorTag) error {
 }
 
 func validateNonZero(v interface{}, _ string) error {
+	if v == nil {
+		return nil
+	}
+
 	val := reflect.ValueOf(v)
 	switch val.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -108,6 +113,10 @@ func validateNonZero(v interface{}, _ string) error {
 }
 
 func validatePositive(v interface{}, _ string) error {
+	if v == nil {
+		return nil
+	}
+
 	val := reflect.ValueOf(v)
 	switch val.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -126,6 +135,10 @@ func validatePositive(v interface{}, _ string) error {
 }
 
 func validateMin(v interface{}, param string) error {
+	if v == nil {
+		return nil
+	}
+
 	min, err := strconv.ParseInt(param, 0, 64)
 	if err != nil {
 		return err
@@ -154,6 +167,10 @@ func validateMin(v interface{}, param string) error {
 }
 
 func validateMax(v interface{}, param string) error {
+	if v == nil {
+		return nil
+	}
+
 	max, err := strconv.ParseInt(param, 0, 64)
 	if err != nil {
 		return err
@@ -178,4 +195,11 @@ func validateMax(v interface{}, param string) error {
 	}
 
 	return fmt.Errorf("value > %v", param)
+}
+
+func validateRequired(v interface{}, _ string) error {
+	if v != nil {
+		return nil
+	}
+	return ErrRequired
 }

@@ -73,6 +73,10 @@ func TestValidationPass(t *testing.T) {
 		&struct {
 			X int `config:"f" validate:"min=3, max=20"`
 		}{},
+
+		&struct {
+			X int // field not present in config, but not required
+		}{},
 	}
 
 	for i, test := range tests {
@@ -124,6 +128,10 @@ func TestValidationFail(t *testing.T) {
 		}{},
 		&struct {
 			X float64 `config:"f" validate:"min=20"`
+		}{},
+
+		&struct {
+			X int `validate:"required"`
 		}{},
 	}
 

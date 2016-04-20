@@ -73,6 +73,8 @@ var (
 	ErrNegative = errors.New("negative value")
 
 	ErrZeroValue = errors.New("zero value")
+
+	ErrRequired = errors.New("missing required field")
 )
 
 // error classes
