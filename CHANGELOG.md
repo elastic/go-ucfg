@@ -5,6 +5,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Support for validation via Validator interface. #16
+- Added direct support for uint values. #8, #16
+- Support for simple validators via struct tags (e.g. min, max, nonzero, required). #16
+- Add support for validating time.Duration. #9, #16
 
 ### Changed
 
@@ -13,6 +17,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 
 ### Fixed
+- Check for integer overflow when unpacking into int/uint. #8, #16
 
 ## [0.1.1]
 
