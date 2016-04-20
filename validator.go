@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Validator interface {
@@ -91,6 +92,13 @@ func validateNonZero(v interface{}, _ string) error {
 		return nil
 	}
 
+	if d, ok := v.(time.Duration); ok {
+		if d == 0 {
+			return ErrZeroValue
+		}
+		return nil
+	}
+
 	val := reflect.ValueOf(v)
 	switch val.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -117,6 +125,13 @@ func validatePositive(v interface{}, _ string) error {
 		return nil
 	}
 
+	if d, ok := v.(time.Duration); ok {
+		if d < 0 {
+			return ErrNegative
+		}
+		return nil
+	}
+
 	val := reflect.ValueOf(v)
 	switch val.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -139,31 +154,49 @@ func validateMin(v interface{}, param string) error {
 		return nil
 	}
 
-	min, err := strconv.ParseInt(param, 0, 64)
-	if err != nil {
-		return err
+	if d, ok := v.(time.Duration); ok {
+		min, err := param2Duration(param)
+		if err != nil {
+			return err
+		}
+
+		if min > d {
+			return fmt.Errorf("requires duration < %v", param)
+		}
+		return nil
 	}
 
 	val := reflect.ValueOf(v)
 	switch val.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		if val.Int() >= int64(min) {
+		min, err := strconv.ParseInt(param, 0, 64)
+		if err != nil {
+			return err
+		}
+		if val.Int() >= min {
 			return nil
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		if val.Uint() >= uint64(min) {
+		min, err := strconv.ParseUint(param, 0, 64)
+		if err != nil {
+			return err
+		}
+		if val.Uint() >= min {
 			return nil
 		}
 	case reflect.Float32, reflect.Float64:
-		if val.Float() >= float64(min) {
+		min, err := strconv.ParseFloat(param, 64)
+		if err != nil {
+			return err
+		}
+		if val.Float() >= min {
 			return nil
 		}
 	default:
 		return nil
 	}
 
-	return fmt.Errorf("value < %v", param)
-
+	return fmt.Errorf("requires value < %v", param)
 }
 
 func validateMax(v interface{}, param string) error {
@@ -171,30 +204,49 @@ func validateMax(v interface{}, param string) error {
 		return nil
 	}
 
-	max, err := strconv.ParseInt(param, 0, 64)
-	if err != nil {
-		return err
+	if d, ok := v.(time.Duration); ok {
+		max, err := param2Duration(param)
+		if err != nil {
+			return err
+		}
+
+		if max < d {
+			return fmt.Errorf("requires duration > %v", param)
+		}
+		return nil
 	}
 
 	val := reflect.ValueOf(v)
 	switch val.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		if val.Int() <= int64(max) {
+		max, err := strconv.ParseInt(param, 0, 64)
+		if err != nil {
+			return err
+		}
+		if val.Int() <= max {
 			return nil
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		if val.Uint() <= uint64(max) {
+		max, err := strconv.ParseUint(param, 0, 64)
+		if err != nil {
+			return err
+		}
+		if val.Uint() <= max {
 			return nil
 		}
 	case reflect.Float32, reflect.Float64:
-		if val.Float() <= float64(max) {
+		max, err := strconv.ParseFloat(param, 64)
+		if err != nil {
+			return err
+		}
+		if val.Float() <= max {
 			return nil
 		}
 	default:
 		return nil
 	}
 
-	return fmt.Errorf("value > %v", param)
+	return fmt.Errorf("requires value > %v", param)
 }
 
 func validateRequired(v interface{}, _ string) error {
@@ -202,4 +254,18 @@ func validateRequired(v interface{}, _ string) error {
 		return nil
 	}
 	return ErrRequired
+}
+
+func param2Duration(param string) (time.Duration, error) {
+	d, err := time.ParseDuration(param)
+	if err == nil {
+		return d, err
+	}
+
+	tmp, floatErr := strconv.ParseFloat(param, 64)
+	if floatErr != nil {
+		return 0, err
+	}
+
+	return time.Duration(tmp * float64(time.Second)), nil
 }

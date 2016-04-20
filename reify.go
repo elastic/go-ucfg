@@ -421,6 +421,13 @@ func doReifyPrimitive(
 		}
 		return reflect.ValueOf(s), nil
 
+	case extras[baseType] != nil:
+		v, err := extras[baseType](opts, val, baseType)
+		if err != nil {
+			return v, err
+		}
+		return v, nil
+
 	case isInt(kind):
 		v, err := reifyInt(opts, val, baseType)
 		if err != nil {
@@ -430,13 +437,6 @@ func doReifyPrimitive(
 
 	case isUint(kind):
 		v, err := reifyUint(opts, val, baseType)
-		if err != nil {
-			return v, err
-		}
-		return v, nil
-
-	case extras[baseType] != nil:
-		v, err := extras[baseType](opts, val, baseType)
 		if err != nil {
 			return v, err
 		}
@@ -461,6 +461,8 @@ func reifyDuration(
 	switch v := val.(type) {
 	case *cfgInt:
 		d = time.Duration(v.i) * time.Second
+	case *cfgUint:
+		d = time.Duration(v.u) * time.Second
 	case *cfgFloat:
 		d = time.Duration(v.f * float64(time.Second))
 	case *cfgString:
