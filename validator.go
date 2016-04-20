@@ -2,6 +2,8 @@ package ucfg
 
 import (
 	"fmt"
+	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -20,6 +22,13 @@ type validatorTag struct {
 var (
 	validators = map[string]ValidatorCallback{}
 )
+
+func init() {
+	RegisterValidator("nonzero", validateNonZero)
+	RegisterValidator("positive", validatePositive)
+	RegisterValidator("min", validateMin)
+	RegisterValidator("max", validateMax)
+}
 
 func RegisterValidator(name string, cb ValidatorCallback) error {
 	if _, exists := validators[name]; exists {
@@ -74,4 +83,99 @@ func runValidators(val interface{}, validators []validatorTag) error {
 		}
 	}
 	return nil
+}
+
+func validateNonZero(v interface{}, _ string) error {
+	val := reflect.ValueOf(v)
+	switch val.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if val.Int() != 0 {
+			return nil
+		}
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		if val.Uint() != 0 {
+			return nil
+		}
+	case reflect.Float32, reflect.Float64:
+		if val.Float() != 0 {
+			return nil
+		}
+	default:
+		return nil
+	}
+
+	return ErrZeroValue
+}
+
+func validatePositive(v interface{}, _ string) error {
+	val := reflect.ValueOf(v)
+	switch val.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if val.Int() >= 0 {
+			return nil
+		}
+	case reflect.Float32, reflect.Float64:
+		if val.Float() >= 0 {
+			return nil
+		}
+	default:
+		return nil
+	}
+
+	return ErrNegative
+}
+
+func validateMin(v interface{}, param string) error {
+	min, err := strconv.ParseInt(param, 0, 64)
+	if err != nil {
+		return err
+	}
+
+	val := reflect.ValueOf(v)
+	switch val.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if val.Int() >= int64(min) {
+			return nil
+		}
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		if val.Uint() >= uint64(min) {
+			return nil
+		}
+	case reflect.Float32, reflect.Float64:
+		if val.Float() >= float64(min) {
+			return nil
+		}
+	default:
+		return nil
+	}
+
+	return fmt.Errorf("value < %v", param)
+
+}
+
+func validateMax(v interface{}, param string) error {
+	max, err := strconv.ParseInt(param, 0, 64)
+	if err != nil {
+		return err
+	}
+
+	val := reflect.ValueOf(v)
+	switch val.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if val.Int() <= int64(max) {
+			return nil
+		}
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		if val.Uint() <= uint64(max) {
+			return nil
+		}
+	case reflect.Float32, reflect.Float64:
+		if val.Float() <= float64(max) {
+			return nil
+		}
+	default:
+		return nil
+	}
+
+	return fmt.Errorf("value > %v", param)
 }

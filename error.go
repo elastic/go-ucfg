@@ -71,6 +71,8 @@ var (
 	ErrOverflow = errors.New("integer overflow")
 
 	ErrNegative = errors.New("negative value")
+
+	ErrZeroValue = errors.New("zero value")
 )
 
 // error classes
