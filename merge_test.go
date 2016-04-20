@@ -11,12 +11,14 @@ func TestMergePrimitives(t *testing.T) {
 	c := New()
 	c.SetBool("b", 0, true)
 	c.SetInt("i", 0, 42)
+	c.SetUint("u", 0, 23)
 	c.SetFloat("f", 0, 3.14)
 	c.SetString("s", 0, "string")
 
 	c2 := newC()
 	c2.SetBool("b", 0, true)
 	c2.SetInt("i", 0, 42)
+	c2.SetUint("u", 0, 23)
 	c2.SetFloat("f", 0, 3.14)
 	c2.SetString("s", 0, "string")
 
@@ -24,21 +26,24 @@ func TestMergePrimitives(t *testing.T) {
 		map[string]interface{}{
 			"b": true,
 			"i": 42,
+			"u": 23,
 			"f": 3.14,
 			"s": "string",
 		},
 		node{
 			"b": true,
 			"i": 42,
+			"u": 23,
 			"f": 3.14,
 			"s": "string",
 		},
 		struct {
 			B bool
 			I int
+			U uint
 			F float64
 			S string
-		}{true, 42, 3.14, "string"},
+		}{true, 42, 23, 3.14, "string"},
 
 		c,
 
@@ -61,6 +66,9 @@ func TestMergePrimitives(t *testing.T) {
 		i, err := c.Int("i", 0)
 		assert.NoError(t, err)
 
+		u, err := c.Int("u", 0)
+		assert.NoError(t, err)
+
 		f, err := c.Float("f", 0)
 		assert.NoError(t, err)
 
@@ -69,6 +77,7 @@ func TestMergePrimitives(t *testing.T) {
 
 		assert.Equal(t, true, b)
 		assert.Equal(t, 42, int(i))
+		assert.Equal(t, 23, int(u))
 		assert.Equal(t, 3.14, f)
 		assert.Equal(t, "string", s)
 	}
@@ -220,17 +229,17 @@ func TestMergeMixedArray(t *testing.T) {
 	tests := []interface{}{
 		map[string]interface{}{
 			"a": []interface{}{
-				true, 42, 3.14, "string", sub,
+				true, 42, uint(23), 3.14, "string", sub,
 			},
 		},
 		node{
 			"a": []interface{}{
-				true, 42, 3.14, "string", sub,
+				true, 42, uint(23), 3.14, "string", sub,
 			},
 		},
 		struct{ A []interface{} }{
 			[]interface{}{
-				true, 42, 3.14, "string", sub,
+				true, 42, uint(23), 3.14, "string", sub,
 			},
 		},
 	}
@@ -250,22 +259,26 @@ func TestMergeMixedArray(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 42, int(i))
 
-		f, err := c.Float("a", 2)
+		u, err := c.Uint("a", 2)
+		assert.NoError(t, err)
+		assert.Equal(t, 23, int(u))
+
+		f, err := c.Float("a", 3)
 		assert.NoError(t, err)
 		assert.Equal(t, 3.14, f)
 
-		s, err := c.String("a", 3)
+		s, err := c.String("a", 4)
 		assert.NoError(t, err)
 		assert.Equal(t, "string", s)
 
-		sub, err := c.Child("a", 4)
+		sub, err := c.Child("a", 5)
 		assert.NoError(t, err)
 		b, err = sub.Bool("b", 0)
 		assert.NoError(t, err)
 		assert.Equal(t, true, b)
 
 		assert.Equal(t, "", c.Path("."))
-		assert.Equal(t, "a.4", sub.Path("."))
+		assert.Equal(t, "a.5", sub.Path("."))
 	}
 }
 

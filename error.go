@@ -44,6 +44,8 @@ type pathError struct {
 var (
 	ErrMissing = errors.New("missing field")
 
+	ErrDuplicateValidator = errors.New("validator already registered")
+
 	ErrTypeNoArray = errors.New("field is no array")
 
 	ErrTypeMismatch = errors.New("type mismatch")
@@ -65,6 +67,10 @@ var (
 	ErrTODO = errors.New("TODO - implement me")
 
 	ErrDuplicateKeey = errors.New("duplicate key")
+
+	ErrOverflow = errors.New("integer overflow")
+
+	ErrNegative = errors.New("negative value")
 )
 
 // error classes
@@ -264,4 +270,8 @@ func raiseInvalidDuration(v value, err error) Error {
 	ctx := v.Context()
 	path := ctx.path(".")
 	return raisePathErr(err, v.meta(), "", path)
+}
+
+func raiseValidation(ctx context, meta *Meta, err error) Error {
+	return raiseErr(err, messagePath(err, meta, err.Error(), ctx.path(".")))
 }

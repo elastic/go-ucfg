@@ -12,6 +12,12 @@ type Config struct {
 	fields   *fields
 }
 
+type fieldOptions struct {
+	opts       options
+	tag        tagOptions
+	validators []validatorTag
+}
+
 type fields struct {
 	fields map[string]value
 }
@@ -31,6 +37,7 @@ var (
 
 	tBool    = reflect.TypeOf(true)
 	tInt64   = reflect.TypeOf(int64(0))
+	tUint64  = reflect.TypeOf(uint64(0))
 	tFloat64 = reflect.TypeOf(float64(0))
 	tString  = reflect.TypeOf("")
 )

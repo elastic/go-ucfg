@@ -1,6 +1,7 @@
 package ucfg
 
 import (
+	"errors"
 	"flag"
 	"io/ioutil"
 	"path"
@@ -149,6 +150,15 @@ func TestErrorMessages(t *testing.T) {
 			newInt(testNestedCtx, nil, 1)),
 		"expected_object_nested_w_meta": raiseExpectedObject(
 			newInt(testNestedCtx, testMeta, 1)),
+
+		"validation_wo_meta": raiseValidation(
+			context{}, nil, errors.New("invalid value")),
+		"validation_w_meta": raiseValidation(
+			context{}, testMeta, errors.New("invalid value")),
+		"validation_nested_wo_meta": raiseValidation(
+			testNestedCtx, nil, errors.New("invalid value")),
+		"validation_nested_w_meta": raiseValidation(
+			testNestedCtx, testMeta, errors.New("invalid value")),
 	}
 
 	for name, result := range tests {

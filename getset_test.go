@@ -11,14 +11,16 @@ func TestSetGetPrimitives(t *testing.T) {
 
 	c.SetBool("bool", 0, true)
 	c.SetInt("int", 0, 42)
+	c.SetUint("uint", 0, 12)
 	c.SetFloat("float", 0, 2.3)
 	c.SetString("str", 0, "abc")
 
 	assert.True(t, c.HasField("bool"))
 	assert.True(t, c.HasField("int"))
+	assert.True(t, c.HasField("uint"))
 	assert.True(t, c.HasField("float"))
 	assert.True(t, c.HasField("str"))
-	assert.Len(t, c.GetFields(), 4)
+	assert.Len(t, c.GetFields(), 5)
 
 	path := c.Path(".")
 	assert.Equal(t, "", path)
@@ -28,6 +30,10 @@ func TestSetGetPrimitives(t *testing.T) {
 	assert.Equal(t, 1, cnt)
 
 	cnt, err = c.CountField("int")
+	assert.NoError(t, err)
+	assert.Equal(t, 1, cnt)
+
+	cnt, err = c.CountField("uint")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, cnt)
 
@@ -46,6 +52,10 @@ func TestSetGetPrimitives(t *testing.T) {
 	i, err := c.Int("int", 0)
 	assert.NoError(t, err)
 	assert.Equal(t, 42, int(i))
+
+	u, err := c.Int("uint", 0)
+	assert.NoError(t, err)
+	assert.Equal(t, 12, int(u))
 
 	f, err := c.Float("float", 0)
 	assert.NoError(t, err)
@@ -108,7 +118,8 @@ func TestSetGetArray(t *testing.T) {
 	c.SetInt("a", 1, 42)
 	c.SetFloat("a", 2, 3.14)
 	c.SetString("a", 3, "string")
-	c.SetChild("a", 4, child)
+	c.SetUint("a", 4, 12)
+	c.SetChild("a", 5, child)
 
 	b, err := c.Bool("a", 0)
 	assert.NoError(t, err)
@@ -126,9 +137,13 @@ func TestSetGetArray(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "string", s)
 
-	child, err = c.Child("a", 4)
+	u, err := c.Uint("a", 4)
+	assert.NoError(t, err)
+	assert.Equal(t, 12, int(u))
+
+	child, err = c.Child("a", 5)
 	assert.Nil(t, err)
 	assert.Equal(t, "", c.Path("."))
-	assert.Equal(t, "a.4", child.Path("."))
+	assert.Equal(t, "a.5", child.Path("."))
 	assert.Equal(t, c, child.Parent())
 }
