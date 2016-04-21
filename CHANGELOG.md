@@ -9,6 +9,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Added direct support for uint values. #8, #16
 - Support for simple validators via struct tags (e.g. min, max, nonzero, required). #16
 - Add support for validating time.Duration. #9, #16
+- Added Unpacker interface for customer unpackers. #17
 
 ### Changed
 

@@ -220,12 +220,12 @@ func raiseInlineNeedsObject(cfg *Config, f string, t reflect.Type) Error {
 		messagePath(reason, cfg.metadata, message, cfg.Path(".")))
 }
 
-func raiseUnsupportedInputType(ctx context, opts options, v reflect.Value) Error {
+func raiseUnsupportedInputType(ctx context, meta *Meta, v reflect.Value) Error {
 	reason := ErrTypeMismatch
 	message := fmt.Sprintf("unspported input type (%v) with value '%#v'",
 		v.Type(), v)
 
-	return raiseCritical(reason, messagePath(reason, opts.meta, message, ctx.path(".")))
+	return raiseCritical(reason, messagePath(reason, meta, message, ctx.path(".")))
 }
 
 func raiseNil(reason error) Error {

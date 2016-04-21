@@ -27,19 +27,28 @@ type Meta struct {
 	Source string
 }
 
+type Unpacker interface {
+	Unpack(interface{}) error
+}
+
 var (
 	tConfig         = reflect.TypeOf(Config{})
 	tConfigPtr      = reflect.PtrTo(tConfig)
 	tConfigMap      = reflect.TypeOf((map[string]interface{})(nil))
 	tInterfaceArray = reflect.TypeOf([]interface{}(nil))
-	tDuration       = reflect.TypeOf(time.Duration(0))
-	tRegexp         = reflect.TypeOf(regexp.Regexp{})
 
-	tBool    = reflect.TypeOf(true)
-	tInt64   = reflect.TypeOf(int64(0))
-	tUint64  = reflect.TypeOf(uint64(0))
-	tFloat64 = reflect.TypeOf(float64(0))
-	tString  = reflect.TypeOf("")
+	// interface types
+	tUnpacker  = reflect.TypeOf((*Unpacker)(nil)).Elem()
+	tValidator = reflect.TypeOf((*Validator)(nil)).Elem()
+
+	// primitives
+	tBool     = reflect.TypeOf(true)
+	tInt64    = reflect.TypeOf(int64(0))
+	tUint64   = reflect.TypeOf(uint64(0))
+	tFloat64  = reflect.TypeOf(float64(0))
+	tString   = reflect.TypeOf("")
+	tDuration = reflect.TypeOf(time.Duration(0))
+	tRegexp   = reflect.TypeOf(regexp.Regexp{})
 )
 
 func New() *Config {
