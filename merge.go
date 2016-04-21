@@ -133,7 +133,7 @@ func normalizeMapInto(cfg *Config, opts options, from reflect.Value) Error {
 			return raiseKeyInvalidTypeMerge(cfg, from.Type())
 		}
 
-		err := normalizeSetField(cfg, opts, k.String(), from.MapIndex(k))
+		err := normalizeSetField(cfg, opts, noTagOpts, k.String(), from.MapIndex(k))
 		if err != nil {
 			return err
 		}
@@ -171,7 +171,7 @@ func normalizeStructInto(cfg *Config, opts options, from reflect.Value) Error {
 			}
 		} else {
 			name = fieldName(name, stField.Name)
-			err = normalizeSetField(cfg, opts, name, v.Field(i))
+			err = normalizeSetField(cfg, opts, tagOpts, name, v.Field(i))
 		}
 
 		if err != nil {
@@ -181,7 +181,13 @@ func normalizeStructInto(cfg *Config, opts options, from reflect.Value) Error {
 	return nil
 }
 
-func normalizeSetField(cfg *Config, opts options, name string, v reflect.Value) Error {
+func normalizeSetField(
+	cfg *Config,
+	opts options,
+	tagOpts tagOptions,
+	name string,
+	v reflect.Value,
+) Error {
 	to, name, err := normalizeCfgPath(cfg, opts, name)
 	if err != nil {
 		return err
@@ -194,7 +200,7 @@ func normalizeSetField(cfg *Config, opts options, name string, v reflect.Value) 
 		parent: cfgSub{cfg},
 		field:  name,
 	}
-	val, err := normalizeValue(opts, ctx, v)
+	val, err := normalizeValue(opts, tagOpts, ctx, v)
 	if err != nil {
 		return err
 	}
@@ -223,7 +229,12 @@ func normalizeMapValue(opts options, ctx context, from reflect.Value) (value, Er
 	return v, nil
 }
 
-func normalizeArray(opts options, ctx context, v reflect.Value) (value, Error) {
+func normalizeArray(
+	opts options,
+	tagOpts tagOptions,
+	ctx context,
+	v reflect.Value,
+) (value, Error) {
 	l := v.Len()
 	out := make([]value, 0, l)
 
@@ -234,7 +245,7 @@ func normalizeArray(opts options, ctx context, v reflect.Value) (value, Error) {
 			parent: arr,
 			field:  fmt.Sprintf("%v", i),
 		}
-		tmp, err := normalizeValue(opts, ctx, v.Index(i))
+		tmp, err := normalizeValue(opts, tagOpts, ctx, v.Index(i))
 		if err != nil {
 			return nil, err
 		}
@@ -245,7 +256,12 @@ func normalizeArray(opts options, ctx context, v reflect.Value) (value, Error) {
 	return arr, nil
 }
 
-func normalizeValue(opts options, ctx context, v reflect.Value) (value, Error) {
+func normalizeValue(
+	opts options,
+	tagOpts tagOptions,
+	ctx context,
+	v reflect.Value,
+) (value, Error) {
 	v = chaseValue(v)
 
 	// handle primitives
@@ -253,15 +269,20 @@ func normalizeValue(opts options, ctx context, v reflect.Value) (value, Error) {
 	case reflect.Bool:
 		return newBool(ctx, opts.meta, v.Bool()), nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return newInt(ctx, opts.meta, v.Int()), nil
+		i := v.Int()
+		if i > 0 {
+			return newUint(ctx, opts.meta, uint64(i)), nil
+		}
+		return newInt(ctx, opts.meta, i), nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return newInt(ctx, opts.meta, int64(v.Uint())), nil
+		return newUint(ctx, opts.meta, v.Uint()), nil
 	case reflect.Float32, reflect.Float64:
-		return newFloat(ctx, opts.meta, v.Float()), nil
+		f := v.Float()
+		return newFloat(ctx, opts.meta, f), nil
 	case reflect.String:
 		return newString(ctx, opts.meta, v.String()), nil
 	case reflect.Array, reflect.Slice:
-		return normalizeArray(opts, ctx, v)
+		return normalizeArray(opts, tagOpts, ctx, v)
 	case reflect.Map:
 		return normalizeMapValue(opts, ctx, v)
 	case reflect.Struct:

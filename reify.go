@@ -21,6 +21,7 @@ func (c *Config) Unpack(to interface{}, options ...Option) error {
 	if to == nil || (vTo.Kind() != reflect.Ptr && vTo.Kind() != reflect.Map) {
 		return raisePointerRequired(vTo)
 	}
+
 	return reifyInto(opts, vTo, c)
 }
 
@@ -62,9 +63,9 @@ func reifyMap(opts options, to reflect.Value, from *Config) Error {
 		var err Error
 
 		if !old.IsValid() {
-			v, err = reifyValue(opts, to.Type().Elem(), value)
+			v, err = reifyValue(fieldOptions{opts: opts}, to.Type().Elem(), value)
 		} else {
-			v, err = reifyMergeValue(opts, old, value)
+			v, err = reifyMergeValue(fieldOptions{opts: opts}, old, value)
 		}
 
 		if err != nil {
@@ -86,42 +87,58 @@ func reifyStruct(opts options, orig reflect.Value, cfg *Config) Error {
 
 	numField := to.NumField()
 	for i := 0; i < numField; i++ {
-		var err Error
 		stField := to.Type().Field(i)
 		vField := to.Field(i)
 		name, tagOpts := parseTags(stField.Tag.Get(opts.tag))
+
+		validators, err := parseValidatorTags(stField.Tag.Get(opts.validatorTag))
+		if err != nil {
+			return raiseCritical(err, "")
+		}
 
 		if tagOpts.squash {
 			vField := chaseValue(vField)
 			switch vField.Kind() {
 			case reflect.Struct, reflect.Map:
-				err = reifyInto(opts, vField, cfg)
+				if err := reifyInto(opts, vField, cfg); err != nil {
+					return err
+				}
 			default:
 				return raiseInlineNeedsObject(cfg, stField.Name, vField.Type())
 			}
 		} else {
 			name = fieldName(name, stField.Name)
-			err = reifyGetField(cfg, opts, name, vField)
+			fopts := fieldOptions{opts: opts, tag: tagOpts, validators: validators}
+			if err := reifyGetField(cfg, fopts, name, vField); err != nil {
+				return err
+			}
 		}
+	}
 
-		if err != nil {
-			return err
-		}
+	if err := tryValidate(to); err != nil {
+		return raiseValidation(cfg.ctx, cfg.metadata, err)
 	}
 
 	orig.Set(pointerize(orig.Type(), to.Type(), to))
 	return nil
 }
 
-func reifyGetField(cfg *Config, opts options, name string, to reflect.Value) Error {
-	from, field, err := reifyCfgPath(cfg, opts, name)
+func reifyGetField(
+	cfg *Config,
+	opts fieldOptions,
+	name string,
+	to reflect.Value,
+) Error {
+	from, field, err := reifyCfgPath(cfg, opts.opts, name)
 	if err != nil {
 		return err
 	}
 
 	value, ok := from.fields.fields[field]
 	if !ok {
-		// TODO: handle missing config
+		if err := runValidators(nil, opts.validators); err != nil {
+			return raiseValidation(cfg.ctx, cfg.metadata, err)
+		}
 		return nil
 	}
 
@@ -160,7 +177,11 @@ func reifyCfgPath(cfg *Config, opts options, field string) (*Config, string, Err
 	return cfg, field, nil
 }
 
-func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, Error) {
+func reifyValue(
+	opts fieldOptions,
+	t reflect.Type,
+	val value,
+) (reflect.Value, Error) {
 	if t.Kind() == reflect.Interface && t.NumMethod() == 0 {
 		return reflect.ValueOf(val.reify()), nil
 	}
@@ -193,7 +214,7 @@ func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, Error) 
 		}
 
 		newSt := reflect.New(baseType)
-		if err := reifyInto(opts, newSt, sub); err != nil {
+		if err := reifyInto(opts.opts, newSt, sub); err != nil {
 			return reflect.Value{}, err
 		}
 
@@ -215,7 +236,7 @@ func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, Error) 
 		}
 
 		newMap := reflect.MakeMap(baseType)
-		if err := reifyInto(opts, newMap, sub); err != nil {
+		if err := reifyInto(opts.opts, newMap, sub); err != nil {
 			return reflect.Value{}, err
 		}
 		return newMap, nil
@@ -232,7 +253,7 @@ func reifyValue(opts options, t reflect.Type, val value) (reflect.Value, Error) 
 }
 
 func reifyMergeValue(
-	opts options,
+	opts fieldOptions,
 	oldValue reflect.Value, val value,
 ) (reflect.Value, Error) {
 	old := chaseValueInterfaces(oldValue)
@@ -276,14 +297,14 @@ func reifyMergeValue(
 		if err != nil {
 			return reflect.Value{}, raiseExpectedObject(val)
 		}
-		return old, reifyMap(opts, old, sub)
+		return old, reifyMap(opts.opts, old, sub)
 
 	case reflect.Struct:
 		sub, err := val.toConfig()
 		if err != nil {
 			return reflect.Value{}, raiseExpectedObject(val)
 		}
-		return oldValue, reifyStruct(opts, old, sub)
+		return oldValue, reifyStruct(opts.opts, old, sub)
 
 	case reflect.Array:
 		return reifyArray(opts, old, baseType, castArr(val))
@@ -295,75 +316,8 @@ func reifyMergeValue(
 	return reifyPrimitive(opts, val, t, baseType)
 }
 
-func reifyPrimitive(
-	opts options,
-	val value,
-	t, baseType reflect.Type,
-) (reflect.Value, Error) {
-	// zero initialize value if val==nil
-	if _, ok := val.(*cfgNil); ok {
-		return pointerize(t, baseType, reflect.Zero(baseType)), nil
-	}
-
-	// try primitive conversion
-	switch {
-	case val.typ() == baseType:
-		return pointerize(t, baseType, val.reflect()), nil
-
-	case baseType.Kind() == reflect.String:
-		s, err := val.toString()
-		if err != nil {
-			return reflect.Value{}, raiseConversion(val, err, "string")
-		}
-		return pointerize(t, baseType, reflect.ValueOf(s)), nil
-
-	case baseType == tDuration:
-		var d time.Duration
-		var err error
-
-		switch v := val.(type) {
-		case *cfgInt:
-			d = time.Duration(v.i) * time.Second
-		case *cfgFloat:
-			d = time.Duration(v.f * float64(time.Second))
-		case *cfgString:
-			d, err = time.ParseDuration(v.s)
-		default:
-			s, err := val.toString()
-			if err != nil {
-				return reflect.Value{}, raiseConversion(val, err, "duration")
-			}
-
-			d, err = time.ParseDuration(s)
-		}
-
-		if err != nil {
-			return reflect.Value{}, raiseInvalidDuration(val, err)
-		}
-		return pointerize(t, baseType, reflect.ValueOf(d)), nil
-
-	case baseType == tRegexp:
-		s, err := val.toString()
-		if err != nil {
-			return reflect.Value{}, raiseConversion(val, err, "regex")
-		}
-
-		r, err := regexp.Compile(s)
-		if err != nil {
-			return reflect.Value{}, raiseConversion(val, err, "regex")
-		}
-		return pointerize(t, baseType, reflect.ValueOf(r).Elem()), nil
-
-	case val.typ().ConvertibleTo(baseType):
-		return pointerize(t, baseType, val.reflect().Convert(baseType)), nil
-
-	}
-
-	return reflect.Value{}, raiseToTypeNotSupported(val, baseType)
-}
-
 func reifyArray(
-	opts options,
+	opts fieldOptions,
 	to reflect.Value, tTo reflect.Type,
 	arr *cfgArray,
 ) (reflect.Value, Error) {
@@ -373,13 +327,17 @@ func reifyArray(
 	return reifyDoArray(opts, to, tTo.Elem(), arr)
 }
 
-func reifySlice(opts options, tTo reflect.Type, arr *cfgArray) (reflect.Value, Error) {
+func reifySlice(
+	opts fieldOptions,
+	tTo reflect.Type,
+	arr *cfgArray,
+) (reflect.Value, Error) {
 	to := reflect.MakeSlice(tTo, arr.Len(), arr.Len())
 	return reifyDoArray(opts, to, tTo.Elem(), arr)
 }
 
 func reifyDoArray(
-	opts options,
+	opts fieldOptions,
 	to reflect.Value, elemT reflect.Type,
 	arr *cfgArray,
 ) (reflect.Value, Error) {
@@ -390,6 +348,11 @@ func reifyDoArray(
 		}
 		to.Index(i).Set(v)
 	}
+
+	if err := runValidators(to.Interface(), opts.validators); err != nil {
+		raiseValidation(arr.ctx, arr.meta(), err)
+	}
+
 	return to, nil
 }
 
@@ -405,4 +368,167 @@ func castArr(v value) *cfgArray {
 	return &cfgArray{
 		arr: []value{v},
 	}
+}
+
+func reifyPrimitive(
+	opts fieldOptions,
+	val value,
+	t, baseType reflect.Type,
+) (reflect.Value, Error) {
+	// zero initialize value if val==nil
+	if _, ok := val.(*cfgNil); ok {
+		return pointerize(t, baseType, reflect.Zero(baseType)), nil
+	}
+
+	v, err := doReifyPrimitive(opts, val, baseType)
+	if err != nil {
+		return v, err
+	}
+
+	if err := runValidators(v.Interface(), opts.validators); err != nil {
+		return reflect.Value{}, raiseValidation(val.Context(), val.meta(), err)
+	}
+
+	if err := tryValidate(v.Interface()); err != nil {
+		return reflect.Value{}, raiseValidation(val.Context(), val.meta(), err)
+	}
+
+	return pointerize(t, baseType, v), nil
+}
+
+func doReifyPrimitive(
+	opts fieldOptions,
+	val value,
+	baseType reflect.Type,
+) (reflect.Value, Error) {
+
+	extras := map[reflect.Type]func(fieldOptions, value, reflect.Type) (reflect.Value, Error){
+		tDuration: reifyDuration,
+		tRegexp:   reifyRegexp,
+	}
+
+	// try primitive conversion
+	kind := baseType.Kind()
+	switch {
+	case val.typ() == baseType:
+		v := val.reflect()
+		return v, nil
+
+	case kind == reflect.String:
+		s, err := val.toString()
+		if err != nil {
+			return reflect.Value{}, raiseConversion(val, err, "string")
+		}
+		return reflect.ValueOf(s), nil
+
+	case extras[baseType] != nil:
+		v, err := extras[baseType](opts, val, baseType)
+		if err != nil {
+			return v, err
+		}
+		return v, nil
+
+	case isInt(kind):
+		v, err := reifyInt(opts, val, baseType)
+		if err != nil {
+			return v, err
+		}
+		return v, nil
+
+	case isUint(kind):
+		v, err := reifyUint(opts, val, baseType)
+		if err != nil {
+			return v, err
+		}
+		return v, nil
+
+	case val.typ().ConvertibleTo(baseType):
+		v := val.reflect().Convert(baseType)
+		return v, nil
+	}
+
+	return reflect.Value{}, raiseToTypeNotSupported(val, baseType)
+}
+
+func reifyDuration(
+	opts fieldOptions,
+	val value,
+	_ reflect.Type,
+) (reflect.Value, Error) {
+	var d time.Duration
+	var err error
+
+	switch v := val.(type) {
+	case *cfgInt:
+		d = time.Duration(v.i) * time.Second
+	case *cfgUint:
+		d = time.Duration(v.u) * time.Second
+	case *cfgFloat:
+		d = time.Duration(v.f * float64(time.Second))
+	case *cfgString:
+		d, err = time.ParseDuration(v.s)
+	default:
+		s, err := val.toString()
+		if err != nil {
+			return reflect.Value{}, raiseInvalidDuration(val, err)
+		}
+
+		d, err = time.ParseDuration(s)
+	}
+
+	if err != nil {
+		return reflect.Value{}, raiseInvalidDuration(val, err)
+	}
+	return reflect.ValueOf(d), nil
+}
+
+func reifyRegexp(
+	opts fieldOptions,
+	val value,
+	_ reflect.Type,
+) (reflect.Value, Error) {
+	s, err := val.toString()
+	if err != nil {
+		return reflect.Value{}, raiseConversion(val, err, "regex")
+	}
+
+	r, err := regexp.Compile(s)
+	if err != nil {
+		return reflect.Value{}, raiseConversion(val, err, "regex")
+	}
+	return reflect.ValueOf(r).Elem(), nil
+}
+
+func reifyInt(
+	opts fieldOptions,
+	val value,
+	t reflect.Type,
+) (reflect.Value, Error) {
+	i, err := val.toInt()
+	if err != nil {
+		return reflect.Value{}, raiseConversion(val, err, "int")
+	}
+
+	tmp := reflect.Zero(t)
+	if tmp.OverflowInt(i) {
+		return reflect.Value{}, raiseConversion(val, ErrOverflow, "int")
+	}
+	return reflect.ValueOf(i).Convert(t), nil
+}
+
+func reifyUint(
+	opts fieldOptions,
+	val value,
+	t reflect.Type,
+) (reflect.Value, Error) {
+	u, err := val.toUint()
+	if err != nil {
+		return reflect.Value{}, raiseConversion(val, err, "uint")
+	}
+
+	tmp := reflect.Zero(t)
+	if tmp.OverflowUint(u) {
+		return reflect.Value{}, raiseConversion(val, ErrOverflow, "uint")
+	}
+	return reflect.ValueOf(u).Convert(t), nil
 }

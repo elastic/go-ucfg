@@ -16,18 +16,21 @@ func TestUnpackPrimitiveValues(t *testing.T) {
 		&struct {
 			B bool
 			I int
+			U uint
 			F float64
 			S string
 		}{},
 		&struct {
 			B interface{}
 			I interface{}
+			U interface{}
 			F interface{}
 			S interface{}
 		}{},
 		&struct {
 			B *bool
 			I *int
+			U *uint
 			F *float64
 			S *string
 		}{},
@@ -36,6 +39,7 @@ func TestUnpackPrimitiveValues(t *testing.T) {
 	c, _ := NewFrom(node{
 		"b": true,
 		"i": 42,
+		"u": 23,
 		"f": 3.14,
 		"s": "string",
 	})
@@ -64,6 +68,9 @@ func TestUnpackPrimitiveValues(t *testing.T) {
 		i, err := c.Int("i", 0)
 		assert.NoError(t, err)
 
+		u, err := c.Uint("u", 0)
+		assert.NoError(t, err)
+
 		f, err := c.Float("f", 0)
 		assert.NoError(t, err)
 
@@ -72,6 +79,7 @@ func TestUnpackPrimitiveValues(t *testing.T) {
 
 		assert.Equal(t, true, b)
 		assert.Equal(t, 42, int(i))
+		assert.Equal(t, 23, int(u))
 		assert.Equal(t, 3.14, f)
 		assert.Equal(t, "string", s)
 	}
