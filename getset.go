@@ -113,16 +113,17 @@ func (c *Config) getField(name string, idx int, options []Option) (value, Error)
 		return nil, raiseMissing(cfg, field)
 	}
 
-	if arr, ok := v.(*cfgArray); ok {
-		if idx >= arr.Len() {
+	if s, ok := v.(cfgSub); ok && len(s.c.fields.arr) > 0 {
+		arr := s.c.fields.arr
+		if idx >= len(arr) {
 			return nil, raiseIndexOutOfBounds(v, idx)
 		}
 
-		v = arr.arr[idx]
+		v = arr[idx]
 		if v == nil {
-			return nil, raiseMissingArr(arr, idx)
+			return nil, raiseMissingArr(s.c.ctx, s.c.metadata, idx)
 		}
-		return arr.arr[idx], nil
+		return arr[idx], nil
 	}
 
 	if idx > 0 {
@@ -148,29 +149,30 @@ func (c *Config) setField(name string, idx int, v value, options []Option) Error
 	old, ok := cfg.fields.fields[field]
 	if !ok {
 		if idx > 0 {
-			slice := &cfgArray{
-				cfgPrimitive: cfgPrimitive{ctx: ctx},
-				arr:          make([]value, idx+1),
-			}
-			slice.arr[idx] = v
-			v = slice
+			slice := New()
+			slice.ctx = ctx
+			slice.fields.arr = make([]value, idx+1)
+			slice.fields.arr[idx] = v
+			v = cfgSub{slice}
 		} else {
 			idx = -1
 		}
-	} else if slice, ok := old.(*cfgArray); ok {
-		for idx >= len(slice.arr) {
-			slice.arr = append(slice.arr, nil)
+	} else if sub, ok := old.(cfgSub); ok {
+		fields := sub.c.fields
+		for idx >= len(fields.arr) {
+			tmp := make([]value, idx+1)
+			copy(tmp, fields.arr)
+			fields.arr = tmp
 		}
-		slice.arr[idx] = v
-		v = slice
+		fields.arr[idx] = v
+		v = sub
 	} else if idx > 0 {
-		slice := &cfgArray{
-			cfgPrimitive: cfgPrimitive{ctx: ctx},
-			arr:          make([]value, idx+1),
-		}
-		slice.arr[0] = old
-		slice.arr[idx] = v
-		v = slice
+		slice := New()
+		slice.ctx = ctx
+		slice.fields.arr = make([]value, idx+1)
+		slice.fields.arr[0] = old
+		slice.fields.arr[idx] = v
+		v = cfgSub{slice}
 	} else {
 		idx = -1
 	}

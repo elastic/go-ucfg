@@ -145,5 +145,4 @@ func TestSetGetArray(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "", c.Path("."))
 	assert.Equal(t, "a.5", child.Path("."))
-	assert.Equal(t, c, child.Parent())
 }

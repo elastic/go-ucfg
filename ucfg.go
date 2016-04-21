@@ -20,6 +20,7 @@ type fieldOptions struct {
 
 type fields struct {
 	fields map[string]value
+	arr    []value
 }
 
 // Meta holds additional meta data per config value
@@ -53,7 +54,7 @@ var (
 
 func New() *Config {
 	return &Config{
-		fields: &fields{map[string]value{}},
+		fields: &fields{map[string]value{}, nil},
 	}
 }
 
@@ -94,8 +95,6 @@ func (c *Config) Parent() *Config {
 		}
 
 		switch p := ctx.parent.(type) {
-		case *cfgArray:
-			ctx = p.Context()
 		case cfgSub:
 			return p.c
 		default:

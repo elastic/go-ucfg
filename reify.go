@@ -249,7 +249,7 @@ func reifyValue(
 		return newMap, nil
 
 	case reflect.Slice:
-		v, err := reifySlice(opts, baseType, castArr(val))
+		v, err := reifySlice(opts, baseType, val)
 		if err != nil {
 			return reflect.Value{}, err
 		}
@@ -314,10 +314,10 @@ func reifyMergeValue(
 		return oldValue, reifyStruct(opts.opts, old, sub)
 
 	case reflect.Array:
-		return reifyArray(opts, old, baseType, castArr(val))
+		return reifyArray(opts, old, baseType, val)
 
 	case reflect.Slice:
-		return reifySlice(opts, baseType, castArr(val))
+		return reifySlice(opts, baseType, val)
 	}
 
 	if v, ok := implementsUnpacker(old); ok {
@@ -333,29 +333,33 @@ func reifyMergeValue(
 func reifyArray(
 	opts fieldOptions,
 	to reflect.Value, tTo reflect.Type,
-	arr *cfgArray,
+	val value,
 ) (reflect.Value, Error) {
-	if arr.Len() != tTo.Len() {
-		return reflect.Value{}, raiseArraySize(tTo, arr)
+	arr := castArr(val)
+	if len(arr) != tTo.Len() {
+		ctx := val.Context()
+		return reflect.Value{}, raiseArraySize(ctx, val.meta(), len(arr), tTo.Len())
 	}
-	return reifyDoArray(opts, to, tTo.Elem(), arr)
+	return reifyDoArray(opts, to, tTo.Elem(), val, arr)
 }
 
 func reifySlice(
 	opts fieldOptions,
 	tTo reflect.Type,
-	arr *cfgArray,
+	val value,
 ) (reflect.Value, Error) {
-	to := reflect.MakeSlice(tTo, arr.Len(), arr.Len())
-	return reifyDoArray(opts, to, tTo.Elem(), arr)
+	arr := castArr(val)
+	to := reflect.MakeSlice(tTo, len(arr), len(arr))
+	return reifyDoArray(opts, to, tTo.Elem(), val, arr)
 }
 
 func reifyDoArray(
 	opts fieldOptions,
 	to reflect.Value, elemT reflect.Type,
-	arr *cfgArray,
+	val value,
+	arr []value,
 ) (reflect.Value, Error) {
-	for i, from := range arr.arr {
+	for i, from := range arr {
 		v, err := reifyValue(opts, elemT, from)
 		if err != nil {
 			return reflect.Value{}, err
@@ -364,24 +368,22 @@ func reifyDoArray(
 	}
 
 	if err := runValidators(to.Interface(), opts.validators); err != nil {
-		return reflect.Value{}, raiseValidation(arr.ctx, arr.meta(), err)
+		ctx := val.Context()
+		return reflect.Value{}, raiseValidation(ctx, val.meta(), err)
 	}
 
 	return to, nil
 }
 
-func castArr(v value) *cfgArray {
-	if arr, ok := v.(*cfgArray); ok {
-		return arr
+func castArr(v value) []value {
+	if sub, ok := v.(cfgSub); ok {
+		return sub.c.fields.arr
 	}
 
 	if v.Len() == 0 {
-		return &cfgArray{}
+		return nil
 	}
-
-	return &cfgArray{
-		arr: []value{v},
-	}
+	return []value{v}
 }
 
 func reifyPrimitive(

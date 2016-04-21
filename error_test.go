@@ -30,12 +30,6 @@ func TestErrorMessages(t *testing.T) {
 	cNested.ctx = testNestedCtx
 	cNestedMeta.ctx = testNestedCtx
 
-	arr := &cfgArray{arr: make([]value, 3)}
-	arrNested := &cfgArray{cfgPrimitive{ctx: testNestedCtx}, make([]value, 3)}
-	arrMeta := &cfgArray{cfgPrimitive{metadata: testMeta}, make([]value, 3)}
-	arrNestedMeta := &cfgArray{
-		cfgPrimitive{metadata: testMeta, ctx: testNestedCtx},
-		make([]value, 3)}
 	_, timeErr := time.ParseDuration("1 hour")
 
 	tests := map[string]Error{
@@ -49,15 +43,15 @@ func TestErrorMessages(t *testing.T) {
 		"missing_nested_wo_meta": raiseMissing(cNested, "field"),
 		"missing_nested_w_meta":  raiseMissing(cNestedMeta, "field"),
 
-		"arr_missing_wo_meta":        raiseMissingArr(arr, 5),
-		"arr_missing_w_meta":         raiseMissingArr(arrMeta, 5),
-		"arr_missing_nested_wo_meta": raiseMissingArr(arrNested, 5),
-		"arr_missing_nested_w_meta":  raiseMissingArr(arrNestedMeta, 5),
+		"arr_missing_wo_meta":        raiseMissingArr(context{}, nil, 5),
+		"arr_missing_w_meta":         raiseMissingArr(context{}, testMeta, 5),
+		"arr_missing_nested_wo_meta": raiseMissingArr(testNestedCtx, nil, 5),
+		"arr_missing_nested_w_meta":  raiseMissingArr(testNestedCtx, testMeta, 5),
 
-		"arr_oob_wo_meta":        raiseIndexOutOfBounds(arr, 5),
-		"arr_oob_w_meta":         raiseIndexOutOfBounds(arrMeta, 5),
-		"arr_oob_nested_wo_meta": raiseIndexOutOfBounds(arrNested, 5),
-		"arr_oob_nested_w_meta":  raiseIndexOutOfBounds(arrNestedMeta, 5),
+		"arr_oob_wo_meta":        raiseIndexOutOfBounds(cfgSub{c}, 5),
+		"arr_oob_w_meta":         raiseIndexOutOfBounds(cfgSub{cMeta}, 5),
+		"arr_oob_nested_wo_meta": raiseIndexOutOfBounds(cfgSub{cNested}, 5),
+		"arr_oob_nested_w_meta":  raiseIndexOutOfBounds(cfgSub{cNestedMeta}, 5),
 
 		"invalid_duration_wo_meta": raiseInvalidDuration(newString(
 			context{field: "timeout"}, nil, ""), timeErr),
@@ -125,13 +119,14 @@ func TestErrorMessages(t *testing.T) {
 		"to_type_not_supported_nested_w_meta": raiseToTypeNotSupported(
 			newInt(testNestedCtx, testMeta, 1), reflect.TypeOf(struct{}{})),
 
-		"array_size_wo_meta": raiseArraySize(reflect.TypeOf([10]int{}), arr),
+		"array_size_wo_meta": raiseArraySize(
+			context{}, nil, 3, 10),
 		"array_size_w_meta": raiseArraySize(
-			reflect.TypeOf([10]int{}), arrMeta),
+			context{}, testMeta, 3, 10),
 		"array_size_nested_wo_meta": raiseArraySize(
-			reflect.TypeOf([10]int{}), arrNested),
+			testNestedCtx, nil, 3, 10),
 		"array_size_nested_w_meta": raiseArraySize(
-			reflect.TypeOf([10]int{}), arrNestedMeta),
+			testNestedCtx, testMeta, 3, 10),
 
 		"conversion_wo_meta": raiseConversion(
 			newInt(context{}, nil, 1), ErrTypeMismatch, "bool"),

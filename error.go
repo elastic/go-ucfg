@@ -172,9 +172,9 @@ func raiseMissing(c *Config, field string) Error {
 	return raisePathErr(ErrMissing, c.metadata, "", c.PathOf(field, "."))
 }
 
-func raiseMissingArr(arr *cfgArray, idx int) Error {
+func raiseMissingArr(ctx context, meta *Meta, idx int) Error {
 	message := fmt.Sprintf("no value in array at %v", idx)
-	return raisePathErr(ErrMissing, arr.meta(), message, arr.ctx.path("."))
+	return raisePathErr(ErrMissing, meta, message, ctx.path("."))
 }
 
 func raiseIndexOutOfBounds(value value, idx int) Error {
@@ -246,12 +246,12 @@ func raiseToTypeNotSupported(v value, t reflect.Type) Error {
 	return raiseCritical(reason, messagePath(reason, v.meta(), message, ctx.path(".")))
 }
 
-func raiseArraySize(to reflect.Type, arr *cfgArray) Error {
+func raiseArraySize(ctx context, meta *Meta, n int, to int) Error {
 	reason := ErrArraySizeMistach
 	message := fmt.Sprintf("array of length %v does not meet required length %v",
-		arr.Len(), to.Len())
+		n, to)
 
-	return raisePathErr(reason, arr.meta(), message, arr.ctx.path("."))
+	return raisePathErr(reason, meta, message, ctx.path("."))
 }
 
 func raiseConversion(v value, err error, to string) Error {

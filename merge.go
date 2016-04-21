@@ -238,12 +238,16 @@ func normalizeArray(
 	l := v.Len()
 	out := make([]value, 0, l)
 
-	arr := &cfgArray{cfgPrimitive{ctx, opts.meta}, nil}
+	cfg := New()
+	cfg.metadata = opts.meta
+	cfg.ctx = ctx
+	val := cfgSub{cfg}
 
 	for i := 0; i < l; i++ {
+		idx := fmt.Sprintf("%v", i)
 		ctx := context{
-			parent: arr,
-			field:  fmt.Sprintf("%v", i),
+			parent: val,
+			field:  idx,
 		}
 		tmp, err := normalizeValue(opts, tagOpts, ctx, v.Index(i))
 		if err != nil {
@@ -252,8 +256,8 @@ func normalizeArray(
 		out = append(out, tmp)
 	}
 
-	arr.arr = out
-	return arr, nil
+	cfg.fields.arr = out
+	return val, nil
 }
 
 func normalizeValue(
