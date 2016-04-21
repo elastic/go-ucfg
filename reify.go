@@ -350,7 +350,7 @@ func reifyDoArray(
 	}
 
 	if err := runValidators(to.Interface(), opts.validators); err != nil {
-		raiseValidation(arr.ctx, arr.meta(), err)
+		return reflect.Value{}, raiseValidation(arr.ctx, arr.meta(), err)
 	}
 
 	return to, nil
