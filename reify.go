@@ -33,6 +33,7 @@ func reifyInto(opts options, to reflect.Value, from *Config) Error {
 	}
 
 	tTo := chaseTypePointers(to.Type())
+
 	switch tTo.Kind() {
 	case reflect.Map:
 		return reifyMap(opts, to, from)
@@ -85,32 +86,38 @@ func reifyStruct(opts options, orig reflect.Value, cfg *Config) Error {
 		to.Set(orig)
 	}
 
-	numField := to.NumField()
-	for i := 0; i < numField; i++ {
-		stField := to.Type().Field(i)
-		vField := to.Field(i)
-		name, tagOpts := parseTags(stField.Tag.Get(opts.tag))
-
-		validators, err := parseValidatorTags(stField.Tag.Get(opts.validatorTag))
-		if err != nil {
-			return raiseCritical(err, "")
+	if v, ok := implementsUnpacker(to); ok {
+		if err := unpackWith(v, cfgSub{cfg}.reify()); err != nil {
+			return raiseUnsupportedInputType(cfg.ctx, cfg.metadata, v)
 		}
+	} else {
+		numField := to.NumField()
+		for i := 0; i < numField; i++ {
+			stField := to.Type().Field(i)
+			vField := to.Field(i)
+			name, tagOpts := parseTags(stField.Tag.Get(opts.tag))
 
-		if tagOpts.squash {
-			vField := chaseValue(vField)
-			switch vField.Kind() {
-			case reflect.Struct, reflect.Map:
-				if err := reifyInto(opts, vField, cfg); err != nil {
+			validators, err := parseValidatorTags(stField.Tag.Get(opts.validatorTag))
+			if err != nil {
+				return raiseCritical(err, "")
+			}
+
+			if tagOpts.squash {
+				vField := chaseValue(vField)
+				switch vField.Kind() {
+				case reflect.Struct, reflect.Map:
+					if err := reifyInto(opts, vField, cfg); err != nil {
+						return err
+					}
+				default:
+					return raiseInlineNeedsObject(cfg, stField.Name, vField.Type())
+				}
+			} else {
+				name = fieldName(name, stField.Name)
+				fopts := fieldOptions{opts: opts, tag: tagOpts, validators: validators}
+				if err := reifyGetField(cfg, fopts, name, vField); err != nil {
 					return err
 				}
-			default:
-				return raiseInlineNeedsObject(cfg, stField.Name, vField.Type())
-			}
-		} else {
-			name = fieldName(name, stField.Name)
-			fopts := fieldOptions{opts: opts, tag: tagOpts, validators: validators}
-			if err := reifyGetField(cfg, fopts, name, vField); err != nil {
-				return err
 			}
 		}
 	}
@@ -313,6 +320,13 @@ func reifyMergeValue(
 		return reifySlice(opts, baseType, castArr(val))
 	}
 
+	if v, ok := implementsUnpacker(old); ok {
+		if err := unpackWith(v, val.reify()); err != nil {
+			ctx := val.Context()
+			return reflect.Value{}, raiseUnsupportedInputType(ctx, val.meta(), v)
+		}
+		return old, nil
+	}
 	return reifyPrimitive(opts, val, t, baseType)
 }
 
@@ -378,6 +392,15 @@ func reifyPrimitive(
 	// zero initialize value if val==nil
 	if _, ok := val.(*cfgNil); ok {
 		return pointerize(t, baseType, reflect.Zero(baseType)), nil
+	}
+
+	if v, ok := typeIsUnpacker(baseType); ok {
+		err := unpackWith(v, val.reify())
+		if err != nil {
+			ctx := val.Context()
+			return reflect.Value{}, raiseUnsupportedInputType(ctx, val.meta(), v)
+		}
+		return pointerize(t, baseType, chaseValuePointers(v)), nil
 	}
 
 	v, err := doReifyPrimitive(opts, val, baseType)

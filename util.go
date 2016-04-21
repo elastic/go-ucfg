@@ -122,3 +122,33 @@ func isUint(k reflect.Kind) bool {
 		return false
 	}
 }
+
+func implementsUnpacker(v reflect.Value) (reflect.Value, bool) {
+	for {
+		if v.Type().Implements(tUnpacker) {
+			return v, true
+		}
+
+		if !v.CanAddr() {
+			break
+		}
+		v = v.Addr()
+	}
+	return reflect.Value{}, false
+}
+
+func typeIsUnpacker(t reflect.Type) (reflect.Value, bool) {
+	if t.Implements(tUnpacker) {
+		return reflect.New(t).Elem(), true
+	}
+
+	if reflect.PtrTo(t).Implements(tUnpacker) {
+		return reflect.New(t), true
+	}
+
+	return reflect.Value{}, false
+}
+
+func unpackWith(v reflect.Value, with interface{}) error {
+	return v.Interface().(Unpacker).Unpack(with)
+}

@@ -103,13 +103,13 @@ func TestErrorMessages(t *testing.T) {
 			cNestedMeta, "ABC", reflect.TypeOf("")),
 
 		"unsupported_input_type_wo_meta": raiseUnsupportedInputType(
-			context{}, options{}, reflect.ValueOf(1)),
+			context{}, nil, reflect.ValueOf(1)),
 		"unsupported_input_type_w_meta": raiseUnsupportedInputType(
-			context{}, options{meta: testMeta}, reflect.ValueOf(1)),
+			context{}, testMeta, reflect.ValueOf(1)),
 		"unsupported_input_type_nested_wo_meta": raiseUnsupportedInputType(
-			testNestedCtx, options{}, reflect.ValueOf(1)),
+			testNestedCtx, nil, reflect.ValueOf(1)),
 		"unsupported_input_type_nested_w_meta": raiseUnsupportedInputType(
-			testNestedCtx, options{meta: testMeta}, reflect.ValueOf(1)),
+			testNestedCtx, testMeta, reflect.ValueOf(1)),
 
 		"nil_value_error":  raiseNil(ErrNilValue),
 		"nil_config_error": raiseNil(ErrNilConfig),

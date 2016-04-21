@@ -300,6 +300,6 @@ func normalizeValue(
 		if v.IsNil() {
 			return &cfgNil{cfgPrimitive{ctx, opts.meta}}, nil
 		}
-		return nil, raiseUnsupportedInputType(ctx, opts, v)
+		return nil, raiseUnsupportedInputType(ctx, opts.meta, v)
 	}
 }
