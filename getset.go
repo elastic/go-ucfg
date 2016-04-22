@@ -1,7 +1,5 @@
 package ucfg
 
-import "fmt"
-
 // ******************************************************************************
 // Low level getters and setters (do we actually need this?)
 // ******************************************************************************
@@ -102,92 +100,29 @@ func (c *Config) SetChild(name string, idx int, value *Config, opts ...Option) e
 
 func (c *Config) getField(name string, idx int, options []Option) (value, Error) {
 	opts := makeOptions(options)
-
-	cfg, field, err := reifyCfgPath(c, opts, name)
+	p := parsePathIdx(name, opts.pathSep, idx)
+	v, err := p.GetValue(c)
 	if err != nil {
-		return nil, err
+		return v, err
 	}
 
-	v, ok := cfg.fields.fields[field]
-	if !ok {
-		return nil, raiseMissing(cfg, field)
+	if v == nil {
+		return nil, raiseMissing(c, p.String())
 	}
-
-	if s, ok := v.(cfgSub); ok && len(s.c.fields.arr) > 0 {
-		arr := s.c.fields.arr
-		if idx >= len(arr) {
-			return nil, raiseIndexOutOfBounds(v, idx)
-		}
-
-		v = arr[idx]
-		if v == nil {
-			return nil, raiseMissingArr(s.c.ctx, s.c.metadata, idx)
-		}
-		return arr[idx], nil
-	}
-
-	if idx > 0 {
-		return nil, raiseIndexOutOfBounds(v, idx)
-	}
-
 	return v, nil
 }
 
 func (c *Config) setField(name string, idx int, v value, options []Option) Error {
 	opts := makeOptions(options)
-	ctx := context{
-		parent: cfgSub{c},
-		field:  name,
-	}
-	orig := v
+	p := parsePathIdx(name, opts.pathSep, idx)
 
-	cfg, field, err := normalizeCfgPath(c, opts, name)
+	err := p.SetValue(c, v)
 	if err != nil {
 		return err
 	}
 
-	old, ok := cfg.fields.fields[field]
-	if !ok {
-		if idx > 0 {
-			slice := New()
-			slice.ctx = ctx
-			slice.fields.arr = make([]value, idx+1)
-			slice.fields.arr[idx] = v
-			v = cfgSub{slice}
-		} else {
-			idx = -1
-		}
-	} else if sub, ok := old.(cfgSub); ok {
-		fields := sub.c.fields
-		for idx >= len(fields.arr) {
-			tmp := make([]value, idx+1)
-			copy(tmp, fields.arr)
-			fields.arr = tmp
-		}
-		fields.arr[idx] = v
-		v = sub
-	} else if idx > 0 {
-		slice := New()
-		slice.ctx = ctx
-		slice.fields.arr = make([]value, idx+1)
-		slice.fields.arr[0] = old
-		slice.fields.arr[idx] = v
-		v = cfgSub{slice}
-	} else {
-		idx = -1
-	}
-
-	if idx >= 0 {
-		ctx.parent = v
-		ctx.field = fmt.Sprintf("%v", idx)
-	}
-	orig.SetContext(ctx)
-
 	if opts.meta != nil {
 		v.setMeta(opts.meta)
 	}
-
-	cfg.fields.fields[field] = v
-
 	return nil
 }

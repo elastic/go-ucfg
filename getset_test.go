@@ -9,11 +9,11 @@ import (
 func TestSetGetPrimitives(t *testing.T) {
 	c := New()
 
-	c.SetBool("bool", 0, true)
-	c.SetInt("int", 0, 42)
-	c.SetUint("uint", 0, 12)
-	c.SetFloat("float", 0, 2.3)
-	c.SetString("str", 0, "abc")
+	c.SetBool("bool", -1, true)
+	c.SetInt("int", -1, 42)
+	c.SetUint("uint", -1, 12)
+	c.SetFloat("float", -1, 2.3)
+	c.SetString("str", -1, "abc")
 
 	assert.True(t, c.HasField("bool"))
 	assert.True(t, c.HasField("int"))
@@ -45,23 +45,23 @@ func TestSetGetPrimitives(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, cnt)
 
-	b, err := c.Bool("bool", 0)
+	b, err := c.Bool("bool", -1)
 	assert.NoError(t, err)
 	assert.Equal(t, true, b)
 
-	i, err := c.Int("int", 0)
+	i, err := c.Int("int", -1)
 	assert.NoError(t, err)
 	assert.Equal(t, 42, int(i))
 
-	u, err := c.Int("uint", 0)
+	u, err := c.Int("uint", -1)
 	assert.NoError(t, err)
 	assert.Equal(t, 12, int(u))
 
-	f, err := c.Float("float", 0)
+	f, err := c.Float("float", -1)
 	assert.NoError(t, err)
 	assert.Equal(t, 2.3, f)
 
-	s, err := c.String("str", 0)
+	s, err := c.String("str", -1)
 	assert.NoError(t, err)
 	assert.Equal(t, "abc", s)
 }
@@ -71,13 +71,13 @@ func TestSetGetChild(t *testing.T) {
 	c := New()
 	child := New()
 
-	child.SetInt("test", 0, 42)
-	c.SetChild("child", 0, child)
+	child.SetInt("test", -1, 42)
+	c.SetChild("child", -1, child)
 
-	child, err = c.Child("child", 0)
+	child, err = c.Child("child", -1)
 	assert.Nil(t, err)
 
-	i, err := child.Int("test", 0)
+	i, err := child.Int("test", -1)
 	assert.Nil(t, err)
 	assert.Equal(t, 42, int(i))
 
@@ -89,17 +89,17 @@ func TestSetGetChild(t *testing.T) {
 func TestSetGetChildPath(t *testing.T) {
 	c := New()
 
-	err := c.SetInt("sub.test", 0, 42, PathSep("."))
+	err := c.SetInt("sub.test", -1, 42, PathSep("."))
 	assert.NoError(t, err)
 
-	sub, err := c.Child("sub", 0)
+	sub, err := c.Child("sub", -1)
 	assert.Nil(t, err)
 
-	i, err := sub.Int("test", 0)
+	i, err := sub.Int("test", -1)
 	assert.Nil(t, err)
 	assert.Equal(t, 42, int(i))
 
-	i, err = c.Int("sub.test", 0, PathSep("."))
+	i, err = c.Int("sub.test", -1, PathSep("."))
 	assert.Nil(t, err)
 	assert.Equal(t, 42, int(i))
 
@@ -112,7 +112,7 @@ func TestSetGetArray(t *testing.T) {
 	c := New()
 
 	child := New()
-	child.SetInt("test", 0, 42)
+	child.SetInt("test", -1, 42)
 
 	c.SetBool("a", 0, true)
 	c.SetInt("a", 1, 42)
@@ -145,4 +145,42 @@ func TestSetGetArray(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "", c.Path("."))
 	assert.Equal(t, "a.5", child.Path("."))
+}
+
+func TestSetGetNestedPath(t *testing.T) {
+	c := New()
+	c.SetInt("a.1.b.0", -1, 23, PathSep("."))
+	c.SetInt("a.0.b.1.c.2", -1, 42, PathSep("."))
+	c.SetInt("", 0, 12, PathSep("."))
+
+	i, err := c.Int("", 0, PathSep("."))
+	assert.NoError(t, err)
+	assert.Equal(t, 12, int(i))
+
+	i, err = c.Int("a.1.b", 0, PathSep("."))
+	assert.NoError(t, err)
+	assert.Equal(t, 23, int(i))
+
+	i, err = c.Int("a.0.b.1.c", 2, PathSep("."))
+	assert.NoError(t, err)
+	assert.Equal(t, 42, int(i))
+
+	_, err = c.Int("a.2", -1, PathSep("."))
+	assert.True(t, err != nil)
+
+	_, err = c.Int("a", 2, PathSep("."))
+	assert.True(t, err != nil)
+
+	// manually walk up to "a.0.b.1.c.2"
+	c, err = c.Child("a", 0, PathSep("."))
+	assert.NoError(t, err)
+	assert.NotNil(t, c)
+
+	c, err = c.Child("b", 1, PathSep("."))
+	assert.NoError(t, err)
+	assert.NotNil(t, c)
+
+	i, err = c.Int("c", 2, PathSep("."))
+	assert.NoError(t, err)
+	assert.Equal(t, 42, int(i))
 }

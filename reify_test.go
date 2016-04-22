@@ -121,19 +121,19 @@ func TestUnpackPrimitiveValues(t *testing.T) {
 			continue
 		}
 
-		b, err := c.Bool("b", 0)
+		b, err := c.Bool("b", -1)
 		assert.NoError(t, err)
 
-		i, err := c.Int("i", 0)
+		i, err := c.Int("i", -1)
 		assert.NoError(t, err)
 
-		u, err := c.Uint("u", 0)
+		u, err := c.Uint("u", -1)
 		assert.NoError(t, err)
 
-		f, err := c.Float("f", 0)
+		f, err := c.Float("f", -1)
 		assert.NoError(t, err)
 
-		s, err := c.String("s", 0)
+		s, err := c.String("s", -1)
 		assert.NoError(t, err)
 
 		assert.Equal(t, true, b)
@@ -241,10 +241,10 @@ func TestUnpackNested(t *testing.T) {
 			continue
 		}
 
-		sub, err := c.Child("c", 0)
+		sub, err := c.Child("c", -1)
 		assert.NoError(t, err)
 
-		b, err := sub.Bool("b", 0)
+		b, err := sub.Bool("b", -1)
 		assert.NoError(t, err)
 		assert.True(t, b)
 	}
@@ -396,7 +396,7 @@ func TestUnpackInline(t *testing.T) {
 			t.Fatalf("failed with: %v", err)
 		}
 
-		b, err := c.Bool("b", 0)
+		b, err := c.Bool("b", -1)
 		assert.NoError(t, err)
 		assert.Equal(t, true, b)
 	}

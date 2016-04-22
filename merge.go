@@ -3,7 +3,6 @@ package ucfg
 import (
 	"fmt"
 	"reflect"
-	"strings"
 )
 
 func (c *Config) Merge(from interface{}, options ...Option) error {
@@ -74,42 +73,6 @@ func normalize(opts options, from interface{}) (*Config, Error) {
 	}
 
 	return nil, raiseInvalidTopLevelType(from)
-}
-
-func normalizeCfgPath(cfg *Config, opts options, field string) (*Config, string, Error) {
-	if opts.pathSep == "" {
-		return cfg, field, nil
-	}
-
-	path := strings.Split(field, opts.pathSep)
-	for len(path) > 1 {
-		field = path[0]
-		path = path[1:]
-
-		sub, exists := cfg.fields.fields[field]
-		if exists {
-			vSub, ok := sub.(cfgSub)
-			if !ok {
-				return nil, field, raiseExpectedObject(sub)
-			}
-
-			cfg = vSub.c
-			continue
-		}
-
-		next := New()
-		next.metadata = opts.meta
-		v := cfgSub{next}
-		v.SetContext(context{
-			parent: cfgSub{cfg},
-			field:  field,
-		})
-		cfg.fields.fields[field] = v
-		cfg = next
-	}
-	field = path[0]
-
-	return cfg, field, nil
 }
 
 func normalizeMap(opts options, from reflect.Value) (*Config, Error) {
@@ -188,25 +151,24 @@ func normalizeSetField(
 	name string,
 	v reflect.Value,
 ) Error {
-	to, name, err := normalizeCfgPath(cfg, opts, name)
-	if err != nil {
-		return err
-	}
-	if to.HasField(name) {
-		return raiseDuplicateKey(to, name)
-	}
-
-	ctx := context{
-		parent: cfgSub{cfg},
-		field:  name,
-	}
-	val, err := normalizeValue(opts, tagOpts, ctx, v)
+	val, err := normalizeValue(opts, tagOpts, context{}, v)
 	if err != nil {
 		return err
 	}
 
-	to.fields.fields[name] = val
-	return nil
+	p := parsePath(name, opts.pathSep)
+	old, err := p.GetValue(cfg)
+	if err != nil {
+		if err.Reason() != ErrMissing {
+			return err
+		}
+		old = nil
+	}
+	if old != nil {
+		return raiseDuplicateKey(cfg, name)
+	}
+
+	return p.SetValue(cfg, val)
 }
 
 func normalizeStructValue(opts options, ctx context, from reflect.Value) (value, Error) {

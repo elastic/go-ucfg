@@ -10,8 +10,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Support for simple validators via struct tags (e.g. min, max, nonzero, required). #16
 - Add support for validating time.Duration. #9, #16
 - Added Unpacker interface for customer unpackers. #17
+- Support for numeric indices for accessing/writing array elements. #12 #19
 
 ### Changed
+- Set/Get methods require index of -1 if value is not supposed to be in an array. #19
+- Configurations can be arrays and/or objects at the same time. #19
+- Access elements with empty path and index in array based Configuration nodes. #19
 
 ### Deprecated
 

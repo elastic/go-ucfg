@@ -3,7 +3,6 @@ package ucfg
 import (
 	"reflect"
 	"regexp"
-	"strings"
 	"time"
 )
 
@@ -136,13 +135,12 @@ func reifyGetField(
 	name string,
 	to reflect.Value,
 ) Error {
-	from, field, err := reifyCfgPath(cfg, opts.opts, name)
+	p := parsePath(name, opts.opts.pathSep)
+	value, err := p.GetValue(cfg)
 	if err != nil {
 		return err
 	}
-
-	value, ok := from.fields.fields[field]
-	if !ok {
+	if value == nil {
 		if err := runValidators(nil, opts.validators); err != nil {
 			return raiseValidation(cfg.ctx, cfg.metadata, err)
 		}
@@ -153,35 +151,8 @@ func reifyGetField(
 	if err != nil {
 		return err
 	}
-
 	to.Set(v)
 	return nil
-}
-
-func reifyCfgPath(cfg *Config, opts options, field string) (*Config, string, Error) {
-	if opts.pathSep == "" {
-		return cfg, field, nil
-	}
-
-	path := strings.Split(field, opts.pathSep)
-	for len(path) > 1 {
-		field = path[0]
-		path = path[1:]
-
-		sub, exists := cfg.fields.fields[field]
-		if !exists {
-			return nil, field, raiseMissing(cfg, field)
-		}
-
-		cSub, err := sub.toConfig()
-		if err != nil {
-			return nil, field, raiseExpectedObject(sub)
-		}
-		cfg = cSub
-	}
-	field = path[0]
-
-	return cfg, field, nil
 }
 
 func reifyValue(
