@@ -9,18 +9,18 @@ import (
 
 func TestMergePrimitives(t *testing.T) {
 	c := New()
-	c.SetBool("b", 0, true)
-	c.SetInt("i", 0, 42)
-	c.SetUint("u", 0, 23)
-	c.SetFloat("f", 0, 3.14)
-	c.SetString("s", 0, "string")
+	c.SetBool("b", -1, true)
+	c.SetInt("i", -1, 42)
+	c.SetUint("u", -1, 23)
+	c.SetFloat("f", -1, 3.14)
+	c.SetString("s", -1, "string")
 
 	c2 := newC()
-	c2.SetBool("b", 0, true)
-	c2.SetInt("i", 0, 42)
-	c2.SetUint("u", 0, 23)
-	c2.SetFloat("f", 0, 3.14)
-	c2.SetString("s", 0, "string")
+	c2.SetBool("b", -1, true)
+	c2.SetInt("i", -1, 42)
+	c2.SetUint("u", -1, 23)
+	c2.SetFloat("f", -1, 3.14)
+	c2.SetString("s", -1, "string")
 
 	tests := []interface{}{
 		map[string]interface{}{
@@ -60,19 +60,19 @@ func TestMergePrimitives(t *testing.T) {
 		path := c.Path(".")
 		assert.Equal(t, "", path)
 
-		b, err := c.Bool("b", 0)
+		b, err := c.Bool("b", -1)
 		assert.NoError(t, err)
 
-		i, err := c.Int("i", 0)
+		i, err := c.Int("i", -1)
 		assert.NoError(t, err)
 
-		u, err := c.Int("u", 0)
+		u, err := c.Int("u", -1)
 		assert.NoError(t, err)
 
-		f, err := c.Float("f", 0)
+		f, err := c.Float("f", -1)
 		assert.NoError(t, err)
 
-		s, err := c.String("s", 0)
+		s, err := c.String("s", -1)
 		assert.NoError(t, err)
 
 		assert.Equal(t, true, b)
@@ -85,13 +85,13 @@ func TestMergePrimitives(t *testing.T) {
 
 func TestMergeNested(t *testing.T) {
 	sub := New()
-	sub.SetBool("b", 0, true)
+	sub.SetBool("b", -1, true)
 
 	c := New()
-	c.SetChild("c", 0, sub)
+	c.SetChild("c", -1, sub)
 
 	c2 := newC()
-	c2.SetChild("c", 0, fromConfig(sub))
+	c2.SetChild("c", -1, fromConfig(sub))
 
 	tests := []interface{}{
 		map[string]interface{}{
@@ -139,10 +139,10 @@ func TestMergeNested(t *testing.T) {
 		err := c.Merge(in)
 		assert.NoError(t, err)
 
-		sub, err := c.Child("c", 0)
+		sub, err := c.Child("c", -1)
 		assert.NoError(t, err)
 
-		b, err := sub.Bool("b", 0)
+		b, err := sub.Bool("b", -1)
 		assert.NoError(t, err)
 		assert.True(t, b)
 
@@ -156,7 +156,6 @@ func TestMergeNestedPath(t *testing.T) {
 		map[string]interface{}{
 			"c.b": true,
 		},
-
 		map[string]bool{
 			"c.b": true,
 		},
@@ -175,13 +174,15 @@ func TestMergeNestedPath(t *testing.T) {
 
 		c := New()
 		err := c.Merge(in, PathSep("."))
-
 		assert.NoError(t, err)
 
-		sub, err := c.Child("c", 0)
+		sub, err := c.Child("c", -1)
 		assert.NoError(t, err)
+		if sub == nil {
+			continue
+		}
 
-		b, err := sub.Bool("b", 0)
+		b, err := sub.Bool("b", -1)
 		assert.NoError(t, err)
 		assert.True(t, b)
 
@@ -224,7 +225,7 @@ func TestMergeArray(t *testing.T) {
 
 func TestMergeMixedArray(t *testing.T) {
 	sub := New()
-	sub.SetBool("b", 0, true)
+	sub.SetBool("b", -1, true)
 
 	tests := []interface{}{
 		map[string]interface{}{
@@ -285,7 +286,7 @@ func TestMergeMixedArray(t *testing.T) {
 func TestMergeChildArray(t *testing.T) {
 	mk := func(i int) *Config {
 		c := New()
-		c.SetInt("i", 0, int64(i))
+		c.SetInt("i", -1, int64(i))
 		return c
 	}
 
@@ -380,8 +381,60 @@ func TestMergeSquash(t *testing.T) {
 		err := c.Merge(in)
 		assert.NoError(t, err)
 
-		b, err := c.Bool("b", 0)
+		b, err := c.Bool("b", -1)
 		assert.NoError(t, err)
 		assert.Equal(t, true, b)
+	}
+}
+
+func TestMergeArrayPatterns(t *testing.T) {
+	tests := []interface{}{
+		node{
+			"object": node{
+				"sub": node{
+					"0": node{"title": "test0"},
+					"1": node{"title": "test1"},
+					"2": node{"title": "test2"},
+				},
+			},
+		},
+
+		node{
+			"object": node{
+				"sub": []node{
+					{"title": "test0"},
+					{"title": "test1"},
+					{"title": "test2"},
+				},
+			},
+		},
+
+		node{
+			"object.sub": []node{
+				{"title": "test0"},
+				{"title": "test1"},
+				{"title": "test2"},
+			},
+		},
+
+		node{
+			"object.sub.0.title": "test0",
+			"object.sub.1.title": "test1",
+			"object.sub.2.title": "test2",
+		},
+	}
+
+	for i, test := range tests {
+		t.Logf("test (%v): %v", i, test)
+		c, err := NewFrom(test, PathSep("."))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for x := 0; x < 3; x++ {
+			s, err := c.String(fmt.Sprintf("object.sub.%v.title", x), -1, PathSep("."))
+			assert.NoError(t, err)
+			assert.Equal(t, fmt.Sprintf("test%v", x), s)
+		}
 	}
 }

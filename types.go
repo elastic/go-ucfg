@@ -36,10 +36,12 @@ type context struct {
 	field  string
 }
 
+/*
 type cfgArray struct {
 	cfgPrimitive
 	arr []value
 }
+*/
 
 type cfgBool struct {
 	cfgPrimitive
@@ -135,6 +137,7 @@ func (cfgPrimitive) toUint() (uint64, error)    { return 0, ErrTypeMismatch }
 func (cfgPrimitive) toFloat() (float64, error)  { return 0, ErrTypeMismatch }
 func (cfgPrimitive) toConfig() (*Config, error) { return nil, ErrTypeMismatch }
 
+/*
 func (cfgArray) typeName() string          { return "array" }
 func (c *cfgArray) Len() int               { return len(c.arr) }
 func (c *cfgArray) reflect() reflect.Value { return reflect.ValueOf(c.arr) }
@@ -151,6 +154,7 @@ func (c *cfgArray) reify() interface{} {
 	}
 	return r
 }
+*/
 
 func (c *cfgNil) cpy(ctx context) value   { return &cfgNil{cfgPrimitive{ctx, c.metadata}} }
 func (*cfgNil) Len() int                  { return 0 }
@@ -275,9 +279,32 @@ func (c cfgSub) SetContext(ctx context) {
 }
 
 func (c cfgSub) reify() interface{} {
-	m := make(map[string]interface{})
-	for k, v := range c.c.fields.fields {
-		m[k] = v.reify()
+	fields := c.c.fields.fields
+	arr := c.c.fields.arr
+
+	switch {
+	case len(fields) == 0 && len(arr) == 0:
+		return nil
+	case len(fields) > 0 && len(arr) == 0:
+		m := make(map[string]interface{})
+		for k, v := range c.c.fields.fields {
+			m[k] = v.reify()
+		}
+		return m
+	case len(fields) == 0 && len(arr) > 0:
+		m := make([]interface{}, len(arr))
+		for i, v := range arr {
+			m[i] = v.reify()
+		}
+		return m
+	default:
+		m := make(map[string]interface{})
+		for k, v := range c.c.fields.fields {
+			m[k] = v.reify()
+		}
+		for i, v := range arr {
+			m[fmt.Sprintf("%d", i)] = v.reify()
+		}
+		return m
 	}
-	return m
 }
