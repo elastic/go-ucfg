@@ -225,3 +225,41 @@ func TestValidationFail(t *testing.T) {
 		assert.True(t, err != nil)
 	}
 }
+
+func TestValidateRequiredFailing(t *testing.T) {
+	tests := []interface{}{
+		&struct {
+			A *int `validate:"required"`
+		}{},
+
+		&struct {
+			A int `validate:"required"`
+		}{},
+
+		&struct {
+			A string `validate:"required"`
+		}{},
+
+		&struct {
+			A []string `validate:"required"`
+		}{},
+
+		&struct {
+			A time.Duration `validate:"required"`
+		}{},
+	}
+
+	c := New()
+	for i, test := range tests {
+		t.Logf("Test config (%v): %#v", i, test)
+
+		err := c.Unpack(test)
+		if err == nil {
+			t.Error("Expected error")
+			continue
+		}
+
+		err = err.(Error).Reason()
+		assert.Equal(t, ErrRequired, err)
+	}
+}
