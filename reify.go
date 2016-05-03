@@ -183,12 +183,7 @@ func reifyValue(
 	if baseType.Kind() == reflect.Struct {
 		sub, err := val.toConfig()
 		if err != nil {
-			// try primitive
-			if v, check := reifyPrimitive(opts, val, t, baseType); check == nil {
-				return v, nil
-			}
-
-			return reflect.Value{}, raiseExpectedObject(val)
+			return reifyPrimitive(opts, val, t, baseType)
 		}
 
 		newSt := reflect.New(baseType)
@@ -490,7 +485,7 @@ func reifyRegexp(
 
 	r, err := regexp.Compile(s)
 	if err != nil {
-		return reflect.Value{}, raiseConversion(val, err, "regex")
+		return reflect.Value{}, raiseInvalidRegexp(val, err)
 	}
 	return reflect.ValueOf(r).Elem(), nil
 }
