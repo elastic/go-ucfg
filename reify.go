@@ -461,7 +461,8 @@ func reifyDuration(
 	case *cfgString:
 		d, err = time.ParseDuration(v.s)
 	default:
-		s, err := val.toString()
+		var s string
+		s, err = val.toString()
 		if err != nil {
 			return reflect.Value{}, raiseInvalidDuration(val, err)
 		}
