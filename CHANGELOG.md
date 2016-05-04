@@ -7,6 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 ### Changed
+- Report error message from regexp.Compile if compilation fails #21
 
 ### Deprecated
 
