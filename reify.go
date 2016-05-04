@@ -140,7 +140,8 @@ func reifyGetField(
 	if err != nil {
 		return err
 	}
-	if value == nil {
+
+	if _, ok := value.(*cfgNil); value == nil || ok {
 		if err := runValidators(nil, opts.validators); err != nil {
 			return raiseValidation(cfg.ctx, cfg.metadata, err)
 		}
@@ -151,6 +152,7 @@ func reifyGetField(
 	if err != nil {
 		return err
 	}
+
 	to.Set(v)
 	return nil
 }

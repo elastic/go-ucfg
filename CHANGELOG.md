@@ -14,6 +14,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 
 ### Fixed
+- Handle empty slices, strings, regular expression by nonzero,required validation tags #20, #23
 
 ## [0.2.0]
 
