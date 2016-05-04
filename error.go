@@ -16,7 +16,7 @@ type Error interface {
 
 	Message() string
 
-	// [optional] path of config element error occured for
+	// [optional] path of config element error occurred for
 	Path() string
 
 	// [optional] stack trace
