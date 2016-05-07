@@ -86,7 +86,12 @@ func reifyStruct(opts options, orig reflect.Value, cfg *Config) Error {
 	}
 
 	if v, ok := implementsUnpacker(to); ok {
-		if err := unpackWith(v, cfgSub{cfg}.reify()); err != nil {
+		reified, err := cfgSub{cfg}.reify()
+		if err != nil {
+			raisePathErr(err, cfg.metadata, "", cfg.Path("."))
+		}
+
+		if err := unpackWith(v, reified); err != nil {
 			return raiseUnsupportedInputType(cfg.ctx, cfg.metadata, v)
 		}
 	} else {
@@ -163,7 +168,12 @@ func reifyValue(
 	val value,
 ) (reflect.Value, Error) {
 	if t.Kind() == reflect.Interface && t.NumMethod() == 0 {
-		return reflect.ValueOf(val.reify()), nil
+		reified, err := val.reify()
+		if err != nil {
+			ctx := val.Context()
+			return reflect.Value{}, raisePathErr(err, val.meta(), "", ctx.path("."))
+		}
+		return reflect.ValueOf(reified), nil
 	}
 
 	baseType := chaseTypePointers(t)
@@ -252,7 +262,13 @@ func reifyMergeValue(
 
 		// check if old is nil -> copy reference only
 		if old.Kind() == reflect.Ptr && old.IsNil() {
-			v := val.reflect().Convert(reflect.PtrTo(baseType))
+			v, err := val.reflect()
+			if err != nil {
+				ctx := val.Context()
+				return reflect.Value{}, raisePathErr(err, val.meta(), "", ctx.path("."))
+			}
+
+			v = v.Convert(reflect.PtrTo(baseType))
 			return pointerize(t, baseType, v), nil
 		}
 
@@ -289,7 +305,13 @@ func reifyMergeValue(
 	}
 
 	if v, ok := implementsUnpacker(old); ok {
-		if err := unpackWith(v, val.reify()); err != nil {
+		reified, err := val.reify()
+		if err != nil {
+			ctx := val.Context()
+			return reflect.Value{}, raisePathErr(err, val.meta(), "", ctx.path("."))
+		}
+
+		if err := unpackWith(v, reified); err != nil {
 			ctx := val.Context()
 			return reflect.Value{}, raiseUnsupportedInputType(ctx, val.meta(), v)
 		}
@@ -303,7 +325,11 @@ func reifyArray(
 	to reflect.Value, tTo reflect.Type,
 	val value,
 ) (reflect.Value, Error) {
-	arr := castArr(val)
+	arr, err := castArr(val)
+	if err != nil {
+		return reflect.Value{}, err
+	}
+
 	if len(arr) != tTo.Len() {
 		ctx := val.Context()
 		return reflect.Value{}, raiseArraySize(ctx, val.meta(), len(arr), tTo.Len())
@@ -316,7 +342,11 @@ func reifySlice(
 	tTo reflect.Type,
 	val value,
 ) (reflect.Value, Error) {
-	arr := castArr(val)
+	arr, err := castArr(val)
+	if err != nil {
+		return reflect.Value{}, err
+	}
+
 	to := reflect.MakeSlice(tTo, len(arr), len(arr))
 	return reifyDoArray(opts, to, tTo.Elem(), val, arr)
 }
@@ -343,15 +373,21 @@ func reifyDoArray(
 	return to, nil
 }
 
-func castArr(v value) []value {
+func castArr(v value) ([]value, Error) {
 	if sub, ok := v.(cfgSub); ok {
-		return sub.c.fields.arr
+		return sub.c.fields.arr, nil
 	}
 
-	if v.Len() == 0 {
-		return nil
+	l, err := v.Len()
+	if err != nil {
+		ctx := v.Context()
+		return nil, raisePathErr(err, v.meta(), "", ctx.path("."))
 	}
-	return []value{v}
+
+	if l == 0 {
+		return nil, nil
+	}
+	return []value{v}, nil
 }
 
 func reifyPrimitive(
@@ -365,7 +401,13 @@ func reifyPrimitive(
 	}
 
 	if v, ok := typeIsUnpacker(baseType); ok {
-		err := unpackWith(v, val.reify())
+		reified, err := val.reify()
+		if err != nil {
+			ctx := val.Context()
+			return reflect.Value{}, raisePathErr(err, val.meta(), "", ctx.path("."))
+		}
+
+		err = unpackWith(v, reified)
 		if err != nil {
 			ctx := val.Context()
 			return reflect.Value{}, raiseUnsupportedInputType(ctx, val.meta(), v)
@@ -400,11 +442,21 @@ func doReifyPrimitive(
 		tRegexp:   reifyRegexp,
 	}
 
+	valT, err := val.typ()
+	if err != nil {
+		ctx := val.Context()
+		return reflect.Value{}, raisePathErr(err, val.meta(), "", ctx.path("."))
+	}
+
 	// try primitive conversion
 	kind := baseType.Kind()
 	switch {
-	case val.typ() == baseType:
-		v := val.reflect()
+	case valT.gotype == baseType:
+		v, err := val.reflect()
+		if err != nil {
+			ctx := val.Context()
+			return reflect.Value{}, raisePathErr(err, val.meta(), "", ctx.path("."))
+		}
 		return v, nil
 
 	case kind == reflect.String:
@@ -435,9 +487,13 @@ func doReifyPrimitive(
 		}
 		return v, nil
 
-	case val.typ().ConvertibleTo(baseType):
-		v := val.reflect().Convert(baseType)
-		return v, nil
+	case valT.gotype.ConvertibleTo(baseType):
+		v, err := val.reflect()
+		if err != nil {
+			ctx := val.Context()
+			return reflect.Value{}, raisePathErr(err, val.meta(), "", ctx.path("."))
+		}
+		return v.Convert(baseType), nil
 	}
 
 	return reflect.Value{}, raiseToTypeNotSupported(val, baseType)

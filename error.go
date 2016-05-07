@@ -182,7 +182,8 @@ func raiseMissingArr(ctx context, meta *Meta, idx int) Error {
 func raiseIndexOutOfBounds(value value, idx int) Error {
 	reason := ErrIndexOutOfRange
 	ctx := value.Context()
-	message := fmt.Sprintf("index '%v' out of range (length=%v)", idx, value.Len())
+	len, _ := value.Len()
+	message := fmt.Sprintf("index '%v' out of range (length=%v)", idx, len)
 	return raisePathErr(reason, value.meta(), message, ctx.path("."))
 }
 
@@ -240,9 +241,11 @@ func raisePointerRequired(v reflect.Value) Error {
 	return raiseCritical(ErrPointerRequired, "")
 }
 
-func raiseToTypeNotSupported(v value, t reflect.Type) Error {
+func raiseToTypeNotSupported(v value, goT reflect.Type) Error {
 	reason := ErrTypeMismatch
-	message := fmt.Sprintf("value of type '%v' not convertible into unsupported go type '%v'", v.typeName(), t)
+	t, _ := v.typ()
+	message := fmt.Sprintf("value of type '%v' not convertible into unsupported go type '%v'",
+		t.name, goT)
 	ctx := v.Context()
 
 	return raiseCritical(reason, messagePath(reason, v.meta(), message, ctx.path(".")))
@@ -259,15 +262,17 @@ func raiseArraySize(ctx context, meta *Meta, n int, to int) Error {
 func raiseConversion(v value, err error, to string) Error {
 	ctx := v.Context()
 	path := ctx.path(".")
-	message := fmt.Sprintf("can not convert '%v' into '%v'", v.typeName(), to)
+	t, _ := v.typ()
+	message := fmt.Sprintf("can not convert '%v' into '%v'", t.name, to)
 	return raisePathErr(err, v.meta(), message, path)
 }
 
 func raiseExpectedObject(v value) Error {
 	ctx := v.Context()
 	path := ctx.path(".")
+	t, _ := v.typ()
 	message := fmt.Sprintf("required 'object', but found '%v' in field '%v'",
-		v.typeName(), path)
+		t.name, path)
 
 	return raiseErr(ErrExpectedObject, messageMeta(message, v.meta()))
 }
