@@ -293,3 +293,8 @@ func raiseInvalidRegexp(v value, err error) Error {
 	message := fmt.Sprintf("Failed to compile regular expression with '%v'", err)
 	return raisePathErr(err, v.meta(), message, path)
 }
+
+func raiseParseSplice(ctx context, meta *Meta, err error) Error {
+	message := fmt.Sprintf("%v parsing splice", err)
+	return raisePathErr(err, meta, message, ctx.path("."))
+}

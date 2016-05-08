@@ -246,7 +246,7 @@ func normalizeValue(
 		f := v.Float()
 		return newFloat(ctx, opts.meta, f), nil
 	case reflect.String:
-		return newString(ctx, opts.meta, v.String()), nil
+		return normalizeString(ctx, opts, v.String())
 	case reflect.Array, reflect.Slice:
 		return normalizeArray(opts, tagOpts, ctx, v)
 	case reflect.Map:
@@ -268,4 +268,32 @@ func normalizeValue(
 		}
 		return nil, raiseUnsupportedInputType(ctx, opts.meta, v)
 	}
+}
+
+func normalizeString(ctx context, opts options, str string) (value, Error) {
+	if !opts.varexp {
+		return newString(ctx, opts.meta, str), nil
+	}
+
+	pieces, err := parseSplice(str, opts.pathSep)
+	if err != nil {
+		return nil, raiseParseSplice(ctx, opts.meta, err)
+	}
+
+	if len(pieces) == 0 {
+		return newString(ctx, opts.meta, str), nil
+	}
+
+	if len(pieces) == 1 {
+		switch p := pieces[0].(type) {
+		case stringPiece:
+			return newString(ctx, opts.meta, str), nil
+		case *reference:
+			return newRef(ctx, opts.meta, p), nil
+		default:
+			return nil, raiseParseSplice(ctx, opts.meta, errInvalidType)
+		}
+	}
+
+	return newSplice(ctx, opts.meta, splice{pieces}), nil
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"strconv"
 )
 
 type value interface {
@@ -40,13 +41,6 @@ type context struct {
 	field  string
 }
 
-/*
-type cfgArray struct {
-	cfgPrimitive
-	arr []value
-}
-*/
-
 type cfgBool struct {
 	cfgPrimitive
 	b bool
@@ -74,6 +68,16 @@ type cfgString struct {
 
 type cfgSub struct {
 	c *Config
+}
+
+type cfgRef struct {
+	cfgPrimitive
+	ref *reference
+}
+
+type cfgSplice struct {
+	cfgPrimitive
+	splice splice
 }
 
 type cfgNil struct{ cfgPrimitive }
@@ -138,6 +142,14 @@ func newFloat(ctx context, m *Meta, f float64) *cfgFloat {
 
 func newString(ctx context, m *Meta, s string) *cfgString {
 	return &cfgString{cfgPrimitive{ctx, m}, s}
+}
+
+func newRef(ctx context, m *Meta, ref *reference) *cfgRef {
+	return &cfgRef{cfgPrimitive{ctx, m}, ref}
+}
+
+func newSplice(ctx context, m *Meta, s splice) *cfgSplice {
+	return &cfgSplice{cfgPrimitive{ctx, m}, s}
 }
 
 func (p *cfgPrimitive) Context() context        { return p.ctx }
@@ -309,4 +321,148 @@ func (c cfgSub) reify() (interface{}, error) {
 		}
 		return m, nil
 	}
+}
+
+func (r *cfgRef) typ() (typeInfo, error) {
+	v, err := r.resolve()
+	if err != nil {
+		return typeInfo{}, err
+	}
+	return v.typ()
+}
+
+func (r *cfgRef) cpy(ctx context) value {
+	return newRef(ctx, r.meta(), r.ref)
+}
+
+func (r *cfgRef) Len() (int, error) {
+	v, err := r.resolve()
+	if err != nil {
+		return 0, err
+	}
+	return v.Len()
+}
+
+func (r *cfgRef) reflect() (reflect.Value, error) {
+	v, err := r.resolve()
+	if err != nil {
+		return reflect.Value{}, err
+	}
+	return v.reflect()
+}
+
+func (r *cfgRef) reify() (interface{}, error) {
+	v, err := r.resolve()
+	if err != nil {
+		return reflect.Value{}, err
+	}
+	return v.reify()
+}
+
+func (r *cfgRef) toBool() (bool, error) {
+	v, err := r.resolve()
+	if err != nil {
+		return false, err
+	}
+	return v.toBool()
+}
+
+func (r *cfgRef) toString() (string, error) {
+	v, err := r.resolve()
+	if err != nil {
+		return "", err
+	}
+	return v.toString()
+}
+
+func (r *cfgRef) toInt() (int64, error) {
+	v, err := r.resolve()
+	if err != nil {
+		return 0, err
+	}
+	return v.toInt()
+}
+
+func (r *cfgRef) toUint() (uint64, error) {
+	v, err := r.resolve()
+	if err != nil {
+		return 0, err
+	}
+	return v.toUint()
+}
+
+func (r *cfgRef) toFloat() (float64, error) {
+	v, err := r.resolve()
+	if err != nil {
+		return 0, err
+	}
+	return v.toFloat()
+}
+
+func (r *cfgRef) toConfig() (*Config, error) {
+	v, err := r.resolve()
+	if err != nil {
+		return nil, err
+	}
+	return v.toConfig()
+}
+
+func (r *cfgRef) resolve() (value, error) {
+	return r.ref.resolve(r.ctx.getParent())
+}
+
+func (*cfgSplice) typ() (typeInfo, error) {
+	return typeInfo{"string", tString}, nil
+}
+
+func (s *cfgSplice) cpy(ctx context) value {
+	return newSplice(ctx, s.meta(), s.splice)
+}
+
+func (s *cfgSplice) reflect() (reflect.Value, error) {
+	str, err := s.toString()
+	if err != nil {
+		return reflect.Value{}, nil
+	}
+	return reflect.ValueOf(str), err
+}
+
+func (s *cfgSplice) reify() (interface{}, error) {
+	return s.toString()
+}
+
+func (s *cfgSplice) toBool() (bool, error) {
+	str, err := s.toString()
+	if err != nil {
+		return false, err
+	}
+	return strconv.ParseBool(str)
+}
+
+func (s *cfgSplice) toString() (string, error) {
+	return s.splice.eval(s.ctx.getParent())
+}
+
+func (s *cfgSplice) toInt() (int64, error) {
+	str, err := s.toString()
+	if err != nil {
+		return 0, err
+	}
+	return strconv.ParseInt(str, 0, 64)
+}
+
+func (s *cfgSplice) toUint() (uint64, error) {
+	str, err := s.toString()
+	if err != nil {
+		return 0, err
+	}
+	return strconv.ParseUint(str, 0, 64)
+}
+
+func (s *cfgSplice) toFloat() (float64, error) {
+	str, err := s.toString()
+	if err != nil {
+		return 0, err
+	}
+	return strconv.ParseFloat(str, 64)
 }
