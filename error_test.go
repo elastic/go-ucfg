@@ -161,6 +161,9 @@ func TestErrorMessages(t *testing.T) {
 			testNestedCtx, nil, errors.New("invalid value")),
 		"validation_nested_w_meta": raiseValidation(
 			testNestedCtx, testMeta, errors.New("invalid value")),
+
+		"parse_splice_w_meta": raiseParseSplice(
+			testNestedCtx, nil, errUnterminatedBrace),
 	}
 
 	for name, result := range tests {

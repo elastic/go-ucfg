@@ -66,7 +66,7 @@ func TestMergePrimitives(t *testing.T) {
 		i, err := c.Int("i", -1)
 		assert.NoError(t, err)
 
-		u, err := c.Int("u", -1)
+		u, err := c.Uint("u", -1)
 		assert.NoError(t, err)
 
 		f, err := c.Float("f", -1)
@@ -437,4 +437,111 @@ func TestMergeArrayPatterns(t *testing.T) {
 			assert.Equal(t, fmt.Sprintf("test%v", x), s)
 		}
 	}
+}
+
+func TestMergeReferences(t *testing.T) {
+	doc := node{
+		"sub1": node{
+			"b": true,
+			"i": 42,
+			"u": 23,
+			"f": 3.14,
+			"s": "string",
+			"c": node{"name": "test"},
+		},
+
+		"sub2": node{
+			"b":      `${sub1.b}`,
+			"i":      `${sub1.i}`,
+			"u":      `${sub1.u}`,
+			"f":      `${sub1.f}`,
+			"s":      `${sub1.s}`,
+			"c":      `${sub1.c}`,
+			"nested": `${sub1.c.name}`,
+		},
+	}
+
+	c, err := NewFrom(doc, PathSep("."), VarExp)
+	assert.NoError(t, err)
+
+	b, err := c.Bool("sub2.b", -1, PathSep("."))
+	assert.NoError(t, err)
+
+	i, err := c.Int("sub2.i", -1, PathSep("."))
+	assert.NoError(t, err)
+
+	u, err := c.Uint("sub2.u", -1, PathSep("."))
+	assert.NoError(t, err)
+
+	f, err := c.Float("sub2.f", -1, PathSep("."))
+	assert.NoError(t, err)
+
+	s, err := c.String("sub2.s", -1, PathSep("."))
+	assert.NoError(t, err)
+
+	name, err := c.String("sub2.c.name", -1, PathSep("."))
+	assert.NoError(t, err)
+
+	nested, err := c.String("sub2.nested", -1, PathSep("."))
+	assert.NoError(t, err)
+
+	assert.Equal(t, true, b)
+	assert.Equal(t, 42, int(i))
+	assert.Equal(t, 23, int(u))
+	assert.Equal(t, 3.14, f)
+	assert.Equal(t, "string", s)
+	assert.Equal(t, "test", name)
+	assert.Equal(t, "test", nested)
+}
+
+func TestMergeSpliced(t *testing.T) {
+	doc := node{
+		"t":     "t",
+		"r":     "r",
+		"u":     "u",
+		"e":     "e",
+		"one":   1,
+		"three": 3,
+		"two":   2,
+		"four":  4,
+		"s":     "str",
+		"who":   "brown fox",
+		"l":     "lazy",
+		"sub": node{
+			"b":     "${t}${r}${u}${e}",
+			"i":     "${four}${two}",
+			"u":     "${two}${three}",
+			"f":     "${three}.${one}${four}",
+			"s":     "${s}ing",
+			"story": "the quick ${who} jumps over the ${l} dog",
+		},
+	}
+
+	c, err := NewFrom(doc, PathSep("."), VarExp)
+	assert.NoError(t, err)
+
+	b, err := c.Bool("sub.b", -1, PathSep("."))
+	assert.NoError(t, err)
+
+	i, err := c.Int("sub.i", -1, PathSep("."))
+	assert.NoError(t, err)
+
+	u, err := c.Uint("sub.u", -1, PathSep("."))
+	assert.NoError(t, err)
+
+	f, err := c.Float("sub.f", -1, PathSep("."))
+	assert.NoError(t, err)
+
+	s, err := c.String("sub.s", -1, PathSep("."))
+	assert.NoError(t, err)
+
+	story, err := c.String("sub.story", -1, PathSep("."))
+	assert.NoError(t, err)
+
+	assert.Equal(t, true, b)
+	assert.Equal(t, 42, int(i))
+	assert.Equal(t, 23, int(u))
+	assert.Equal(t, 3.14, f)
+	assert.Equal(t, "string", s)
+	assert.Equal(t, "the quick brown fox jumps over the lazy dog", story)
 }

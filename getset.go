@@ -15,7 +15,7 @@ func convertErr(v value, err error, to string) Error {
 // of elements in list
 func (c *Config) CountField(name string) (int, error) {
 	if v, ok := c.fields.fields[name]; ok {
-		return v.Len(), nil
+		return v.Len()
 	}
 	return -1, raiseMissing(c, name)
 }

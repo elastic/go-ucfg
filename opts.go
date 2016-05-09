@@ -7,6 +7,7 @@ type options struct {
 	validatorTag string
 	pathSep      string
 	meta         *Meta
+	varexp       bool
 }
 
 func StructTag(tag string) Option {
@@ -31,6 +32,10 @@ func MetaData(meta Meta) Option {
 	return func(o *options) {
 		o.meta = &meta
 	}
+}
+
+var VarExp Option = func(o *options) {
+	o.varexp = true
 }
 
 func makeOptions(opts []Option) options {
