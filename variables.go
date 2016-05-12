@@ -25,6 +25,11 @@ var (
 	errInvalidType       = errors.New("invalid type")
 )
 
+const (
+	varOpen  = "${"
+	varClose = "$}"
+)
+
 func newReference(p cfgPath) *reference {
 	return &reference{p}
 }
@@ -76,50 +81,92 @@ func cfgRoot(cfg *Config) *Config {
 	}
 }
 
+func lexer(in string) (<-chan string, <-chan error) {
+	lex := make(chan string, 1)
+	errors := make(chan error, 1)
+
+	go func() {
+		off := 0
+		content := in
+
+		defer func() {
+			if len(content) > 0 {
+				lex <- content
+			}
+			close(lex)
+			close(errors)
+		}()
+
+		for len(content) > 0 {
+			idx := strings.Index(content[off:], "${")
+			if idx < 0 {
+				return
+			}
+
+			idx += off
+			off = idx + 2
+			if idx > 0 && content[idx-1] == '$' {
+				// if '$${', ignore and continue parsing
+				continue
+			}
+
+			// found start of variable, store passed content into pieces
+			if str := content[:idx]; str != "" {
+				lex <- str
+			}
+
+			// find variable end:
+			end := strings.Index(content[off:], "}")
+			if end < 0 {
+				// err, found variable start without end
+				errors <- errUnterminatedBrace
+				return
+			}
+
+			// get variable content indices + update offset
+			start := off
+			end += off
+			off = end + 1
+
+			// pass variable
+			lex <- varOpen
+			lex <- content[start:end]
+			lex <- varClose
+
+			content = content[off:]
+			off = 0
+		}
+	}()
+
+	return lex, errors
+}
+
 func parseSplice(in, pathSep string) ([]splicePiece, error) {
+	lex, errors := lexer(in)
+
+	// lexer co-routine
 	var pieces []splicePiece
-	content := in
-	off := 0
-	for len(content) > 0 {
-		idx := strings.Index(content[off:], "${")
-		if idx < 0 {
-			pieces = append(pieces, stringPiece(content))
-			break
+	isvar := false
+	for sym := range lex {
+		// process symbol
+		switch sym {
+		case varOpen:
+			isvar = true
+		case varClose:
+			isvar = false
+		default:
+			if isvar {
+				path := parsePath(sym, pathSep)
+				pieces = append(pieces, newReference(path))
+			} else {
+				pieces = append(pieces, stringPiece(sym))
+			}
 		}
-
-		idx += off
-		off = idx + 2
-		// if '$${', ignore and continue parsing
-		if idx > 0 && content[idx-1] == '$' {
-			continue
-		}
-
-		// found start of variable, store passed content into pieces
-		str := content[:idx]
-		if str != "" {
-			pieces = append(pieces, stringPiece(str))
-		}
-
-		// find variable end:
-		end := strings.Index(content[off:], "}")
-		if end < 0 {
-			// err, found variable start without end
-			return nil, errUnterminatedBrace
-		}
-
-		// get variable content indices + update offset
-		start := off
-		end += off
-		off = end + 1
-
-		// parse variable
-		path := parsePath(content[start:end], pathSep)
-		pieces = append(pieces, newReference(path))
-
-		// reset string and parse offset
-		content = content[off:]
-		off = 0
 	}
 
+	err := <-errors
+	if err != nil {
+		return nil, err
+	}
 	return pieces, nil
 }
