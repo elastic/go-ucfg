@@ -25,9 +25,24 @@ var (
 	errInvalidType       = errors.New("invalid type")
 )
 
+type token struct {
+	typ tokenType
+	val string
+}
+
+type tokenType uint16
+
 const (
-	varOpen  = "${"
-	varClose = "$}"
+	tokOpen tokenType = iota
+	tokClose
+	tokSep
+	tokString
+)
+
+var (
+	openToken  = token{tokOpen, "${"}
+	closeToken = token{tokClose, "}"}
+	sepToken   = token{tokSep, ":"}
 )
 
 func newReference(p cfgPath) *reference {
@@ -81,8 +96,8 @@ func cfgRoot(cfg *Config) *Config {
 	}
 }
 
-func lexer(in string) (<-chan string, <-chan error) {
-	lex := make(chan string, 1)
+func lexer(in string) (<-chan token, <-chan error) {
+	lex := make(chan token, 1)
 	errors := make(chan error, 1)
 
 	go func() {
@@ -91,7 +106,7 @@ func lexer(in string) (<-chan string, <-chan error) {
 
 		defer func() {
 			if len(content) > 0 {
-				lex <- content
+				lex <- token{tokString, content}
 			}
 			close(lex)
 			close(errors)
@@ -112,7 +127,7 @@ func lexer(in string) (<-chan string, <-chan error) {
 
 			// found start of variable, store passed content into pieces
 			if str := content[:idx]; str != "" {
-				lex <- str
+				lex <- token{tokString, str}
 			}
 
 			// find variable end:
@@ -129,9 +144,9 @@ func lexer(in string) (<-chan string, <-chan error) {
 			off = end + 1
 
 			// pass variable
-			lex <- varOpen
-			lex <- content[start:end]
-			lex <- varClose
+			lex <- openToken
+			lex <- token{tokString, content[start:end]}
+			lex <- closeToken
 
 			content = content[off:]
 			off = 0
@@ -142,29 +157,43 @@ func lexer(in string) (<-chan string, <-chan error) {
 }
 
 func parseSplice(in, pathSep string) ([]splicePiece, error) {
-	lex, errors := lexer(in)
+	lex, errs := lexer(in)
+
+	defer func() {
+		// on parser error drain lexer so go-routine won't leak
+		for range lex {
+		}
+	}()
 
 	// lexer co-routine
 	var pieces []splicePiece
 	isvar := false
-	for sym := range lex {
+	for tok := range lex {
 		// process symbol
-		switch sym {
-		case varOpen:
-			isvar = true
-		case varClose:
-			isvar = false
-		default:
+		switch tok.typ {
+		case tokOpen:
 			if isvar {
-				path := parsePath(sym, pathSep)
+				return nil, errors.New("expansions can not be nested")
+			}
+			isvar = true
+		case tokClose:
+			if !isvar {
+				return nil, errors.New("missing ${")
+			}
+			isvar = false
+		case tokSep:
+			return nil, errors.New("default separator not supported yet")
+		case tokString:
+			if isvar {
+				path := parsePath(tok.val, pathSep)
 				pieces = append(pieces, newReference(path))
 			} else {
-				pieces = append(pieces, stringPiece(sym))
+				pieces = append(pieces, stringPiece(tok.val))
 			}
 		}
 	}
 
-	err := <-errors
+	err := <-errs
 	if err != nil {
 		return nil, err
 	}
