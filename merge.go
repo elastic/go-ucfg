@@ -290,8 +290,6 @@ func normalizeString(ctx context, opts options, str string) (value, Error) {
 			return newString(ctx, opts.meta, str), nil
 		case *reference:
 			return newRef(ctx, opts.meta, p), nil
-		default:
-			return nil, raiseParseSplice(ctx, opts.meta, errInvalidType)
 		}
 	}
 

@@ -545,3 +545,37 @@ func TestMergeSpliced(t *testing.T) {
 	assert.Equal(t, "string", s)
 	assert.Equal(t, "the quick brown fox jumps over the lazy dog", story)
 }
+
+func TestMergeVarExp(t *testing.T) {
+	tests := []node{
+		{"i": 42},
+		{"i": "${x}", "x": 42},
+		{"i": "${x}2", "x": 4},
+		{"i": "4${x}", "x": 2},
+		{"i": "${x:23}", "x": 42},
+		{"i": "${x:42}"},
+		{"i": "${x:${y}}", "y": 42},
+		{"i": "${${x}}", "x": "y", "y": 42},
+		{"i": "${${x}}", "x": "${y}", "y": "z", "z": 42},
+		{"i": "${${y}:42}", "y": "x"},
+		{"i": "${${y}:42}"},
+		{"i": "${${x}:${y}}", "y": 42},
+	}
+
+	for i, test := range tests {
+		t.Logf("Test config (%v): %v\n", i, test)
+
+		c, err := NewFrom(test, PathSep("."), VarExp)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+
+		i, err := c.Int("i", -1, PathSep("."))
+		ok := assert.NoError(t, err)
+		ok = ok && assert.Equal(t, 42, int(i))
+		if ok {
+			t.Log("success")
+		}
+	}
+}
