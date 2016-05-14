@@ -275,25 +275,17 @@ func normalizeString(ctx context, opts options, str string) (value, Error) {
 		return newString(ctx, opts.meta, str), nil
 	}
 
-	pieces, err := parseSplice(str, opts.pathSep)
+	varexp, err := parseSplice(str, opts.pathSep)
 	if err != nil {
 		return nil, raiseParseSplice(ctx, opts.meta, err)
 	}
 
-	if len(pieces) == 0 {
+	switch p := varexp.(type) {
+	case constExp:
 		return newString(ctx, opts.meta, str), nil
+	case *reference:
+		return newRef(ctx, opts.meta, p), nil
 	}
 
-	if len(pieces) == 1 {
-		switch p := pieces[0].(type) {
-		case stringPiece:
-			return newString(ctx, opts.meta, str), nil
-		case *reference:
-			return newRef(ctx, opts.meta, p), nil
-		default:
-			return nil, raiseParseSplice(ctx, opts.meta, errInvalidType)
-		}
-	}
-
-	return newSplice(ctx, opts.meta, splice{pieces}), nil
+	return newSplice(ctx, opts.meta, varexp), nil
 }
