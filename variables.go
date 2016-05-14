@@ -12,30 +12,38 @@ type reference struct {
 }
 
 type expansion struct {
-	left, right splicePiece
+	left, right varEvaler
 	pathSep     string
+	op          string
 }
 
 type splice struct {
-	pieces []splicePiece
+	pieces []varEvaler
 }
 
-type splicePiece interface {
-	piece(cfg *Config) (string, error)
+type varEvaler interface {
+	eval(cfg *Config) (string, error)
 }
 
-type stringPiece string
+type constExp string
+
+type token struct {
+	typ tokenType
+	val string
+}
+
+type parseState struct {
+	st     int
+	isvar  bool
+	op     string
+	pieces [2][]varEvaler
+}
 
 var (
 	errUnterminatedBrace = errors.New("unterminated brace")
 	errInvalidType       = errors.New("invalid type")
 	errEmptyPath         = errors.New("empty path after expansion")
 )
-
-type token struct {
-	typ tokenType
-	val string
-}
 
 type tokenType uint16
 
@@ -44,12 +52,23 @@ const (
 	tokClose
 	tokSep
 	tokString
+
+	// parser state
+	stLeft  = 0
+	stRight = 1
+
+	opDefault     = ":"
+	opAlternative = ":+"
+	opError       = ":?"
 )
 
 var (
 	openToken  = token{tokOpen, "${"}
 	closeToken = token{tokClose, "}"}
-	sepToken   = token{tokSep, ":"}
+
+	sepDefToken = token{tokSep, opDefault}
+	sepAltToken = token{tokSep, opAlternative}
+	sepErrToken = token{tokSep, opError}
 )
 
 func newReference(p cfgPath) *reference {
@@ -68,7 +87,7 @@ func (r *reference) resolve(cfg *Config) (value, error) {
 	return r.Path.GetValue(root)
 }
 
-func (r *reference) piece(cfg *Config) (string, error) {
+func (r *reference) eval(cfg *Config) (string, error) {
 	v, err := r.resolve(cfg)
 	if err != nil {
 		return "", err
@@ -79,7 +98,7 @@ func (r *reference) piece(cfg *Config) (string, error) {
 	return v.toString()
 }
 
-func (s stringPiece) piece(cfg *Config) (string, error) {
+func (s constExp) eval(cfg *Config) (string, error) {
 	return string(s), nil
 }
 
@@ -87,14 +106,10 @@ func (s *splice) String() string {
 	return fmt.Sprintf("%v", s.pieces)
 }
 
-func (s *splice) piece(cfg *Config) (string, error) {
-	return s.eval(cfg)
-}
-
 func (s *splice) eval(cfg *Config) (string, error) {
 	buf := bytes.NewBuffer(nil)
 	for _, p := range s.pieces {
-		s, err := p.piece(cfg)
+		s, err := p.eval(cfg)
 		if err != nil {
 			return "", err
 		}
@@ -110,40 +125,103 @@ func (e *expansion) String() string {
 	return fmt.Sprintf("${%v}", e.left)
 }
 
-func (e *expansion) piece(cfg *Config) (string, error) {
-	path, err := e.left.piece(cfg)
-	if err == nil && path == "" {
-		err = errEmptyPath
-	}
-
-	s := ""
-	if err == nil {
+func (e *expansion) eval(cfg *Config) (string, error) {
+	switch e.op {
+	case opDefault:
+		path, err := e.left.eval(cfg)
+		if err != nil || path == "" {
+			return e.right.eval(cfg)
+		}
 		ref := newReference(parsePath(path, e.pathSep))
-		s, err = ref.piece(cfg)
-	}
+		v, err := ref.eval(cfg)
+		if err != nil || v == "" {
+			return e.right.eval(cfg)
+		}
+		return v, err
 
-	if err == nil || e.right == nil {
-		return s, err
-	}
-	return e.right.piece(cfg)
-}
-
-func cfgRoot(cfg *Config) *Config {
-	if cfg == nil {
-		return nil
-	}
-
-	for {
-		p := cfg.Parent()
-		if p == nil {
-			return cfg
+	case opAlternative:
+		path, err := e.left.eval(cfg)
+		if err != nil || path == "" {
+			return "", nil
 		}
 
-		cfg = p
+		ref := newReference(parsePath(path, e.pathSep))
+		s, err := ref.eval(cfg)
+		if err != nil || s == "" {
+			return "", nil
+		}
+
+		return e.right.eval(cfg)
+
+	case opError:
+		path, err := e.left.eval(cfg)
+		if err == nil && path != "" {
+			ref := newReference(parsePath(path, e.pathSep))
+			str, err := ref.eval(cfg)
+			if err == nil && str != "" {
+				return str, nil
+			}
+		}
+
+		errStr, err := e.right.eval(cfg)
+		if err != nil {
+			return "", err
+		}
+		return "", errors.New(errStr)
+
+	case "":
+		path, err := e.left.eval(cfg)
+		if err != nil {
+			return "", err
+		}
+
+		ref := newReference(parsePath(path, e.pathSep))
+		return ref.eval(cfg)
 	}
+
+	return "", fmt.Errorf("Unknown expansion op: %v", e.op)
 }
 
-func parseSplice(in, pathSep string) ([]splicePiece, error) {
+func (st parseState) finalize(pathSep string) (varEvaler, error) {
+	if !st.isvar {
+		return nil, errors.New("fatal: processing non-variable state")
+	}
+	if len(st.pieces[stLeft]) == 0 {
+		return nil, errors.New("empty expansion")
+	}
+
+	if st.st == stLeft {
+		pieces := st.pieces[stLeft]
+
+		if len(pieces) == 0 {
+			return constExp(""), nil
+		}
+
+		if len(pieces) == 1 {
+			if str, ok := pieces[0].(constExp); ok {
+				return newReference(parsePath(string(str), pathSep)), nil
+			}
+		}
+
+		return &expansion{&splice{pieces}, nil, pathSep, ""}, nil
+	}
+
+	extract := func(pieces []varEvaler) varEvaler {
+		switch len(pieces) {
+		case 0:
+			return constExp("")
+		case 1:
+			return pieces[0]
+		default:
+			return &splice{pieces}
+		}
+	}
+	left := extract(st.pieces[stLeft])
+	right := extract(st.pieces[stRight])
+	return &expansion{left, right, pathSep, st.op}, nil
+}
+
+func parseSplice(in, pathSep string) (varEvaler, error) {
 	lex, errs := lexer(in)
 	defer func() {
 		// on parser error drain lexer so go-routine won't leak
@@ -201,8 +279,21 @@ func lexer(in string) (<-chan token, <-chan error) {
 			off = idx + 1
 			switch content[idx] {
 			case ':':
+				if len(content) <= off { // found ':' at end of string
+					return
+				}
+
 				strToken(content[:idx])
-				lex <- sepToken
+				switch content[off] {
+				case '+':
+					off++
+					lex <- sepAltToken
+				case '?':
+					off++
+					lex <- sepErrToken
+				default:
+					lex <- sepDefToken
+				}
 
 			case '}':
 				strToken(content[:idx])
@@ -234,63 +325,25 @@ func lexer(in string) (<-chan token, <-chan error) {
 	return lex, errors
 }
 
-func parseVarExp(lex <-chan token, pathSep string) ([]splicePiece, error) {
-	type state struct {
-		st     int
-		isvar  bool
-		pieces [2][]splicePiece
-	}
-
-	stLeft := 0
-	stRight := 1
-
-	stack := []state{
-		state{st: stLeft},
-	}
-
-	// convert finalized parse state to splicePiece
-	st2piece := func(st state) (splicePiece, error) {
-		if !st.isvar {
-			return nil, errors.New("fatal: processing non-variable state")
-		}
-		if len(st.pieces[stLeft]) == 0 {
-			return nil, errors.New("empty expansion")
-		}
-
-		if st.st == stLeft && len(st.pieces[stLeft]) == 1 {
-			if str, ok := st.pieces[stLeft][0].(stringPiece); ok {
-				// found string piece -> parse into reference
-				return newReference(parsePath(string(str), pathSep)), nil
-			}
-		}
-
-		left := &splice{st.pieces[stLeft]}
-		var right splicePiece
-		if st.st == stRight {
-			if len(st.pieces[stRight]) == 0 {
-				right = stringPiece("")
-			} else {
-				right = &splice{st.pieces[stRight]}
-			}
-		}
-
-		return &expansion{left, right, pathSep}, nil
+func parseVarExp(lex <-chan token, pathSep string) (varEvaler, error) {
+	stack := []parseState{
+		parseState{st: stLeft},
 	}
 
 	// parser loop
 	for tok := range lex {
 		switch tok.typ {
 		case tokOpen:
-			stack = append(stack, state{st: stLeft, isvar: true})
+			stack = append(stack, parseState{st: stLeft, isvar: true})
 		case tokClose:
-			// pop and finalize state
-			piece, err := st2piece(stack[len(stack)-1])
+			// finalize and pop state
+			piece, err := stack[len(stack)-1].finalize(pathSep)
 			stack = stack[:len(stack)-1]
 			if err != nil {
 				return nil, err
 			}
 
-			// append result to most recent state
+			// append result top stacked state
 			st := &stack[len(stack)-1]
 			st.pieces[st.st] = append(st.pieces[st.st], piece)
 
@@ -303,11 +356,12 @@ func parseVarExp(lex <-chan token, pathSep string) ([]splicePiece, error) {
 				return nil, errors.New("unexpected ':'")
 			}
 			st.st = stRight
+			st.op = tok.val
 
 		case tokString:
 			// append raw string
 			st := &stack[len(stack)-1]
-			st.pieces[st.st] = append(st.pieces[st.st], stringPiece(tok.val))
+			st.pieces[st.st] = append(st.pieces[st.st], constExp(tok.val))
 		}
 	}
 
@@ -318,5 +372,25 @@ func parseVarExp(lex <-chan token, pathSep string) ([]splicePiece, error) {
 	if len(stack) == 0 {
 		return nil, errors.New("fatal: expansion parse state empty")
 	}
-	return stack[0].pieces[stLeft], nil
+
+	result := stack[0].pieces[stLeft]
+	if len(result) == 1 {
+		return result[0], nil
+	}
+	return &splice{result}, nil
+}
+
+func cfgRoot(cfg *Config) *Config {
+	if cfg == nil {
+		return nil
+	}
+
+	for {
+		p := cfg.Parent()
+		if p == nil {
+			return cfg
+		}
+
+		cfg = p
+	}
 }

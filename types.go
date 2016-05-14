@@ -77,7 +77,7 @@ type cfgRef struct {
 
 type cfgSplice struct {
 	cfgPrimitive
-	splice splice
+	splice varEvaler
 }
 
 type cfgNil struct{ cfgPrimitive }
@@ -148,7 +148,7 @@ func newRef(ctx context, m *Meta, ref *reference) *cfgRef {
 	return &cfgRef{cfgPrimitive{ctx, m}, ref}
 }
 
-func newSplice(ctx context, m *Meta, s splice) *cfgSplice {
+func newSplice(ctx context, m *Meta, s varEvaler) *cfgSplice {
 	return &cfgSplice{cfgPrimitive{ctx, m}, s}
 }
 

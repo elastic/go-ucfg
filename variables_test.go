@@ -7,59 +7,56 @@ import (
 )
 
 func TestVarExpParserSuccess(t *testing.T) {
-	str := func(s string) stringPiece { return stringPiece(s) }
+	str := func(s string) varEvaler { return constExp(s) }
 	ref := func(s string) *reference { return newReference(parsePath(s, ".")) }
-	exp := func(l, r []splicePiece) *expansion {
-		var sr splicePiece
-		if r != nil {
-			sr = &splice{r}
-		}
-		return &expansion{&splice{l}, sr, "."}
+	cat := func(e ...varEvaler) *splice { return &splice{e} }
+	nested := func(n ...varEvaler) *expansion {
+		return &expansion{&splice{n}, nil, ".", ""}
+	}
+	exp := func(op string, l, r varEvaler) *expansion {
+		return &expansion{l, r, ".", op}
 	}
 
 	tests := []struct {
 		title, exp string
-		expected   []splicePiece
+		expected   varEvaler
 	}{
-		{"plain string", "string", []splicePiece{str("string")}},
-		{"reference", "${reference}", []splicePiece{ref("reference")}},
+		{"plain string", "string", str("string")},
+		{"reference", "${reference}", ref("reference")},
 		{"exp in middle", "test ${splice} this",
-			[]splicePiece{str("test "), ref("splice"), str(" this")}},
+			cat(str("test "), ref("splice"), str(" this"))},
 		{"exp at beginning", "${splice} test",
-			[]splicePiece{ref("splice"), str(" test")}},
+			cat(ref("splice"), str(" test"))},
 		{"exp at end", "test ${this}",
-			[]splicePiece{str("test "), ref("this")}},
+			cat(str("test "), ref("this"))},
 		{"exp nested", "${${nested}}",
-			[]splicePiece{exp([]splicePiece{ref("nested")}, nil)}},
+			nested(ref("nested"))},
 		{"exp nested in middle", "${test.${this}.test}",
-			[]splicePiece{exp([]splicePiece{str("test."), ref("this"), str(".test")}, nil)}},
+			nested(str("test."), ref("this"), str(".test"))},
 		{"exp nested at beginning", "${${test}.this}",
-			[]splicePiece{exp([]splicePiece{ref("test"), str(".this")}, nil)}},
-		{"exp nested at beginning", "${test.${this}}",
-			[]splicePiece{exp([]splicePiece{str("test."), ref("this")}, nil)}},
+			nested(ref("test"), str(".this"))},
+		{"exp nested at end", "${test.${this}}",
+			nested(str("test."), ref("this"))},
 		{"exp with default", "${test:default}",
-			[]splicePiece{exp(
-				[]splicePiece{str("test")},
-				[]splicePiece{str("default")})}},
+			exp(opDefault, str("test"), str("default"))},
 		{"exp with defautl exp", "${test:the ${default} value}",
-			[]splicePiece{exp(
-				[]splicePiece{str("test")},
-				[]splicePiece{str("the "), ref("default"), str(" value")})},
-		},
+			exp(opDefault,
+				str("test"),
+				cat(str("the "), ref("default"), str(" value")))},
 	}
 
 	for _, test := range tests {
 		t.Logf("test %v: %v", test.title, test.exp)
 		actual, err := parseSplice(test.exp, ".")
 		if err != nil {
-			t.Errorf("failed to parse with %v", err)
+			t.Errorf("  failed to parse with %v", err)
 			continue
 		}
 
-		t.Logf("expected: %v", test.expected)
-		t.Logf("actual: %v", actual)
+		t.Logf("  expected: %v", test.expected)
+		t.Logf("  actual: %v", actual)
 		if assert.Equal(t, test.expected, actual) {
-			t.Logf("success")
+			t.Logf("  success")
 		}
 	}
 }
@@ -72,7 +69,9 @@ func TestVarExpParseErrors(t *testing.T) {
 
 	for _, test := range tests {
 		t.Logf("test %v: %v", test.title, test.exp)
-		_, err := parseSplice(test.exp, ".")
+		res, err := parseSplice(test.exp, ".")
+		t.Logf("  result: %v", res)
+		t.Logf("  error: %v", err)
 		assert.True(t, err != nil)
 	}
 }

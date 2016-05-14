@@ -549,9 +549,12 @@ func TestMergeSpliced(t *testing.T) {
 func TestMergeVarExp(t *testing.T) {
 	tests := []node{
 		{"i": 42},
+
 		{"i": "${x}", "x": 42},
 		{"i": "${x}2", "x": 4},
 		{"i": "4${x}", "x": 2},
+
+		// expansions with default value
 		{"i": "${x:23}", "x": 42},
 		{"i": "${x:42}"},
 		{"i": "${x:${y}}", "y": 42},
@@ -560,6 +563,14 @@ func TestMergeVarExp(t *testing.T) {
 		{"i": "${${y}:42}", "y": "x"},
 		{"i": "${${y}:42}"},
 		{"i": "${${x}:${y}}", "y": 42},
+
+		// expansion with alternative value
+		{"i": "${x:+42}", "x": 23},
+		{"i": "${x:+${y}}", "x": 23, "y": 42},
+		{"i": "${x:+${y:+42}}", "x": 23, "y": 24},
+
+		// expansion with error message
+		{"i": "${x:?x is not set}", "x": 42},
 	}
 
 	for i, test := range tests {
