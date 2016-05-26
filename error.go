@@ -179,10 +179,10 @@ func raiseMissingArr(ctx context, meta *Meta, idx int) Error {
 	return raisePathErr(ErrMissing, meta, message, ctx.path("."))
 }
 
-func raiseIndexOutOfBounds(value value, idx int) Error {
+func raiseIndexOutOfBounds(opts *options, value value, idx int) Error {
 	reason := ErrIndexOutOfRange
 	ctx := value.Context()
-	len, _ := value.Len()
+	len, _ := value.Len(opts)
 	message := fmt.Sprintf("index '%v' out of range (length=%v)", idx, len)
 	return raisePathErr(reason, value.meta(), message, ctx.path("."))
 }
@@ -209,7 +209,7 @@ func raiseKeyInvalidTypeMerge(cfg *Config, t reflect.Type) Error {
 	return raiseCritical(reason, messagePath(reason, cfg.metadata, message, ctx.path(".")))
 }
 
-func raiseSquashNeedsObject(cfg *Config, opts options, f string, t reflect.Type) Error {
+func raiseSquashNeedsObject(cfg *Config, opts *options, f string, t reflect.Type) Error {
 	reason := ErrTypeMismatch
 	message := fmt.Sprintf("require map or struct when squash merging '%v' (%v)", f, t)
 
@@ -241,9 +241,9 @@ func raisePointerRequired(v reflect.Value) Error {
 	return raiseCritical(ErrPointerRequired, "")
 }
 
-func raiseToTypeNotSupported(v value, goT reflect.Type) Error {
+func raiseToTypeNotSupported(opts *options, v value, goT reflect.Type) Error {
 	reason := ErrTypeMismatch
-	t, _ := v.typ()
+	t, _ := v.typ(opts)
 	message := fmt.Sprintf("value of type '%v' not convertible into unsupported go type '%v'",
 		t.name, goT)
 	ctx := v.Context()
@@ -259,18 +259,18 @@ func raiseArraySize(ctx context, meta *Meta, n int, to int) Error {
 	return raisePathErr(reason, meta, message, ctx.path("."))
 }
 
-func raiseConversion(v value, err error, to string) Error {
+func raiseConversion(opts *options, v value, err error, to string) Error {
 	ctx := v.Context()
 	path := ctx.path(".")
-	t, _ := v.typ()
+	t, _ := v.typ(opts)
 	message := fmt.Sprintf("can not convert '%v' into '%v'", t.name, to)
 	return raisePathErr(err, v.meta(), message, path)
 }
 
-func raiseExpectedObject(v value) Error {
+func raiseExpectedObject(opts *options, v value) Error {
 	ctx := v.Context()
 	path := ctx.path(".")
-	t, _ := v.typ()
+	t, _ := v.typ(opts)
 	message := fmt.Sprintf("required 'object', but found '%v' in field '%v'",
 		t.name, path)
 

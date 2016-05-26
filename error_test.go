@@ -50,10 +50,10 @@ func TestErrorMessages(t *testing.T) {
 		"arr_missing_nested_wo_meta": raiseMissingArr(testNestedCtx, nil, 5),
 		"arr_missing_nested_w_meta":  raiseMissingArr(testNestedCtx, testMeta, 5),
 
-		"arr_oob_wo_meta":        raiseIndexOutOfBounds(cfgSub{c}, 5),
-		"arr_oob_w_meta":         raiseIndexOutOfBounds(cfgSub{cMeta}, 5),
-		"arr_oob_nested_wo_meta": raiseIndexOutOfBounds(cfgSub{cNested}, 5),
-		"arr_oob_nested_w_meta":  raiseIndexOutOfBounds(cfgSub{cNestedMeta}, 5),
+		"arr_oob_wo_meta":        raiseIndexOutOfBounds(nil, cfgSub{c}, 5),
+		"arr_oob_w_meta":         raiseIndexOutOfBounds(nil, cfgSub{cMeta}, 5),
+		"arr_oob_nested_wo_meta": raiseIndexOutOfBounds(nil, cfgSub{cNested}, 5),
+		"arr_oob_nested_w_meta":  raiseIndexOutOfBounds(nil, cfgSub{cNestedMeta}, 5),
 
 		"invalid_duration_wo_meta": raiseInvalidDuration(newString(
 			context{field: "timeout"}, nil, ""), timeErr),
@@ -86,13 +86,13 @@ func TestErrorMessages(t *testing.T) {
 			cNestedMeta, reflect.TypeOf(map[int]interface{}{})),
 
 		"squash_wo_meta": raiseSquashNeedsObject(
-			c, options{}, "ABC", reflect.TypeOf("")),
+			c, &options{}, "ABC", reflect.TypeOf("")),
 		"squash_w_meta": raiseSquashNeedsObject(
-			c, options{meta: testMeta}, "ABC", reflect.TypeOf("")),
+			c, &options{meta: testMeta}, "ABC", reflect.TypeOf("")),
 		"squash_nested_wo_meta": raiseSquashNeedsObject(
-			cNested, options{}, "ABC", reflect.TypeOf("")),
+			cNested, &options{}, "ABC", reflect.TypeOf("")),
 		"squash_nested_w_meta": raiseSquashNeedsObject(
-			cNested, options{meta: testMeta}, "ABC", reflect.TypeOf("")),
+			cNested, &options{meta: testMeta}, "ABC", reflect.TypeOf("")),
 
 		"inline_wo_meta": raiseInlineNeedsObject(
 			c, "ABC", reflect.TypeOf("")),
@@ -118,13 +118,13 @@ func TestErrorMessages(t *testing.T) {
 		"pointer_required": raisePointerRequired(reflect.ValueOf(1)),
 
 		"to_type_not_supported_wo_meta": raiseToTypeNotSupported(
-			newInt(context{}, nil, 1), reflect.TypeOf(struct{}{})),
+			nil, newInt(context{}, nil, 1), reflect.TypeOf(struct{}{})),
 		"to_type_not_supported_w_meta": raiseToTypeNotSupported(
-			newInt(context{}, testMeta, 1), reflect.TypeOf(struct{}{})),
+			nil, newInt(context{}, testMeta, 1), reflect.TypeOf(struct{}{})),
 		"to_type_not_supported_nested_wo_meta": raiseToTypeNotSupported(
-			newInt(testNestedCtx, nil, 1), reflect.TypeOf(struct{}{})),
+			nil, newInt(testNestedCtx, nil, 1), reflect.TypeOf(struct{}{})),
 		"to_type_not_supported_nested_w_meta": raiseToTypeNotSupported(
-			newInt(testNestedCtx, testMeta, 1), reflect.TypeOf(struct{}{})),
+			nil, newInt(testNestedCtx, testMeta, 1), reflect.TypeOf(struct{}{})),
 
 		"array_size_wo_meta": raiseArraySize(
 			context{}, nil, 3, 10),
@@ -136,22 +136,22 @@ func TestErrorMessages(t *testing.T) {
 			testNestedCtx, testMeta, 3, 10),
 
 		"conversion_wo_meta": raiseConversion(
-			newInt(context{}, nil, 1), ErrTypeMismatch, "bool"),
+			nil, newInt(context{}, nil, 1), ErrTypeMismatch, "bool"),
 		"conversion_w_meta": raiseConversion(
-			newInt(context{}, testMeta, 1), ErrTypeMismatch, "bool"),
+			nil, newInt(context{}, testMeta, 1), ErrTypeMismatch, "bool"),
 		"conversion_nested_wo_meta": raiseConversion(
-			newInt(testNestedCtx, nil, 1), ErrTypeMismatch, "bool"),
+			nil, newInt(testNestedCtx, nil, 1), ErrTypeMismatch, "bool"),
 		"conversion_nested_w_meta": raiseConversion(
-			newInt(testNestedCtx, testMeta, 1), ErrTypeMismatch, "bool"),
+			nil, newInt(testNestedCtx, testMeta, 1), ErrTypeMismatch, "bool"),
 
 		"expected_object_wo_meta": raiseExpectedObject(
-			newInt(context{}, nil, 1)),
+			nil, newInt(context{}, nil, 1)),
 		"expected_object_w_meta": raiseExpectedObject(
-			newInt(context{}, testMeta, 1)),
+			nil, newInt(context{}, testMeta, 1)),
 		"expected_object_nested_wo_meta": raiseExpectedObject(
-			newInt(testNestedCtx, nil, 1)),
+			nil, newInt(testNestedCtx, nil, 1)),
 		"expected_object_nested_w_meta": raiseExpectedObject(
-			newInt(testNestedCtx, testMeta, 1)),
+			nil, newInt(testNestedCtx, testMeta, 1)),
 
 		"validation_wo_meta": raiseValidation(
 			context{}, nil, errors.New("invalid value")),
