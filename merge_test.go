@@ -159,8 +159,16 @@ func TestMergeNestedPath(t *testing.T) {
 		map[string]bool{
 			"c.b": true,
 		},
+		map[string]interface{}{
+			"c":   nil,
+			"c.b": true,
+		},
 
 		node{
+			"c.b": true,
+		},
+		node{
+			"c":   nil,
 			"c.b": true,
 		},
 

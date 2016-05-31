@@ -165,6 +165,9 @@ func normalizeSetField(
 		old = nil
 	}
 	if old != nil {
+		if _, isNil := val.(*cfgNil); val == nil || isNil {
+			return nil
+		}
 		return raiseDuplicateKey(cfg, name)
 	}
 
