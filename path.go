@@ -158,13 +158,14 @@ func (p cfgPath) SetValue(cfg *Config, val value) Error {
 			return err
 		}
 
-		if v == nil {
+		if _, isNil := v.(*cfgNil); v == nil || isNil {
 			break
 		}
 		node = v
 	}
 
 	// 2. build intermediate nodes from bottom up
+
 	for ; len(fields) > 1; fields = fields[:len(fields)-1] {
 		field := fields[len(fields)-1]
 

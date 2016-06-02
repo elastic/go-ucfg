@@ -14,6 +14,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 
 ### Fixed
+- Nil values become merge-able with concrete types. #26
 
 ## [0.2.1]
 
