@@ -15,6 +15,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 - Nil values become merge-able with concrete types. #26
+- Fix merging types `time.Duration` and `*regexp.Regexp`. #25
 
 ## [0.2.1]
 

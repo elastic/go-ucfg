@@ -3,6 +3,8 @@ package ucfg
 import (
 	"fmt"
 	"reflect"
+	"regexp"
+	"time"
 )
 
 func (c *Config) Merge(from interface{}, options ...Option) error {
@@ -232,6 +234,15 @@ func normalizeValue(
 	v reflect.Value,
 ) (value, Error) {
 	v = chaseValue(v)
+
+	switch v.Type() {
+	case tDuration:
+		d := v.Interface().(time.Duration)
+		return newString(ctx, opts.meta, d.String()), nil
+	case tRegexp:
+		r := v.Addr().Interface().(*regexp.Regexp)
+		return newString(ctx, opts.meta, r.String()), nil
+	}
 
 	// handle primitives
 	switch v.Kind() {

@@ -2,7 +2,9 @@ package ucfg
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -596,5 +598,73 @@ func TestMergeVarExp(t *testing.T) {
 		if ok {
 			t.Log("success")
 		}
+	}
+}
+
+func TestMergeDuration(t *testing.T) {
+	dur := 30 * time.Millisecond
+	tests := []interface{}{
+		map[string]interface{}{"d": dur},
+		&struct {
+			D time.Duration
+		}{dur},
+		&struct {
+			D *time.Duration
+		}{&dur},
+	}
+
+	for i, test := range tests {
+		t.Logf("Test config (%v): %v\n", i, test)
+
+		c, err := NewFrom(test)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+
+		check := struct {
+			Dur time.Duration `config:"d"`
+		}{}
+		err = c.Unpack(&check)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+
+		assert.Equal(t, dur, check.Dur)
+	}
+}
+
+func TestMergeRegex(t *testing.T) {
+	regex := regexp.MustCompile("hello.*world")
+
+	tests := []interface{}{
+		map[string]interface{}{
+			"r": regex,
+		},
+		&struct {
+			R *regexp.Regexp
+		}{regex},
+	}
+
+	for i, test := range tests {
+		t.Logf("Test config (%v): %v\n", i, test)
+
+		c, err := NewFrom(test)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+
+		check := struct {
+			Regex *regexp.Regexp `config:"r"`
+		}{}
+		err = c.Unpack(&check)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+
+		assert.Equal(t, regex, check.Regex)
 	}
 }
