@@ -8,7 +8,7 @@ import (
 )
 
 type value interface {
-	typ() (typeInfo, error)
+	typ(opts *options) (typeInfo, error)
 
 	cpy(c context) value
 
@@ -18,17 +18,17 @@ type value interface {
 	meta() *Meta
 	setMeta(m *Meta)
 
-	Len() (int, error)
+	Len(opts *options) (int, error)
 
-	reflect() (reflect.Value, error)
-	reify() (interface{}, error)
+	reflect(opts *options) (reflect.Value, error)
+	reify(opts *options) (interface{}, error)
 
-	toBool() (bool, error)
-	toString() (string, error)
-	toInt() (int64, error)
-	toUint() (uint64, error)
-	toFloat() (float64, error)
-	toConfig() (*Config, error)
+	toBool(opts *options) (bool, error)
+	toString(opts *options) (string, error)
+	toInt(opts *options) (int64, error)
+	toUint(opts *options) (uint64, error)
+	toFloat(opts *options) (float64, error)
+	toConfig(opts *options) (*Config, error)
 }
 
 type typeInfo struct {
@@ -152,81 +152,81 @@ func newSplice(ctx context, m *Meta, s varEvaler) *cfgSplice {
 	return &cfgSplice{cfgPrimitive{ctx, m}, s}
 }
 
-func (p *cfgPrimitive) Context() context        { return p.ctx }
-func (p *cfgPrimitive) SetContext(c context)    { p.ctx = c }
-func (p *cfgPrimitive) meta() *Meta             { return p.metadata }
-func (p *cfgPrimitive) setMeta(m *Meta)         { p.metadata = m }
-func (cfgPrimitive) Len() (int, error)          { return 1, nil }
-func (cfgPrimitive) toBool() (bool, error)      { return false, ErrTypeMismatch }
-func (cfgPrimitive) toString() (string, error)  { return "", ErrTypeMismatch }
-func (cfgPrimitive) toInt() (int64, error)      { return 0, ErrTypeMismatch }
-func (cfgPrimitive) toUint() (uint64, error)    { return 0, ErrTypeMismatch }
-func (cfgPrimitive) toFloat() (float64, error)  { return 0, ErrTypeMismatch }
-func (cfgPrimitive) toConfig() (*Config, error) { return nil, ErrTypeMismatch }
+func (p *cfgPrimitive) Context() context                { return p.ctx }
+func (p *cfgPrimitive) SetContext(c context)            { p.ctx = c }
+func (p *cfgPrimitive) meta() *Meta                     { return p.metadata }
+func (p *cfgPrimitive) setMeta(m *Meta)                 { p.metadata = m }
+func (cfgPrimitive) Len(*options) (int, error)          { return 1, nil }
+func (cfgPrimitive) toBool(*options) (bool, error)      { return false, ErrTypeMismatch }
+func (cfgPrimitive) toString(*options) (string, error)  { return "", ErrTypeMismatch }
+func (cfgPrimitive) toInt(*options) (int64, error)      { return 0, ErrTypeMismatch }
+func (cfgPrimitive) toUint(*options) (uint64, error)    { return 0, ErrTypeMismatch }
+func (cfgPrimitive) toFloat(*options) (float64, error)  { return 0, ErrTypeMismatch }
+func (cfgPrimitive) toConfig(*options) (*Config, error) { return nil, ErrTypeMismatch }
 
-func (c *cfgNil) cpy(ctx context) value     { return &cfgNil{cfgPrimitive{ctx, c.metadata}} }
-func (*cfgNil) Len() (int, error)           { return 0, nil }
-func (*cfgNil) toString() (string, error)   { return "null", nil }
-func (*cfgNil) toInt() (int64, error)       { return 0, ErrTypeMismatch }
-func (*cfgNil) toUint() (uint64, error)     { return 0, ErrTypeMismatch }
-func (*cfgNil) toFloat() (float64, error)   { return 0, ErrTypeMismatch }
-func (*cfgNil) reify() (interface{}, error) { return nil, nil }
-func (*cfgNil) typ() (typeInfo, error)      { return typeInfo{"any", reflect.PtrTo(tConfig)}, nil }
-func (c *cfgNil) meta() *Meta               { return c.metadata }
-func (c *cfgNil) setMeta(m *Meta)           { c.metadata = m }
+func (c *cfgNil) cpy(ctx context) value             { return &cfgNil{cfgPrimitive{ctx, c.metadata}} }
+func (*cfgNil) Len(*options) (int, error)           { return 0, nil }
+func (*cfgNil) toString(*options) (string, error)   { return "null", nil }
+func (*cfgNil) toInt(*options) (int64, error)       { return 0, ErrTypeMismatch }
+func (*cfgNil) toUint(*options) (uint64, error)     { return 0, ErrTypeMismatch }
+func (*cfgNil) toFloat(*options) (float64, error)   { return 0, ErrTypeMismatch }
+func (*cfgNil) reify(*options) (interface{}, error) { return nil, nil }
+func (*cfgNil) typ(*options) (typeInfo, error)      { return typeInfo{"any", reflect.PtrTo(tConfig)}, nil }
+func (c *cfgNil) meta() *Meta                       { return c.metadata }
+func (c *cfgNil) setMeta(m *Meta)                   { c.metadata = m }
 
-func (c *cfgNil) reflect() (reflect.Value, error) {
-	cfg, _ := c.toConfig()
+func (c *cfgNil) reflect(opts *options) (reflect.Value, error) {
+	cfg, _ := c.toConfig(opts)
 	return reflect.ValueOf(cfg), nil
 }
 
-func (c *cfgNil) toConfig() (*Config, error) {
+func (c *cfgNil) toConfig(*options) (*Config, error) {
 	n := New()
 	n.ctx = c.ctx
 	return n, nil
 }
 
-func (c *cfgBool) cpy(ctx context) value           { return newBool(ctx, c.meta(), c.b) }
-func (c *cfgBool) toBool() (bool, error)           { return c.b, nil }
-func (c *cfgBool) reflect() (reflect.Value, error) { return reflect.ValueOf(c.b), nil }
-func (c *cfgBool) reify() (interface{}, error)     { return c.b, nil }
-func (c *cfgBool) toString() (string, error)       { return fmt.Sprintf("%t", c.b), nil }
-func (c *cfgBool) typ() (typeInfo, error)          { return typeInfo{"bool", tBool}, nil }
+func (c *cfgBool) cpy(ctx context) value                   { return newBool(ctx, c.meta(), c.b) }
+func (c *cfgBool) toBool(*options) (bool, error)           { return c.b, nil }
+func (c *cfgBool) reflect(*options) (reflect.Value, error) { return reflect.ValueOf(c.b), nil }
+func (c *cfgBool) reify(*options) (interface{}, error)     { return c.b, nil }
+func (c *cfgBool) toString(*options) (string, error)       { return fmt.Sprintf("%t", c.b), nil }
+func (c *cfgBool) typ(*options) (typeInfo, error)          { return typeInfo{"bool", tBool}, nil }
 
-func (c *cfgInt) cpy(ctx context) value           { return newInt(ctx, c.meta(), c.i) }
-func (c *cfgInt) toInt() (int64, error)           { return c.i, nil }
-func (c *cfgInt) reflect() (reflect.Value, error) { return reflect.ValueOf(c.i), nil }
-func (c *cfgInt) reify() (interface{}, error)     { return c.i, nil }
-func (c *cfgInt) toString() (string, error)       { return fmt.Sprintf("%d", c.i), nil }
-func (c *cfgInt) typ() (typeInfo, error)          { return typeInfo{"int", tInt64}, nil }
-func (c *cfgInt) toUint() (uint64, error) {
+func (c *cfgInt) cpy(ctx context) value                   { return newInt(ctx, c.meta(), c.i) }
+func (c *cfgInt) toInt(*options) (int64, error)           { return c.i, nil }
+func (c *cfgInt) reflect(*options) (reflect.Value, error) { return reflect.ValueOf(c.i), nil }
+func (c *cfgInt) reify(*options) (interface{}, error)     { return c.i, nil }
+func (c *cfgInt) toString(*options) (string, error)       { return fmt.Sprintf("%d", c.i), nil }
+func (c *cfgInt) typ(*options) (typeInfo, error)          { return typeInfo{"int", tInt64}, nil }
+func (c *cfgInt) toUint(*options) (uint64, error) {
 	if c.i < 0 {
 		return 0, ErrNegative
 	}
 	return uint64(c.i), nil
 }
 
-func (c *cfgUint) cpy(ctx context) value           { return newUint(ctx, c.meta(), c.u) }
-func (c *cfgUint) reflect() (reflect.Value, error) { return reflect.ValueOf(c.u), nil }
-func (c *cfgUint) reify() (interface{}, error)     { return c.u, nil }
-func (c *cfgUint) toString() (string, error)       { return fmt.Sprintf("%d", c.u), nil }
-func (c *cfgUint) typ() (typeInfo, error)          { return typeInfo{"uint", tUint64}, nil }
-func (c *cfgUint) toUint() (uint64, error)         { return c.u, nil }
-func (c *cfgUint) toInt() (int64, error) {
+func (c *cfgUint) cpy(ctx context) value                   { return newUint(ctx, c.meta(), c.u) }
+func (c *cfgUint) reflect(*options) (reflect.Value, error) { return reflect.ValueOf(c.u), nil }
+func (c *cfgUint) reify(*options) (interface{}, error)     { return c.u, nil }
+func (c *cfgUint) toString(*options) (string, error)       { return fmt.Sprintf("%d", c.u), nil }
+func (c *cfgUint) typ(*options) (typeInfo, error)          { return typeInfo{"uint", tUint64}, nil }
+func (c *cfgUint) toUint(*options) (uint64, error)         { return c.u, nil }
+func (c *cfgUint) toInt(*options) (int64, error) {
 	if c.u > math.MaxInt64 {
 		return 0, ErrOverflow
 	}
 	return int64(c.u), nil
 }
 
-func (c *cfgFloat) cpy(ctx context) value           { return newFloat(ctx, c.meta(), c.f) }
-func (c *cfgFloat) toFloat() (float64, error)       { return c.f, nil }
-func (c *cfgFloat) reflect() (reflect.Value, error) { return reflect.ValueOf(c.f), nil }
-func (c *cfgFloat) reify() (interface{}, error)     { return c.f, nil }
-func (c *cfgFloat) toString() (string, error)       { return fmt.Sprintf("%v", c.f), nil }
-func (c *cfgFloat) typ() (typeInfo, error)          { return typeInfo{"float", tFloat64}, nil }
+func (c *cfgFloat) cpy(ctx context) value                   { return newFloat(ctx, c.meta(), c.f) }
+func (c *cfgFloat) toFloat(*options) (float64, error)       { return c.f, nil }
+func (c *cfgFloat) reflect(*options) (reflect.Value, error) { return reflect.ValueOf(c.f), nil }
+func (c *cfgFloat) reify(*options) (interface{}, error)     { return c.f, nil }
+func (c *cfgFloat) toString(*options) (string, error)       { return fmt.Sprintf("%v", c.f), nil }
+func (c *cfgFloat) typ(*options) (typeInfo, error)          { return typeInfo{"float", tFloat64}, nil }
 
-func (c *cfgFloat) toUint() (uint64, error) {
+func (c *cfgFloat) toUint(*options) (uint64, error) {
 	if c.f < 0 {
 		return 0, ErrNegative
 	}
@@ -236,36 +236,60 @@ func (c *cfgFloat) toUint() (uint64, error) {
 	return uint64(c.f), nil
 }
 
-func (c *cfgFloat) toInt() (int64, error) {
+func (c *cfgFloat) toInt(*options) (int64, error) {
 	if c.f < math.MinInt64 || math.MaxInt64 < c.f {
 		return 0, ErrOverflow
 	}
 	return int64(c.f), nil
 }
 
-func (c *cfgString) cpy(ctx context) value           { return newString(ctx, c.meta(), c.s) }
-func (c *cfgString) toString() (string, error)       { return c.s, nil }
-func (c *cfgString) reflect() (reflect.Value, error) { return reflect.ValueOf(c.s), nil }
-func (c *cfgString) reify() (interface{}, error)     { return c.s, nil }
-func (c *cfgString) typ() (typeInfo, error)          { return typeInfo{"string", tString}, nil }
+func (c *cfgString) cpy(ctx context) value             { return newString(ctx, c.meta(), c.s) }
+func (c *cfgString) toString(*options) (string, error) { return c.s, nil }
+func (c *cfgString) reflect(*options) (reflect.Value, error) {
+	return reflect.ValueOf(c.s), nil
+}
+func (c *cfgString) reify(*options) (interface{}, error) { return c.s, nil }
+func (c *cfgString) typ(*options) (typeInfo, error)      { return typeInfo{"string", tString}, nil }
 
-func (cfgSub) Len() (int, error)                 { return 1, nil }
-func (c cfgSub) Context() context                { return c.c.ctx }
-func (cfgSub) toBool() (bool, error)             { return false, ErrTypeMismatch }
-func (cfgSub) toString() (string, error)         { return "", ErrTypeMismatch }
-func (cfgSub) toInt() (int64, error)             { return 0, ErrTypeMismatch }
-func (cfgSub) toUint() (uint64, error)           { return 0, ErrTypeMismatch }
-func (cfgSub) toFloat() (float64, error)         { return 0, ErrTypeMismatch }
-func (c cfgSub) toConfig() (*Config, error)      { return c.c, nil }
-func (cfgSub) typ() (typeInfo, error)            { return typeInfo{"object", reflect.PtrTo(tConfig)}, nil }
-func (c cfgSub) reflect() (reflect.Value, error) { return reflect.ValueOf(c.c), nil }
-func (c cfgSub) meta() *Meta                     { return c.c.metadata }
-func (c cfgSub) setMeta(m *Meta)                 { c.c.metadata = m }
+func (cfgSub) Len(*options) (int, error)            { return 1, nil }
+func (c cfgSub) Context() context                   { return c.c.ctx }
+func (cfgSub) toBool(*options) (bool, error)        { return false, ErrTypeMismatch }
+func (cfgSub) toString(*options) (string, error)    { return "", ErrTypeMismatch }
+func (cfgSub) toInt(*options) (int64, error)        { return 0, ErrTypeMismatch }
+func (cfgSub) toUint(*options) (uint64, error)      { return 0, ErrTypeMismatch }
+func (cfgSub) toFloat(*options) (float64, error)    { return 0, ErrTypeMismatch }
+func (c cfgSub) toConfig(*options) (*Config, error) { return c.c, nil }
+
+func (c cfgSub) typ(*options) (typeInfo, error) {
+	return typeInfo{"object", reflect.PtrTo(tConfig)}, nil
+}
+
+// func (cfgSub) typ() (typeInfo, error)            { return typeInfo{"object", reflect.PtrTo(tConfig)}, nil }
+func (c cfgSub) reflect(*options) (reflect.Value, error) { return reflect.ValueOf(c.c), nil }
+func (c cfgSub) meta() *Meta                             { return c.c.metadata }
+func (c cfgSub) setMeta(m *Meta)                         { c.c.metadata = m }
 
 func (c cfgSub) cpy(ctx context) value {
-	return cfgSub{
-		c: &Config{ctx: ctx, fields: c.c.fields, metadata: c.c.metadata},
+	newC := cfgSub{
+		c: &Config{ctx: ctx, metadata: c.c.metadata},
 	}
+
+	fields := &fields{
+		fields: map[string]value{},
+		arr:    make([]value, len(c.c.fields.arr)),
+	}
+
+	for name, f := range c.c.fields.fields {
+		ctx := f.Context()
+		fields.fields[name] = f.cpy(context{field: ctx.field, parent: newC})
+	}
+	for i, f := range c.c.fields.arr {
+		ctx := f.Context()
+		fields.arr[i] = f.cpy(context{field: ctx.field, parent: newC})
+	}
+
+	newC.c.fields = fields
+	return newC
 }
 
 func (c cfgSub) SetContext(ctx context) {
@@ -279,7 +303,7 @@ func (c cfgSub) SetContext(ctx context) {
 	}
 }
 
-func (c cfgSub) reify() (interface{}, error) {
+func (c cfgSub) reify(opts *options) (interface{}, error) {
 	fields := c.c.fields.fields
 	arr := c.c.fields.arr
 
@@ -290,7 +314,7 @@ func (c cfgSub) reify() (interface{}, error) {
 		m := make(map[string]interface{})
 		for k, v := range c.c.fields.fields {
 			var err error
-			if m[k], err = v.reify(); err != nil {
+			if m[k], err = v.reify(opts); err != nil {
 				return nil, err
 			}
 		}
@@ -299,7 +323,7 @@ func (c cfgSub) reify() (interface{}, error) {
 		m := make([]interface{}, len(arr))
 		for i, v := range arr {
 			var err error
-			if m[i], err = v.reify(); err != nil {
+			if m[i], err = v.reify(opts); err != nil {
 				return nil, err
 			}
 		}
@@ -308,13 +332,13 @@ func (c cfgSub) reify() (interface{}, error) {
 		m := make(map[string]interface{})
 		for k, v := range c.c.fields.fields {
 			var err error
-			if m[k], err = v.reify(); err != nil {
+			if m[k], err = v.reify(opts); err != nil {
 				return nil, err
 			}
 		}
 		for i, v := range arr {
 			var err error
-			m[fmt.Sprintf("%d", i)], err = v.reify()
+			m[fmt.Sprintf("%d", i)], err = v.reify(opts)
 			if err != nil {
 				return nil, err
 			}
@@ -323,95 +347,95 @@ func (c cfgSub) reify() (interface{}, error) {
 	}
 }
 
-func (r *cfgRef) typ() (typeInfo, error) {
-	v, err := r.resolve()
+func (r *cfgRef) typ(opt *options) (typeInfo, error) {
+	v, err := r.resolve(opt)
 	if err != nil {
 		return typeInfo{}, err
 	}
-	return v.typ()
+	return v.typ(opt)
 }
 
 func (r *cfgRef) cpy(ctx context) value {
 	return newRef(ctx, r.meta(), r.ref)
 }
 
-func (r *cfgRef) Len() (int, error) {
-	v, err := r.resolve()
+func (r *cfgRef) Len(opt *options) (int, error) {
+	v, err := r.resolve(opt)
 	if err != nil {
 		return 0, err
 	}
-	return v.Len()
+	return v.Len(opt)
 }
 
-func (r *cfgRef) reflect() (reflect.Value, error) {
-	v, err := r.resolve()
+func (r *cfgRef) reflect(opts *options) (reflect.Value, error) {
+	v, err := r.resolve(opts)
 	if err != nil {
 		return reflect.Value{}, err
 	}
-	return v.reflect()
+	return v.reflect(opts)
 }
 
-func (r *cfgRef) reify() (interface{}, error) {
-	v, err := r.resolve()
+func (r *cfgRef) reify(opts *options) (interface{}, error) {
+	v, err := r.resolve(opts)
 	if err != nil {
 		return reflect.Value{}, err
 	}
-	return v.reify()
+	return v.reify(opts)
 }
 
-func (r *cfgRef) toBool() (bool, error) {
-	v, err := r.resolve()
+func (r *cfgRef) toBool(opts *options) (bool, error) {
+	v, err := r.resolve(opts)
 	if err != nil {
 		return false, err
 	}
-	return v.toBool()
+	return v.toBool(opts)
 }
 
-func (r *cfgRef) toString() (string, error) {
-	v, err := r.resolve()
+func (r *cfgRef) toString(opts *options) (string, error) {
+	v, err := r.resolve(opts)
 	if err != nil {
 		return "", err
 	}
-	return v.toString()
+	return v.toString(opts)
 }
 
-func (r *cfgRef) toInt() (int64, error) {
-	v, err := r.resolve()
+func (r *cfgRef) toInt(opts *options) (int64, error) {
+	v, err := r.resolve(opts)
 	if err != nil {
 		return 0, err
 	}
-	return v.toInt()
+	return v.toInt(opts)
 }
 
-func (r *cfgRef) toUint() (uint64, error) {
-	v, err := r.resolve()
+func (r *cfgRef) toUint(opts *options) (uint64, error) {
+	v, err := r.resolve(opts)
 	if err != nil {
 		return 0, err
 	}
-	return v.toUint()
+	return v.toUint(opts)
 }
 
-func (r *cfgRef) toFloat() (float64, error) {
-	v, err := r.resolve()
+func (r *cfgRef) toFloat(opts *options) (float64, error) {
+	v, err := r.resolve(opts)
 	if err != nil {
 		return 0, err
 	}
-	return v.toFloat()
+	return v.toFloat(opts)
 }
 
-func (r *cfgRef) toConfig() (*Config, error) {
-	v, err := r.resolve()
+func (r *cfgRef) toConfig(opts *options) (*Config, error) {
+	v, err := r.resolve(opts)
 	if err != nil {
 		return nil, err
 	}
-	return v.toConfig()
+	return v.toConfig(opts)
 }
 
-func (r *cfgRef) resolve() (value, error) {
-	return r.ref.resolve(r.ctx.getParent())
+func (r *cfgRef) resolve(opts *options) (value, error) {
+	return r.ref.resolve(r.ctx.getParent(), opts)
 }
 
-func (*cfgSplice) typ() (typeInfo, error) {
+func (*cfgSplice) typ(*options) (typeInfo, error) {
 	return typeInfo{"string", tString}, nil
 }
 
@@ -419,48 +443,48 @@ func (s *cfgSplice) cpy(ctx context) value {
 	return newSplice(ctx, s.meta(), s.splice)
 }
 
-func (s *cfgSplice) reflect() (reflect.Value, error) {
-	str, err := s.toString()
+func (s *cfgSplice) reflect(opt *options) (reflect.Value, error) {
+	str, err := s.toString(opt)
 	if err != nil {
-		return reflect.Value{}, nil
+		return reflect.Value{}, err
 	}
 	return reflect.ValueOf(str), err
 }
 
-func (s *cfgSplice) reify() (interface{}, error) {
-	return s.toString()
+func (s *cfgSplice) reify(opt *options) (interface{}, error) {
+	return s.toString(opt)
 }
 
-func (s *cfgSplice) toBool() (bool, error) {
-	str, err := s.toString()
+func (s *cfgSplice) toBool(opt *options) (bool, error) {
+	str, err := s.toString(opt)
 	if err != nil {
 		return false, err
 	}
 	return strconv.ParseBool(str)
 }
 
-func (s *cfgSplice) toString() (string, error) {
-	return s.splice.eval(s.ctx.getParent())
+func (s *cfgSplice) toString(opts *options) (string, error) {
+	return s.splice.eval(s.ctx.getParent(), opts)
 }
 
-func (s *cfgSplice) toInt() (int64, error) {
-	str, err := s.toString()
+func (s *cfgSplice) toInt(opt *options) (int64, error) {
+	str, err := s.toString(opt)
 	if err != nil {
 		return 0, err
 	}
 	return strconv.ParseInt(str, 0, 64)
 }
 
-func (s *cfgSplice) toUint() (uint64, error) {
-	str, err := s.toString()
+func (s *cfgSplice) toUint(opt *options) (uint64, error) {
+	str, err := s.toString(opt)
 	if err != nil {
 		return 0, err
 	}
 	return strconv.ParseUint(str, 0, 64)
 }
 
-func (s *cfgSplice) toFloat() (float64, error) {
-	str, err := s.toString()
+func (s *cfgSplice) toFloat(opt *options) (float64, error) {
+	str, err := s.toString(opt)
 	if err != nil {
 		return 0, err
 	}

@@ -22,7 +22,7 @@ type splice struct {
 }
 
 type varEvaler interface {
-	eval(cfg *Config) (string, error)
+	eval(cfg *Config, opts *options) (string, error)
 }
 
 type constExp string
@@ -79,26 +79,61 @@ func (r *reference) String() string {
 	return fmt.Sprintf("${%v}", r.Path)
 }
 
-func (r *reference) resolve(cfg *Config) (value, error) {
-	root := cfgRoot(cfg)
-	if root == nil {
-		return nil, ErrMissing
+func (r *reference) resolve(cfg *Config, opts *options) (value, error) {
+	env := opts.env
+	var err error
+
+	for {
+		var v value
+		cfg = cfgRoot(cfg)
+		if cfg == nil {
+			return nil, ErrMissing
+		}
+
+		v, err = r.Path.GetValue(cfg, opts)
+		if err == nil {
+			if v == nil {
+				break
+			}
+			return v, nil
+		}
+
+		if len(env) == 0 {
+			break
+		}
+
+		cfg = env[len(env)-1]
+		env = env[:len(env)-1]
 	}
-	return r.Path.GetValue(root)
+
+	// try callbacks
+	if len(opts.resolvers) > 0 {
+		key := r.Path.String()
+		for i := len(opts.resolvers) - 1; i >= 0; i-- {
+			var v string
+			resolver := opts.resolvers[i]
+			v, err = resolver(key)
+			if err == nil {
+				return newString(context{field: key}, nil, v), nil
+			}
+		}
+	}
+
+	return nil, err
 }
 
-func (r *reference) eval(cfg *Config) (string, error) {
-	v, err := r.resolve(cfg)
+func (r *reference) eval(cfg *Config, opts *options) (string, error) {
+	v, err := r.resolve(cfg, opts)
 	if err != nil {
 		return "", err
 	}
 	if v == nil {
 		return "", fmt.Errorf("can not resolve reference: %v", r.Path)
 	}
-	return v.toString()
+	return v.toString(opts)
 }
 
-func (s constExp) eval(cfg *Config) (string, error) {
+func (s constExp) eval(*Config, *options) (string, error) {
 	return string(s), nil
 }
 
@@ -106,10 +141,10 @@ func (s *splice) String() string {
 	return fmt.Sprintf("%v", s.pieces)
 }
 
-func (s *splice) eval(cfg *Config) (string, error) {
+func (s *splice) eval(cfg *Config, opts *options) (string, error) {
 	buf := bytes.NewBuffer(nil)
 	for _, p := range s.pieces {
-		s, err := p.eval(cfg)
+		s, err := p.eval(cfg, opts)
 		if err != nil {
 			return "", err
 		}
@@ -125,58 +160,58 @@ func (e *expansion) String() string {
 	return fmt.Sprintf("${%v}", e.left)
 }
 
-func (e *expansion) eval(cfg *Config) (string, error) {
+func (e *expansion) eval(cfg *Config, opts *options) (string, error) {
 	switch e.op {
 	case opDefault:
-		path, err := e.left.eval(cfg)
+		path, err := e.left.eval(cfg, opts)
 		if err != nil || path == "" {
-			return e.right.eval(cfg)
+			return e.right.eval(cfg, opts)
 		}
 		ref := newReference(parsePath(path, e.pathSep))
-		v, err := ref.eval(cfg)
+		v, err := ref.eval(cfg, opts)
 		if err != nil || v == "" {
-			return e.right.eval(cfg)
+			return e.right.eval(cfg, opts)
 		}
 		return v, err
 
 	case opAlternative:
-		path, err := e.left.eval(cfg)
+		path, err := e.left.eval(cfg, opts)
 		if err != nil || path == "" {
 			return "", nil
 		}
 
 		ref := newReference(parsePath(path, e.pathSep))
-		s, err := ref.eval(cfg)
-		if err != nil || s == "" {
+		tmp, err := ref.resolve(cfg, opts)
+		if err != nil || tmp == nil {
 			return "", nil
 		}
 
-		return e.right.eval(cfg)
+		return e.right.eval(cfg, opts)
 
 	case opError:
-		path, err := e.left.eval(cfg)
+		path, err := e.left.eval(cfg, opts)
 		if err == nil && path != "" {
 			ref := newReference(parsePath(path, e.pathSep))
-			str, err := ref.eval(cfg)
+			str, err := ref.eval(cfg, opts)
 			if err == nil && str != "" {
 				return str, nil
 			}
 		}
 
-		errStr, err := e.right.eval(cfg)
+		errStr, err := e.right.eval(cfg, opts)
 		if err != nil {
 			return "", err
 		}
 		return "", errors.New(errStr)
 
 	case "":
-		path, err := e.left.eval(cfg)
+		path, err := e.left.eval(cfg, opts)
 		if err != nil {
 			return "", err
 		}
 
 		ref := newReference(parsePath(path, e.pathSep))
-		return ref.eval(cfg)
+		return ref.eval(cfg, opts)
 	}
 
 	return "", fmt.Errorf("Unknown expansion op: %v", e.op)
