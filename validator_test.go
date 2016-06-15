@@ -11,9 +11,26 @@ import (
 
 type myNonzeroInt int
 
+type structValidator struct{ I int }
+type ptrStructValidator struct{ I int }
+
+var testErrZero = errors.New("value must not be 0")
+
 func (m myNonzeroInt) Validate() error {
-	if m == 0 {
-		return errors.New("myNonzeroInt must not be 0")
+	return testZeroErr(int(m))
+}
+
+func (s structValidator) Validate() error {
+	return testZeroErr(s.I)
+}
+
+func (p *ptrStructValidator) Validate() error {
+	return testZeroErr(p.I)
+}
+
+func testZeroErr(i int) error {
+	if i == 0 {
+		return testErrZero
 	}
 	return nil
 }
@@ -22,6 +39,7 @@ func TestValidationPass(t *testing.T) {
 	c, _ := NewFrom(map[string]interface{}{
 		"a": 0,
 		"b": 10,
+		"i": 5,
 		"d": -10,
 		"f": 3.14,
 	})
@@ -56,6 +74,12 @@ func TestValidationPass(t *testing.T) {
 		}{},
 		&struct {
 			B int `validate:"positive"`
+		}{},
+		&struct {
+			Tmp structValidator `config:",inline"`
+		}{},
+		&struct {
+			Tmp ptrStructValidator `config:",inline"`
 		}{},
 		&struct {
 			X int `config:"b" validate:"nonzero,min=-1"`
@@ -140,6 +164,7 @@ func TestValidationFail(t *testing.T) {
 	c, _ := NewFrom(map[string]interface{}{
 		"a": 0,
 		"b": 10,
+		"i": 0,
 		"d": -10,
 		"f": 3.14,
 	})
@@ -151,6 +176,12 @@ func TestValidationFail(t *testing.T) {
 		}{},
 		&struct {
 			X myNonzeroInt `config:"a"`
+		}{},
+		&struct {
+			Tmp structValidator `config:",inline"`
+		}{},
+		&struct {
+			Tmp ptrStructValidator `config:",inline"`
 		}{},
 		&struct {
 			X int `config:"a" validate:"min=10"`
