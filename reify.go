@@ -438,7 +438,7 @@ func reifyPrimitive(
 		return reflect.Value{}, raiseValidation(val.Context(), val.meta(), err)
 	}
 
-	if err := tryValidate(v.Interface()); err != nil {
+	if err := tryValidate(v); err != nil {
 		return reflect.Value{}, raiseValidation(val.Context(), val.meta(), err)
 	}
 
