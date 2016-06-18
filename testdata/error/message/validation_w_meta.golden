@@ -1,1 +1,1 @@
-invalid value accessing config (source:'test.source')
+invalid value accessing 'test' (source:'test.source')

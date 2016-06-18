@@ -283,8 +283,14 @@ func raiseInvalidDuration(v value, err error) Error {
 	return raisePathErr(err, v.meta(), "", path)
 }
 
-func raiseValidation(ctx context, meta *Meta, err error) Error {
-	return raiseErr(err, messagePath(err, meta, err.Error(), ctx.path(".")))
+func raiseValidation(ctx context, meta *Meta, field string, err error) Error {
+	path := ""
+	if field == "" {
+		path = ctx.path(".")
+	} else {
+		path = ctx.pathOf(field, ".")
+	}
+	return raiseErr(err, messagePath(err, meta, err.Error(), path))
 }
 
 func raiseInvalidRegexp(v value, err error) Error {
