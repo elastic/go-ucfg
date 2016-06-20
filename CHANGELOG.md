@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Added variable expansion support. #14
 
 ### Changed
 - Report error message from regexp.Compile if compilation fails #21
