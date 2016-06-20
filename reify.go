@@ -127,7 +127,7 @@ func reifyStruct(opts *options, orig reflect.Value, cfg *Config) Error {
 	}
 
 	if err := tryValidate(to); err != nil {
-		return raiseValidation(cfg.ctx, cfg.metadata, err)
+		return raiseValidation(cfg.ctx, cfg.metadata, "", err)
 	}
 
 	orig.Set(pointerize(orig.Type(), to.Type(), to))
@@ -151,7 +151,7 @@ func reifyGetField(
 
 	if _, ok := value.(*cfgNil); value == nil || ok {
 		if err := runValidators(nil, opts.validators); err != nil {
-			return raiseValidation(cfg.ctx, cfg.metadata, err)
+			return raiseValidation(cfg.ctx, cfg.metadata, name, err)
 		}
 		return nil
 	}
@@ -370,7 +370,7 @@ func reifyDoArray(
 
 	if err := runValidators(to.Interface(), opts.validators); err != nil {
 		ctx := val.Context()
-		return reflect.Value{}, raiseValidation(ctx, val.meta(), err)
+		return reflect.Value{}, raiseValidation(ctx, val.meta(), "", err)
 	}
 
 	return to, nil
@@ -414,7 +414,11 @@ func reifyPrimitive(
 		return pointerize(t, baseType, reflect.Zero(baseType)), nil
 	}
 
-	if v, ok := typeIsUnpacker(baseType); ok {
+	var v reflect.Value
+	var err Error
+	var ok bool
+
+	if v, ok = typeIsUnpacker(baseType); ok {
 		reified, err := val.reify(opts.opts)
 		if err != nil {
 			ctx := val.Context()
@@ -426,23 +430,22 @@ func reifyPrimitive(
 			ctx := val.Context()
 			return reflect.Value{}, raiseUnsupportedInputType(ctx, val.meta(), v)
 		}
-		return pointerize(t, baseType, chaseValuePointers(v)), nil
-	}
-
-	v, err := doReifyPrimitive(opts, val, baseType)
-	if err != nil {
-		return v, err
+	} else {
+		v, err = doReifyPrimitive(opts, val, baseType)
+		if err != nil {
+			return v, err
+		}
 	}
 
 	if err := runValidators(v.Interface(), opts.validators); err != nil {
-		return reflect.Value{}, raiseValidation(val.Context(), val.meta(), err)
+		return reflect.Value{}, raiseValidation(val.Context(), val.meta(), "", err)
 	}
 
 	if err := tryValidate(v); err != nil {
-		return reflect.Value{}, raiseValidation(val.Context(), val.meta(), err)
+		return reflect.Value{}, raiseValidation(val.Context(), val.meta(), "", err)
 	}
 
-	return pointerize(t, baseType, v), nil
+	return pointerize(t, baseType, chaseValuePointers(v)), nil
 }
 
 func doReifyPrimitive(

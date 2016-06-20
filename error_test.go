@@ -154,13 +154,13 @@ func TestErrorMessages(t *testing.T) {
 			nil, newInt(testNestedCtx, testMeta, 1)),
 
 		"validation_wo_meta": raiseValidation(
-			context{}, nil, errors.New("invalid value")),
+			context{}, nil, "test", errors.New("invalid value")),
 		"validation_w_meta": raiseValidation(
-			context{}, testMeta, errors.New("invalid value")),
+			context{}, testMeta, "test", errors.New("invalid value")),
 		"validation_nested_wo_meta": raiseValidation(
-			testNestedCtx, nil, errors.New("invalid value")),
+			testNestedCtx, nil, "test", errors.New("invalid value")),
 		"validation_nested_w_meta": raiseValidation(
-			testNestedCtx, testMeta, errors.New("invalid value")),
+			testNestedCtx, testMeta, "test", errors.New("invalid value")),
 
 		"parse_splice_w_meta": raiseParseSplice(
 			testNestedCtx, nil, errUnterminatedBrace),
