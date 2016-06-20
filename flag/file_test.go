@@ -52,7 +52,7 @@ func TestFlagFileParseOverwrites(t *testing.T) {
 }
 
 func TestFlagFileParseFail(t *testing.T) {
-	expectedErr := errors.New("test fail")
+	var expectedErr = errors.New("test fail")
 	_, err := parseTestFileFlags("-c test.a -c test.b",
 		map[string]FileLoader{
 			".a": makeLoadTestConfig(map[string]interface{}{
@@ -64,7 +64,7 @@ func TestFlagFileParseFail(t *testing.T) {
 			".b": makeLoadTestFail(expectedErr),
 		},
 	)
-	assert.NotNil(t, err)
+	assert.EqualError(t, err, expectedErr.Error())
 }
 
 func makeLoadTestConfig(
@@ -85,7 +85,10 @@ func makeLoadTestFail(
 
 func parseTestFileFlags(args string, exts map[string]FileLoader) (*ucfg.Config, error) {
 	fs := goflag.NewFlagSet("test", goflag.ContinueOnError)
-	config := ConfigFiles(fs, "c", "config file", exts, ucfg.PathSep("."))
+	v := ConfigFiles(fs, "c", "config file", exts, ucfg.PathSep("."))
 	err := fs.Parse(strings.Split(args, " "))
-	return config, err
+	if err != nil {
+		return nil, err
+	}
+	return v.Config(), v.Error()
 }

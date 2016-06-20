@@ -29,14 +29,15 @@ import (
 // If autoBool is enabled (default if Config or ConfigVar is used), keys without
 // value are converted to bool variable with value being true.
 func NewFlagKeyValue(cfg *ucfg.Config, autoBool bool, opts ...ucfg.Option) *FlagValue {
-	return newFlagValue(cfg, opts, func(arg string) (*ucfg.Config, error) {
+	return newFlagValue(cfg, opts, func(arg string) (*ucfg.Config, error, error) {
 		var key string
 		var val interface{}
 
 		args := strings.SplitN(arg, "=", 2)
 		if len(args) < 2 {
 			if !autoBool || len(args) == 0 {
-				return nil, fmt.Errorf("argument '%v' is empty ", arg)
+				err := fmt.Errorf("argument '%v' is empty ", arg)
+				return nil, err, err
 			}
 
 			key = arg
@@ -47,7 +48,8 @@ func NewFlagKeyValue(cfg *ucfg.Config, autoBool bool, opts ...ucfg.Option) *Flag
 		}
 
 		tmp := map[string]interface{}{key: val}
-		return ucfg.NewFrom(tmp, opts...)
+		cfg, err := ucfg.NewFrom(tmp, opts...)
+		return cfg, err, err
 	})
 }
 

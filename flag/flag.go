@@ -36,10 +36,10 @@ func ConfigFilesVar(
 	usage string,
 	extensions map[string]FileLoader,
 	opts ...ucfg.Option,
-) *ucfg.Config {
+) *FlagValue {
 	v := NewFlagFiles(def, extensions, opts...)
 	registerFlag(set, v, name, usage)
-	return v.Config()
+	return v
 }
 
 func ConfigFiles(
@@ -48,7 +48,7 @@ func ConfigFiles(
 	usage string,
 	extensions map[string]FileLoader,
 	opts ...ucfg.Option,
-) *ucfg.Config {
+) *FlagValue {
 	return ConfigFilesVar(set, nil, name, usage, extensions, opts...)
 }
 
@@ -58,7 +58,7 @@ func ConfigYAMLFilesVar(
 	name string,
 	usage string,
 	opts ...ucfg.Option,
-) *ucfg.Config {
+) *FlagValue {
 	exts := map[string]FileLoader{"": yaml.NewConfigWithFile}
 	return ConfigFilesVar(set, def, name, usage, exts, opts...)
 }
@@ -68,7 +68,7 @@ func ConfigYAMLFiles(
 	name string,
 	usage string,
 	opts ...ucfg.Option,
-) *ucfg.Config {
+) *FlagValue {
 	return ConfigYAMLFilesVar(set, nil, name, usage, opts...)
 }
 
@@ -78,7 +78,7 @@ func ConfigJSONFilesVar(
 	name string,
 	usage string,
 	opts ...ucfg.Option,
-) *ucfg.Config {
+) *FlagValue {
 	exts := map[string]FileLoader{"": json.NewConfigWithFile}
 	return ConfigFilesVar(set, def, name, usage, exts, opts...)
 }
@@ -88,7 +88,7 @@ func ConfigJSONFiles(
 	name string,
 	usage string,
 	opts ...ucfg.Option,
-) *ucfg.Config {
+) *FlagValue {
 	return ConfigJSONFilesVar(set, nil, name, usage, opts...)
 }
 
@@ -98,7 +98,7 @@ func ConfigFilesExtsVar(
 	name string,
 	usage string,
 	opts ...ucfg.Option,
-) *ucfg.Config {
+) *FlagValue {
 	exts := map[string]FileLoader{
 		".yaml": yaml.NewConfigWithFile,
 		".yml":  yaml.NewConfigWithFile,
@@ -112,7 +112,7 @@ func ConfigFilesExts(
 	name string,
 	usage string,
 	opts ...ucfg.Option,
-) *ucfg.Config {
+) *FlagValue {
 	return ConfigFilesExtsVar(set, nil, name, usage, opts...)
 }
 

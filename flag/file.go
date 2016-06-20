@@ -14,7 +14,7 @@ func NewFlagFiles(
 	extensions map[string]FileLoader,
 	opts ...ucfg.Option,
 ) *FlagValue {
-	return newFlagValue(cfg, opts, func(path string) (*ucfg.Config, error) {
+	return newFlagValue(cfg, opts, func(path string) (*ucfg.Config, error, error) {
 		ext := filepath.Ext(path)
 		loader := extensions[ext]
 		if loader == nil {
@@ -22,8 +22,9 @@ func NewFlagFiles(
 		}
 		if loader == nil {
 			// TODO: better error message?
-			return nil, fmt.Errorf("no loader for file '%v' found", path)
+			return nil, fmt.Errorf("no loader for file '%v' found", path), nil
 		}
-		return loader(path, opts...)
+		cfg, err := loader(path, opts...)
+		return cfg, err, nil
 	})
 }

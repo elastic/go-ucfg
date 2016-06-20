@@ -9,13 +9,13 @@ import (
 
 type FlagValue struct {
 	collector *cfgutil.Collector
-	loader    func(arg string) (*ucfg.Config, error)
+	loader    func(arg string) (*ucfg.Config, error, error)
 }
 
 func newFlagValue(
 	cfg *ucfg.Config,
 	opts []ucfg.Option,
-	loader func(string) (*ucfg.Config, error),
+	loader func(string) (*ucfg.Config, error, error),
 ) *FlagValue {
 	return &FlagValue{
 		collector: cfgutil.NewCollector(cfg, opts...),
@@ -40,7 +40,9 @@ func (v *FlagValue) Get() interface{} {
 }
 
 func (v *FlagValue) Set(arg string) error {
-	return v.collector.Add(v.loader(arg))
+	cfg, internalErr, reportErr := v.loader(arg)
+	v.collector.Add(cfg, internalErr)
+	return reportErr
 }
 
 func (v *FlagValue) onError(err error) error {
