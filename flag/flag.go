@@ -107,6 +107,15 @@ func ConfigFilesExtsVar(
 	return ConfigFilesVar(set, def, name, usage, exts, opts...)
 }
 
+func ConfigFilesExts(
+	set *goflag.FlagSet,
+	name string,
+	usage string,
+	opts ...ucfg.Option,
+) *ucfg.Config {
+	return ConfigFilesExtsVar(set, nil, name, usage, opts...)
+}
+
 func registerFlag(set *goflag.FlagSet, v goflag.Value, name, usage string) {
 	if set != nil {
 		set.Var(v, name, usage)
