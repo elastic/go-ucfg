@@ -10,11 +10,11 @@ func TestVarExpParserSuccess(t *testing.T) {
 	str := func(s string) varEvaler { return constExp(s) }
 	ref := func(s string) *reference { return newReference(parsePath(s, ".")) }
 	cat := func(e ...varEvaler) *splice { return &splice{e} }
-	nested := func(n ...varEvaler) *expansion {
-		return &expansion{&splice{n}, nil, ".", ""}
+	nested := func(n ...varEvaler) varEvaler {
+		return &expansionSingle{&splice{n}, "."}
 	}
-	exp := func(op string, l, r varEvaler) *expansion {
-		return &expansion{l, r, ".", op}
+	exp := func(op string, l, r varEvaler) varEvaler {
+		return makeOpExpansion(l, r, op, ".")
 	}
 
 	tests := []struct {
