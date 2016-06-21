@@ -14,8 +14,16 @@ type reference struct {
 type expansion struct {
 	left, right varEvaler
 	pathSep     string
-	op          string
 }
+
+type expansionSingle struct {
+	evaler  varEvaler
+	pathSep string
+}
+
+type expansionDefault struct{ expansion }
+type expansionAlt struct{ expansion }
+type expansionErr struct{ expansion }
 
 type splice struct {
 	pieces []varEvaler
@@ -154,67 +162,66 @@ func (s *splice) eval(cfg *Config, opts *options) (string, error) {
 }
 
 func (e *expansion) String() string {
-	if e.right != nil {
-		return fmt.Sprintf("${%v:%v}", e.left, e.right)
-	}
-	return fmt.Sprintf("${%v}", e.left)
+	return fmt.Sprintf("${%v:%v}", e.left, e.right)
 }
 
-func (e *expansion) eval(cfg *Config, opts *options) (string, error) {
-	switch e.op {
-	case opDefault:
-		path, err := e.left.eval(cfg, opts)
-		if err != nil || path == "" {
-			return e.right.eval(cfg, opts)
-		}
-		ref := newReference(parsePath(path, e.pathSep))
-		v, err := ref.eval(cfg, opts)
-		if err != nil || v == "" {
-			return e.right.eval(cfg, opts)
-		}
-		return v, err
+func (e *expansionSingle) String() string {
+	return fmt.Sprintf("${%v}", e.evaler)
+}
 
-	case opAlternative:
-		path, err := e.left.eval(cfg, opts)
-		if err != nil || path == "" {
-			return "", nil
-		}
-
-		ref := newReference(parsePath(path, e.pathSep))
-		tmp, err := ref.resolve(cfg, opts)
-		if err != nil || tmp == nil {
-			return "", nil
-		}
-
-		return e.right.eval(cfg, opts)
-
-	case opError:
-		path, err := e.left.eval(cfg, opts)
-		if err == nil && path != "" {
-			ref := newReference(parsePath(path, e.pathSep))
-			str, err := ref.eval(cfg, opts)
-			if err == nil && str != "" {
-				return str, nil
-			}
-		}
-
-		errStr, err := e.right.eval(cfg, opts)
-		if err != nil {
-			return "", err
-		}
-		return "", errors.New(errStr)
-
-	case "":
-		path, err := e.left.eval(cfg, opts)
-		if err != nil {
-			return "", err
-		}
-
-		ref := newReference(parsePath(path, e.pathSep))
-		return ref.eval(cfg, opts)
+func (e *expansionSingle) eval(cfg *Config, opts *options) (string, error) {
+	path, err := e.evaler.eval(cfg, opts)
+	if err != nil {
+		return "", err
 	}
 
-	return "", fmt.Errorf("Unknown expansion op: %v", e.op)
+	ref := newReference(parsePath(path, e.pathSep))
+	return ref.eval(cfg, opts)
+}
+
+func (e *expansionDefault) eval(cfg *Config, opts *options) (string, error) {
+	path, err := e.left.eval(cfg, opts)
+	if err != nil || path == "" {
+		return e.right.eval(cfg, opts)
+	}
+	ref := newReference(parsePath(path, e.pathSep))
+	v, err := ref.eval(cfg, opts)
+	if err != nil || v == "" {
+		return e.right.eval(cfg, opts)
+	}
+	return v, err
+}
+
+func (e *expansionAlt) eval(cfg *Config, opts *options) (string, error) {
+	path, err := e.left.eval(cfg, opts)
+	if err != nil || path == "" {
+		return "", nil
+	}
+
+	ref := newReference(parsePath(path, e.pathSep))
+	tmp, err := ref.resolve(cfg, opts)
+	if err != nil || tmp == nil {
+		return "", nil
+	}
+
+	return e.right.eval(cfg, opts)
+}
+
+func (e *expansionErr) eval(cfg *Config, opts *options) (string, error) {
+	path, err := e.left.eval(cfg, opts)
+	if err == nil && path != "" {
+		ref := newReference(parsePath(path, e.pathSep))
+		str, err := ref.eval(cfg, opts)
+		if err == nil && str != "" {
+			return str, nil
+		}
+	}
+
+	errStr, err := e.right.eval(cfg, opts)
+	if err != nil {
+		return "", err
+	}
+	return "", errors.New(errStr)
 }
 
 func (st parseState) finalize(pathSep string) (varEvaler, error) {
@@ -238,7 +245,7 @@ func (st parseState) finalize(pathSep string) (varEvaler, error) {
 			}
 		}
 
-		return &expansion{&splice{pieces}, nil, pathSep, ""}, nil
+		return &expansionSingle{&splice{pieces}, pathSep}, nil
 	}
 
 	extract := func(pieces []varEvaler) varEvaler {
@@ -251,9 +258,23 @@ func (st parseState) finalize(pathSep string) (varEvaler, error) {
 			return &splice{pieces}
 		}
 	}
+
 	left := extract(st.pieces[stLeft])
 	right := extract(st.pieces[stRight])
-	return &expansion{left, right, pathSep, st.op}, nil
+	return makeOpExpansion(left, right, st.op, pathSep), nil
+}
+
+func makeOpExpansion(l, r varEvaler, op, pathSep string) varEvaler {
+	exp := expansion{l, r, pathSep}
+	switch op {
+	case opDefault:
+		return &expansionDefault{exp}
+	case opAlternative:
+		return &expansionAlt{exp}
+	case opError:
+		return &expansionErr{exp}
+	}
+	panic(fmt.Sprintf("Unknown operator: %v", op))
 }
 
 func parseSplice(in, pathSep string) (varEvaler, error) {
