@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Added CLI flag support. #15
 - Added variable expansion support. #14
 
 ### Changed
