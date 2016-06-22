@@ -3,9 +3,9 @@ package flag
 import (
 	goflag "flag"
 
-	"github.com/urso/ucfg"
-	"github.com/urso/ucfg/json"
-	"github.com/urso/ucfg/yaml"
+	"github.com/elastic/go-ucfg"
+	"github.com/elastic/go-ucfg/json"
+	"github.com/elastic/go-ucfg/yaml"
 )
 
 func ConfigVar(

@@ -6,7 +6,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/urso/ucfg"
+
+	"github.com/elastic/go-ucfg"
 )
 
 func TestFlagValuePrimitives(t *testing.T) {

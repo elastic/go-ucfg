@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/urso/ucfg"
+	"github.com/elastic/go-ucfg"
 )
 
 type FileLoader func(name string, opts ...ucfg.Option) (*ucfg.Config, error)
