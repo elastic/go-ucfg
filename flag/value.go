@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/urso/ucfg"
+	"github.com/elastic/go-ucfg"
 )
 
 // NewFlagKeyValue implements the flag.Value interface for
