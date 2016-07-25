@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Add `(*Config).IsArray` and `(*Config).IsDict`. #44
 
 ### Changed
 

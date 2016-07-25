@@ -15,10 +15,10 @@ func convertErr(opts *options, v value, err error, to string) Error {
 // of elements in list
 func (c *Config) CountField(name string, opts ...Option) (int, error) {
 	if name == "" {
-		return len(c.fields.arr) + len(c.fields.fields), nil
+		return len(c.fields.array()) + len(c.fields.dict()), nil
 	}
 
-	if v, ok := c.fields.fields[name]; ok {
+	if v, ok := c.fields.get(name); ok {
 		return v.Len(makeOptions(opts))
 	}
 	return -1, raiseMissing(c, name)

@@ -15,6 +15,9 @@ func TestSetGetPrimitives(t *testing.T) {
 	c.SetFloat("float", -1, 2.3)
 	c.SetString("str", -1, "abc")
 
+	assert.True(t, c.IsDict())
+	assert.False(t, c.IsArray())
+
 	assert.True(t, c.HasField("bool"))
 	assert.True(t, c.HasField("int"))
 	assert.True(t, c.HasField("uint"))
@@ -127,6 +130,8 @@ func TestSetGetArray(t *testing.T) {
 
 	a, err := c.Child("a", -1)
 	assert.NoError(t, err)
+	assert.True(t, a.IsArray())
+	assert.False(t, a.IsDict())
 
 	l, err = a.CountField("")
 	assert.NoError(t, err)
