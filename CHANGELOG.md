@@ -14,6 +14,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 - Fix (*Config).CountField returning 1 for arrays of any size. #43
+- Fix unpacking into slice/array top-level or if `inline`-tag is used. #45
 
 ## [0.3.0]
 
