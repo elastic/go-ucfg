@@ -14,6 +14,10 @@ func convertErr(opts *options, v value, err error, to string) Error {
 // number of elements for this field. If config value is a list, returns number
 // of elements in list
 func (c *Config) CountField(name string, opts ...Option) (int, error) {
+	if name == "" {
+		return len(c.fields.arr) + len(c.fields.fields), nil
+	}
+
 	if v, ok := c.fields.fields[name]; ok {
 		return v.Len(makeOptions(opts))
 	}

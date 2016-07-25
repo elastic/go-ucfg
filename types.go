@@ -251,7 +251,6 @@ func (c *cfgString) reflect(*options) (reflect.Value, error) {
 func (c *cfgString) reify(*options) (interface{}, error) { return c.s, nil }
 func (c *cfgString) typ(*options) (typeInfo, error)      { return typeInfo{"string", tString}, nil }
 
-func (cfgSub) Len(*options) (int, error)            { return 1, nil }
 func (c cfgSub) Context() context                   { return c.c.ctx }
 func (cfgSub) toBool(*options) (bool, error)        { return false, ErrTypeMismatch }
 func (cfgSub) toString(*options) (string, error)    { return "", ErrTypeMismatch }
@@ -259,6 +258,15 @@ func (cfgSub) toInt(*options) (int64, error)        { return 0, ErrTypeMismatch 
 func (cfgSub) toUint(*options) (uint64, error)      { return 0, ErrTypeMismatch }
 func (cfgSub) toFloat(*options) (float64, error)    { return 0, ErrTypeMismatch }
 func (c cfgSub) toConfig(*options) (*Config, error) { return c.c, nil }
+
+func (c cfgSub) Len(*options) (int, error) {
+	arr := c.c.fields.arr
+	if arr != nil {
+		return len(arr), nil
+	}
+
+	return 1, nil
+}
 
 func (c cfgSub) typ(*options) (typeInfo, error) {
 	return typeInfo{"object", reflect.PtrTo(tConfig)}, nil

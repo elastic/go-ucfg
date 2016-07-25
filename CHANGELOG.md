@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 
 ### Fixed
+- Fix (*Config).CountField returning 1 for arrays of any size. #43
 
 ## [0.3.0]
 

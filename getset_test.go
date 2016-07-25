@@ -121,6 +121,17 @@ func TestSetGetArray(t *testing.T) {
 	c.SetUint("a", 4, 12)
 	c.SetChild("a", 5, child)
 
+	l, err := c.CountField("a")
+	assert.NoError(t, err)
+	assert.Equal(t, 6, l)
+
+	a, err := c.Child("a", -1)
+	assert.NoError(t, err)
+
+	l, err = a.CountField("")
+	assert.NoError(t, err)
+	assert.Equal(t, 6, l)
+
 	b, err := c.Bool("a", 0)
 	assert.NoError(t, err)
 	assert.Equal(t, true, b)
