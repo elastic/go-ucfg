@@ -60,14 +60,15 @@ func reifyMap(opts *options, to reflect.Value, from *Config) Error {
 		return raiseKeyInvalidTypeUnpack(to.Type(), from)
 	}
 
-	if len(from.fields.fields) == 0 {
+	fields := from.fields.dict()
+	if len(fields) == 0 {
 		return nil
 	}
 
 	if to.IsNil() {
 		to.Set(reflect.MakeMap(to.Type()))
 	}
-	for k, value := range from.fields.fields {
+	for k, value := range fields {
 		key := reflect.ValueOf(k)
 
 		old := to.MapIndex(key)
@@ -398,7 +399,7 @@ func reifyDoArray(
 
 func castArr(opts *options, v value) ([]value, Error) {
 	if sub, ok := v.(cfgSub); ok {
-		return sub.c.fields.arr, nil
+		return sub.c.fields.array(), nil
 	}
 	if ref, ok := v.(*cfgRef); ok {
 		unrefed, err := ref.resolve(opts)
@@ -407,7 +408,7 @@ func castArr(opts *options, v value) ([]value, Error) {
 		}
 
 		if sub, ok := unrefed.(cfgSub); ok {
-			return sub.c.fields.arr, nil
+			return sub.c.fields.array(), nil
 		}
 	}
 
