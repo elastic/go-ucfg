@@ -7,12 +7,14 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 ### Changed
+- Turn '$' into universal escape character, so '}' in default values can be escaped with '$'. #52
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+- Fix parsing ':' in expansion default value. #51, #52
 
 ## [0.3.1]
 
