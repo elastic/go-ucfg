@@ -48,6 +48,8 @@ func TestVarExpParserSuccess(t *testing.T) {
 				cat(str("the "), ref("default"), str(" value")))},
 		{"exp with default containing }", "${test:abc$}def}",
 			exp(opDefault, str("test"), str("abc}def"))},
+		{"exp with default containing :", "${test:http://default:1234}",
+			exp(opDefault, str("test"), str("http://default:1234"))},
 	}
 
 	for _, test := range tests {
