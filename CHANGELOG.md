@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 
 ### Fixed
+- Fix (*FlagValue).String panic with go 1.7
 
 ## [0.3.2]
 
