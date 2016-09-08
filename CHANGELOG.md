@@ -13,6 +13,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 
 ### Fixed
+- Fix initializing empty array values. #58
+- Fix merging array values. #59
 
 ## [0.3.4]
 
