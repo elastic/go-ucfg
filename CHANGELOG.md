@@ -13,6 +13,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 
 ### Fixed
+
+## [0.3.6]
+
+### Fixed
 - Fix duplicate key error when normalizing tables. #63
 
 ## [0.3.5]
@@ -107,7 +111,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Introduced CHANGELOG.md for documenting changes to ucfg.
 
 
-[Unreleased]: https://github.com/elastic/go-ucfg/compare/v0.3.5...HEAD
+[Unreleased]: https://github.com/elastic/go-ucfg/compare/v0.3.6...HEAD
+[0.3.6]: https://github.com/elastic/go-ucfg/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/elastic/go-ucfg/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/elastic/go-ucfg/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/elastic/go-ucfg/compare/v0.3.2...v0.3.3
