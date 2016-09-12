@@ -511,3 +511,11 @@ func isNil(v value) bool {
 	_, tst := v.(*cfgNil)
 	return tst
 }
+
+func isSub(v value) bool {
+	if v == nil {
+		return false
+	}
+	_, tst := v.(cfgSub)
+	return tst
+}

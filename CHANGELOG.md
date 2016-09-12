@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 
 ### Fixed
+- Fix duplicate key error when normalizing tables. #63
 
 ## [0.3.5]
 
