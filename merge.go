@@ -225,14 +225,18 @@ func normalizeSetField(
 		old = nil
 	}
 
-	if !isNil(old) {
-		if isNil(val) {
-			return nil
-		}
+	switch {
+	case !isNil(old) && isNil(val):
+		return nil
+	case isNil(old):
+		return p.SetValue(cfg, opts, val)
+	case isSub(old) && isSub(val):
+		cfgOld, _ := old.toConfig(opts)
+		cfgVal, _ := val.toConfig(opts)
+		return mergeConfig(opts, cfgOld, cfgVal)
+	default:
 		return raiseDuplicateKey(cfg, name)
 	}
-
-	return p.SetValue(cfg, opts, val)
 }
 
 func normalizeStructValue(opts *options, ctx context, from reflect.Value) (value, Error) {
