@@ -13,6 +13,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 
 ### Fixed
+- Fix int/uint to float type conversation. #68
+- Fix primitive type unpacking for variables expanded from environment variables
+  or strings read/created by config file parsers. #67
 
 ## [0.3.6]
 
