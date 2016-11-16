@@ -23,18 +23,51 @@ type flagParser struct {
 // 2. double quoted strings (characters are escaped)
 // 3. strings without quotes. String parsing stops in
 //   special characters like '[]{},:'
+//
+// In addition, top-level values can be separated by ',' to build arrays
+// without having to use [].
 func parseValue(value string) (interface{}, error) {
-	p := &flagParser{value}
-	v, err := p.parseValue()
+	p := &flagParser{strings.TrimSpace(value)}
+	v, err := p.parse()
 	if err != nil {
 		return nil, fmt.Errorf("%v when parsing '%v'", err.Error(), value)
 	}
 	return v, nil
 }
 
+func (p *flagParser) parse() (interface{}, error) {
+	var values []interface{}
+
+	for {
+		v, err := p.parseValue()
+		if err != nil {
+			return nil, err
+		}
+		values = append(values, v)
+
+		p.ignoreWhitespace()
+		if p.input == "" {
+			break
+		}
+
+		if err := p.expectChar(','); err != nil {
+			return nil, err
+		}
+	}
+
+	switch len(values) {
+	case 0:
+		return nil, nil
+	case 1:
+		return values[0], nil
+	}
+	return values, nil
+}
+
 func (p *flagParser) parseValue() (interface{}, error) {
 	p.ignoreWhitespace()
 	in := p.input
+
 	if in == "" {
 		return nil, nil
 	}

@@ -40,6 +40,10 @@ func TestFlagValueParsing(t *testing.T) {
 		// test arrays
 		{`[]`, nil},
 		{
+			`a,b,c`,
+			[]interface{}{"a", "b", "c"},
+		},
+		{
 			`[array, 1, true, "abc"]`,
 			[]interface{}{"array", uint64(1), true, "abc"},
 		},
@@ -64,6 +68,19 @@ func TestFlagValueParsing(t *testing.T) {
 				"key 3": []interface{}{"test", "test2", false},
 				"nested key": map[string]interface{}{
 					"a": uint64(2),
+				},
+			},
+		},
+
+		// array of top-level dictionaries
+		{
+			`{key: 1},{key: 2}`,
+			[]interface{}{
+				map[string]interface{}{
+					"key": uint64(1),
+				},
+				map[string]interface{}{
+					"key": uint64(2),
 				},
 			},
 		},
