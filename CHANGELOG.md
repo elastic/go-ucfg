@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Syntax for passing lists and dictionaries to flags. #72
 
 ### Changed
 
