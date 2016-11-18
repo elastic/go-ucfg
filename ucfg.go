@@ -38,16 +38,6 @@ type Meta struct {
 	Source string
 }
 
-// Unpacker type used by Unpack to allow types to implement custom configuration
-// unpacking.
-type Unpacker interface {
-	// Unpack is called if a setting of field has a type implementing Unpacker.
-	//
-	// The interface{} value passed to Unpack can be of type: bool, int64, uint64,
-	// float64, string, []interface{} or map[string]interface{}.
-	Unpack(interface{}) error
-}
-
 var (
 	tConfig         = reflect.TypeOf(Config{})
 	tConfigPtr      = reflect.PtrTo(tConfig)
@@ -55,7 +45,6 @@ var (
 	tInterfaceArray = reflect.TypeOf([]interface{}(nil))
 
 	// interface types
-	tUnpacker  = reflect.TypeOf((*Unpacker)(nil)).Elem()
 	tValidator = reflect.TypeOf((*Validator)(nil)).Elem()
 
 	// primitives
