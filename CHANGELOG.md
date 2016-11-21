@@ -5,16 +5,22 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Added
-- Syntax for passing lists and dictionaries to flags. #72
-- Add Unpacker interface specializations for primitive types. #73
-- Variable expansion parsing lists and dictionaries with parser introduced in
-  #72. #74
 
 ### Changed
 
 ### Deprecated
 
 ### Removed
+
+### Fixed
+
+## [0.4.0]
+
+### Added
+- Syntax for passing lists and dictionaries to flags. #72
+- Add Unpacker interface specializations for primitive types. #73
+- Variable expansion parsing lists and dictionaries with parser introduced in
+  #72. #74
 
 ### Fixed
 - Fix Unpacker interface not applied if some 'old' value is already present on
@@ -124,7 +130,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Introduced CHANGELOG.md for documenting changes to ucfg.
 
 
-[Unreleased]: https://github.com/elastic/go-ucfg/compare/v0.3.7...HEAD
+[Unreleased]: https://github.com/elastic/go-ucfg/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/elastic/go-ucfg/compare/v0.3.7...v0.4.0
 [0.3.7]: https://github.com/elastic/go-ucfg/compare/v0.3.6...v0.3.7
 [0.3.6]: https://github.com/elastic/go-ucfg/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/elastic/go-ucfg/compare/v0.3.4...v0.3.5
