@@ -188,13 +188,9 @@ func reifyStruct(opts *options, orig reflect.Value, cfg *Config) Error {
 		to.Set(orig)
 	}
 
-	if v, ok := implementsUnpacker(to); ok {
-		reified, err := cfgSub{cfg}.reify(opts)
+	if v, ok := valueIsUnpacker(to); ok {
+		err := unpackWith(opts, v, cfgSub{cfg})
 		if err != nil {
-			return raisePathErr(err, cfg.metadata, "", cfg.Path("."))
-		}
-
-		if err := unpackWith(cfg.ctx, cfg.metadata, v, reified); err != nil {
 			return err
 		}
 	} else {
@@ -363,6 +359,15 @@ func reifyMergeValue(
 	}
 
 	baseType := chaseTypePointers(old.Type())
+
+	if v, ok := valueIsUnpacker(old); ok {
+		err := unpackWith(opts.opts, v, val)
+		if err != nil {
+			return reflect.Value{}, err
+		}
+		return old, nil
+	}
+
 	if tConfig.ConvertibleTo(baseType) {
 		sub, err := val.toConfig(opts.opts)
 		if err != nil {
@@ -418,18 +423,6 @@ func reifyMergeValue(
 		return reifySlice(opts, baseType, val)
 	}
 
-	if v, ok := implementsUnpacker(old); ok {
-		reified, err := val.reify(opts.opts)
-		if err != nil {
-			ctx := val.Context()
-			return reflect.Value{}, raisePathErr(err, val.meta(), "", ctx.path("."))
-		}
-
-		if err := unpackWith(val.Context(), val.meta(), v, reified); err != nil {
-			return reflect.Value{}, err
-		}
-		return old, nil
-	}
 	return reifyPrimitive(opts, val, t, baseType)
 }
 
@@ -529,13 +522,8 @@ func reifyPrimitive(
 	var ok bool
 
 	if v, ok = typeIsUnpacker(baseType); ok {
-		reified, err := val.reify(opts.opts)
+		err := unpackWith(opts.opts, v, val)
 		if err != nil {
-			ctx := val.Context()
-			return reflect.Value{}, raisePathErr(err, val.meta(), "", ctx.path("."))
-		}
-
-		if err := unpackWith(val.Context(), val.meta(), v, reified); err != nil {
 			return reflect.Value{}, err
 		}
 	} else {

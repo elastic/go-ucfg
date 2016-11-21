@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 - Syntax for passing lists and dictionaries to flags. #72
+- Add Unpacker interface specializations for primitive types. #73
 - Variable expansion parsing lists and dictionaries with parser introduced in
   #72. #74
 
@@ -16,6 +17,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 
 ### Fixed
+- Fix Unpacker interface not applied if some 'old' value is already present on
+  target and is struct implementing Unpack. #73
 
 ## [0.3.7]
 
