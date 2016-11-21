@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/elastic/go-ucfg"
+	"github.com/elastic/go-ucfg/internal/parse"
 )
 
 // NewFlagKeyValue implements the flag.Value interface for
@@ -44,7 +45,7 @@ func NewFlagKeyValue(cfg *ucfg.Config, autoBool bool, opts ...ucfg.Option) *Flag
 			val = true
 		} else {
 			key = args[0]
-			val, err = parseValue(args[1])
+			val, err = parse.ParseValue(args[1])
 			if err != nil {
 				return nil, err, err
 			}

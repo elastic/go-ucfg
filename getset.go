@@ -85,6 +85,7 @@ func (c *Config) Int(name string, idx int, opts ...Option) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	i, fail := v.toInt(O)
 	return i, convertErr(O, v, fail, "int")
 }

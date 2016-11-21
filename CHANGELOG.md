@@ -6,6 +6,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 - Syntax for passing lists and dictionaries to flags. #72
+- Variable expansion parsing lists and dictionaries with parser introduced in
+  #72. #74
 
 ### Changed
 

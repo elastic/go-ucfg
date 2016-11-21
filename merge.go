@@ -168,6 +168,13 @@ func normalize(opts *options, from interface{}) (*Config, Error) {
 			return normalizeStruct(opts, vFrom)
 		case reflect.Map:
 			return normalizeMap(opts, vFrom)
+		case reflect.Array, reflect.Slice:
+			tmp, err := normalizeArray(opts, tagOptions{}, context{}, vFrom)
+			if err != nil {
+				return nil, err
+			}
+			c, _ := tmp.toConfig(opts)
+			return c, nil
 		}
 
 	}
