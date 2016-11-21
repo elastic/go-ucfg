@@ -542,12 +542,15 @@ func TestMergeSpliced(t *testing.T) {
 		"who":   "brown fox",
 		"l":     "lazy",
 		"sub": node{
-			"b":     "${t}${r}${u}${e}",
-			"i":     "${four}${two}",
-			"u":     "${two}${three}",
-			"f":     "${three}.${one}${four}",
-			"s":     "${s}ing",
-			"story": "the quick ${who} jumps over the ${l} dog",
+			"b":       "${t}${r}${u}${e}",
+			"i":       "${four}${two}",
+			"u":       "${two}${three}",
+			"f":       "${three}.${one}${four}",
+			"s":       "${s}ing",
+			"story":   "the quick ${who} jumps over the ${l} dog",
+			"arr":     "[${one},${two}]",
+			"obj":     "{f1: ${one}, f2: ${two}}",
+			"strings": "${l},${s}",
 		},
 	}
 
@@ -572,12 +575,32 @@ func TestMergeSpliced(t *testing.T) {
 	story, err := c.String("sub.story", -1, PathSep("."))
 	assert.NoError(t, err)
 
+	a0, err := c.Int("sub.arr", 0, PathSep("."))
+	assert.NoError(t, err)
+
+	a1, err := c.Int("sub.arr", 1, PathSep("."))
+	assert.NoError(t, err)
+
+	o, err := c.Int("sub.obj.f1", -1, PathSep("."))
+	assert.NoError(t, err)
+
+	s0, err := c.String("sub.strings", 0, PathSep("."))
+	assert.NoError(t, err)
+
+	s1, err := c.String("sub.strings", 1, PathSep("."))
+	assert.NoError(t, err)
+
 	assert.Equal(t, true, b)
 	assert.Equal(t, 42, int(i))
 	assert.Equal(t, 23, int(u))
 	assert.Equal(t, 3.14, f)
 	assert.Equal(t, "string", s)
 	assert.Equal(t, "the quick brown fox jumps over the lazy dog", story)
+	assert.Equal(t, 1, int(a0))
+	assert.Equal(t, 2, int(a1))
+	assert.Equal(t, 1, int(o))
+	assert.Equal(t, "lazy", s0)
+	assert.Equal(t, "str", s1)
 }
 
 func TestMergeVarExp(t *testing.T) {

@@ -1,4 +1,4 @@
-package flag
+package parse
 
 import (
 	"testing"
@@ -89,7 +89,7 @@ func TestFlagValueParsing(t *testing.T) {
 	for i, test := range tests {
 		t.Logf("run test (%v): %v", i, test.input)
 
-		v, err := parseValue(test.input)
+		v, err := ParseValue(test.input)
 		if err != nil {
 			t.Error(err)
 			continue
@@ -123,7 +123,7 @@ func TestFlagValueParsingFails(t *testing.T) {
 	for i, test := range tests {
 		t.Logf("run test(%v): %v", i, test)
 
-		_, err := parseValue(test)
+		_, err := ParseValue(test)
 		if err == nil {
 			t.Errorf("parsing '%v' did not fail", test)
 			continue

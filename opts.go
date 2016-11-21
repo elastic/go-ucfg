@@ -14,6 +14,15 @@ type options struct {
 	env          []*Config
 	resolvers    []func(name string) (string, error)
 	varexp       bool
+
+	// temporary cache of parsed splice values for lifetime of call to
+	// Unpack/Pack/Get/...
+	parsed map[string]spliceValue
+}
+
+type spliceValue struct {
+	err   error
+	value value
 }
 
 // StructTag option sets the struct tag name to use for looking up
@@ -92,6 +101,7 @@ func makeOptions(opts []Option) *options {
 		tag:          "config",
 		validatorTag: "validate",
 		pathSep:      "", // no separator by default
+		parsed:       map[string]spliceValue{},
 	}
 	for _, opt := range opts {
 		opt(&o)

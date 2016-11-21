@@ -1,4 +1,4 @@
-package flag
+package parse
 
 import (
 	"errors"
@@ -12,7 +12,7 @@ type flagParser struct {
 	input string
 }
 
-// parseValues parses command line arguments, supporting:
+// ParseValue parses command line arguments, supporting
 // boolean, numbers, strings, arrays, objects.
 //
 // The parser implements a superset of JSON, but only a subset of YAML by
@@ -26,11 +26,11 @@ type flagParser struct {
 //
 // In addition, top-level values can be separated by ',' to build arrays
 // without having to use [].
-func parseValue(value string) (interface{}, error) {
-	p := &flagParser{strings.TrimSpace(value)}
+func ParseValue(content string) (interface{}, error) {
+	p := &flagParser{strings.TrimSpace(content)}
 	v, err := p.parse()
 	if err != nil {
-		return nil, fmt.Errorf("%v when parsing '%v'", err.Error(), value)
+		return nil, fmt.Errorf("%v when parsing '%v'", err.Error(), content)
 	}
 	return v, nil
 }
