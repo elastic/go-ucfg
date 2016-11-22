@@ -13,6 +13,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 
 ### Fixed
+
+## [0.4.1]
+
+### Fixed
 - Fix parsing empty string or nil objects from environment variables. #76
 
 ## [0.4.0]
@@ -131,7 +135,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Introduced CHANGELOG.md for documenting changes to ucfg.
 
 
-[Unreleased]: https://github.com/elastic/go-ucfg/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/elastic/go-ucfg/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/elastic/go-ucfg/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/elastic/go-ucfg/compare/v0.3.7...v0.4.0
 [0.3.7]: https://github.com/elastic/go-ucfg/compare/v0.3.6...v0.3.7
 [0.3.6]: https://github.com/elastic/go-ucfg/compare/v0.3.5...v0.3.6
