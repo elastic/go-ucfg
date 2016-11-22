@@ -36,12 +36,21 @@ func TestFlagValueParsing(t *testing.T) {
 		{`"double quoted"`, `double quoted`},
 		{`"double quoted \""`, `double quoted "`},
 		{`plain string`, `plain string`},
+		{`string : with :: colons`, `string : with :: colons`},
+		{`C:\Windows\Style\Path`, `C:\Windows\Style\Path`},
 
 		// test arrays
 		{`[]`, nil},
 		{
 			`a,b,c`,
 			[]interface{}{"a", "b", "c"},
+		},
+		{
+			`C:\Windows\Path1,C:\Windows\Path2`,
+			[]interface{}{
+				`C:\Windows\Path1`,
+				`C:\Windows\Path2`,
+			},
 		},
 		{
 			`[array, 1, true, "abc"]`,

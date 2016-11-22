@@ -39,7 +39,7 @@ func (p *flagParser) parse() (interface{}, error) {
 	var values []interface{}
 
 	for {
-		v, err := p.parseValue()
+		v, err := p.parseValue(true)
 		if err != nil {
 			return nil, err
 		}
@@ -64,7 +64,7 @@ func (p *flagParser) parse() (interface{}, error) {
 	return values, nil
 }
 
-func (p *flagParser) parseValue() (interface{}, error) {
+func (p *flagParser) parseValue(toplevel bool) (interface{}, error) {
 	p.ignoreWhitespace()
 	in := p.input
 
@@ -82,7 +82,7 @@ func (p *flagParser) parseValue() (interface{}, error) {
 	case '\'':
 		return p.parseStringSQuote()
 	default:
-		return p.parsePrimitive()
+		return p.parsePrimitive(toplevel)
 	}
 }
 
@@ -102,7 +102,7 @@ loop:
 			break
 		}
 
-		v, err := p.parseValue()
+		v, err := p.parseValue(false)
 		if err != nil {
 			return nil, err
 		}
@@ -157,7 +157,7 @@ loop:
 			return nil, err
 		}
 
-		v, err := p.parseValue()
+		v, err := p.parseValue(false)
 		if err != nil {
 			return nil, err
 		}
@@ -200,7 +200,7 @@ func (p *flagParser) parseKey() (string, error) {
 	case '\'':
 		return p.parseStringSQuote()
 	default:
-		return p.parseNonQuotedString()
+		return p.parseNonQuotedString(false)
 	}
 }
 
@@ -236,9 +236,13 @@ func (p *flagParser) parseStringSQuote() (string, error) {
 	return in[1 : 1+i], nil
 }
 
-func (p *flagParser) parseNonQuotedString() (string, error) {
+func (p *flagParser) parseNonQuotedString(toplevel bool) (string, error) {
 	in := p.input
-	idx := strings.IndexAny(in, ",:[]{}")
+	stopChars := ",:[]{}"
+	if toplevel {
+		stopChars = ","
+	}
+	idx := strings.IndexAny(in, stopChars)
 
 	if idx == 0 {
 		return "", fmt.Errorf("unexpected '%v'", string(in[idx]))
@@ -253,8 +257,8 @@ func (p *flagParser) parseNonQuotedString() (string, error) {
 	return strings.TrimSpace(content), nil
 }
 
-func (p *flagParser) parsePrimitive() (interface{}, error) {
-	content, err := p.parseNonQuotedString()
+func (p *flagParser) parsePrimitive(toplevel bool) (interface{}, error) {
+	content, err := p.parseNonQuotedString(toplevel)
 	if err != nil {
 		return nil, err
 	}

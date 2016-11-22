@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 
 ### Fixed
+- Treat `,` character as only special character in non quoted top-level strings. #78
 
 ## [0.4.1]
 
