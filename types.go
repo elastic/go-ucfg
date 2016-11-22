@@ -5,6 +5,7 @@ import (
 	"math"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync/atomic"
 
 	"github.com/elastic/go-ucfg/internal/parse"
@@ -567,6 +568,13 @@ func (s *cfgSplice) parseValue(opts *options) (value, error) {
 	ifc, err := parse.ParseValue(str)
 	if err != nil {
 		return nil, err
+	}
+
+	if ifc == nil {
+		if strings.TrimSpace(str) == "" {
+			return newString(s.ctx, s.meta(), str), nil
+		}
+		return &cfgNil{cfgPrimitive{ctx: s.ctx, metadata: s.meta()}}, nil
 	}
 
 	switch v := ifc.(type) {

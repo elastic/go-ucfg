@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 
 ### Fixed
+- Fix parsing empty string or nil objects from environment variables. #76
 
 ## [0.4.0]
 

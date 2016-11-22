@@ -551,6 +551,7 @@ func TestMergeSpliced(t *testing.T) {
 			"arr":     "[${one},${two}]",
 			"obj":     "{f1: ${one}, f2: ${two}}",
 			"strings": "${l},${s}",
+			"empty":   "",
 		},
 	}
 
@@ -590,6 +591,9 @@ func TestMergeSpliced(t *testing.T) {
 	s1, err := c.String("sub.strings", 1, PathSep("."))
 	assert.NoError(t, err)
 
+	e, err := c.String("sub.empty", -1, PathSep("."))
+	assert.NoError(t, err)
+
 	assert.Equal(t, true, b)
 	assert.Equal(t, 42, int(i))
 	assert.Equal(t, 23, int(u))
@@ -601,6 +605,7 @@ func TestMergeSpliced(t *testing.T) {
 	assert.Equal(t, 1, int(o))
 	assert.Equal(t, "lazy", s0)
 	assert.Equal(t, "str", s1)
+	assert.Equal(t, "", e)
 }
 
 func TestMergeVarExp(t *testing.T) {
