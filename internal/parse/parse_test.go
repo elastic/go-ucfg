@@ -64,6 +64,13 @@ func TestFlagValueParsing(t *testing.T) {
 				true,
 			},
 		},
+		{
+			`[host1:1234, host2:1234]`,
+			[]interface{}{
+				"host1:1234",
+				"host2:1234",
+			},
+		},
 
 		// test dictionaries:
 		{`{}`, nil},
@@ -98,7 +105,7 @@ func TestFlagValueParsing(t *testing.T) {
 	for i, test := range tests {
 		t.Logf("run test (%v): %v", i, test.input)
 
-		v, err := ParseValue(test.input)
+		v, err := Value(test.input)
 		if err != nil {
 			t.Error(err)
 			continue
@@ -132,7 +139,7 @@ func TestFlagValueParsingFails(t *testing.T) {
 	for i, test := range tests {
 		t.Logf("run test(%v): %v", i, test)
 
-		_, err := ParseValue(test)
+		_, err := Value(test)
 		if err == nil {
 			t.Errorf("parsing '%v' did not fail", test)
 			continue
