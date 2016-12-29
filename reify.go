@@ -486,8 +486,7 @@ func castArr(opts *options, v value) ([]value, Error) {
 	if ref, ok := v.(*cfgDynamic); ok {
 		unrefed, err := ref.getValue(opts)
 		if err != nil {
-			// TODO: improve error message
-			return nil, raiseMissing(ref.ctx.getParent(), ref.dyn.String())
+			return nil, raiseMissingMsg(ref.ctx.getParent(), ref.ctx.field, err.Error())
 		}
 
 		if sub, ok := unrefed.(cfgSub); ok {

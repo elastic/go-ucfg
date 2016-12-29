@@ -45,6 +45,11 @@ func TestErrorMessages(t *testing.T) {
 		"missing_nested_wo_meta": raiseMissing(cNested, "field"),
 		"missing_nested_w_meta":  raiseMissing(cNestedMeta, "field"),
 
+		"missing_msg_wo_meta":        raiseMissingMsg(c, "field", "custom error message"),
+		"missing_msg_w_meta":         raiseMissingMsg(cMeta, "field", "custom error message"),
+		"missing_msg_nested_wo_meta": raiseMissingMsg(cNested, "field", "custom error message"),
+		"missing_msg_nested_w_meta":  raiseMissingMsg(cNestedMeta, "field", "custom error message"),
+
 		"arr_missing_wo_meta":        raiseMissingArr(context{}, nil, 5),
 		"arr_missing_w_meta":         raiseMissingArr(context{}, testMeta, 5),
 		"arr_missing_nested_wo_meta": raiseMissingArr(testNestedCtx, nil, 5),
