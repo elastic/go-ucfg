@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Add support for pure array config files #82 
 
 ### Changed
 
@@ -13,6 +14,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 
 ### Fixed
+- Fix panic when merging or creating a config from nil interface value #82
 
 ## [0.4.3]
 
