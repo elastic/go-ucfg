@@ -70,7 +70,8 @@ func TestErrorMessages(t *testing.T) {
 		"invalid_regexp_w_meta": raiseInvalidRegexp(newString(
 			context{field: "regex"}, testMeta, ""), regexpErr),
 
-		"invalid_type_top_level": raiseInvalidTopLevelType(""),
+		"invalid_type_top_level_w_meta":  raiseInvalidTopLevelType("", testMeta),
+		"invalid_type_top_level_wo_meta": raiseInvalidTopLevelType("", nil),
 
 		"invalid_type_unpack_wo_meta": raiseKeyInvalidTypeUnpack(
 			reflect.TypeOf(map[int]interface{}{}), c),
