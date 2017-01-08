@@ -720,3 +720,102 @@ func TestMergeRegex(t *testing.T) {
 		assert.Equal(t, regex, check.Regex)
 	}
 }
+
+func TestMergeNil(t *testing.T) {
+	tests := []struct {
+		name        string
+		nilCfg, cfg interface{}
+		path        string
+	}{
+		{
+			"key",
+			map[string]interface{}{
+				"c": nil,
+			},
+			map[string]interface{}{
+				"c": map[string]int{"i": 42},
+			},
+			"c.i",
+		},
+		{
+			"Nested key 1",
+			map[string]interface{}{
+				"c": nil,
+			},
+			map[string]interface{}{
+				"c.x": map[string]int{"i": 42},
+			},
+			"c.x.i",
+		},
+		{
+			"Nil Array",
+			map[string]interface{}{
+				"a": nil,
+			},
+			map[string]interface{}{
+				"a": []interface{}{
+					map[string]interface{}{
+						"i": 42,
+					},
+				},
+			},
+			"a.0.i",
+		},
+		{
+			"Empty Array",
+			map[string]interface{}{
+				"a": []interface{}{},
+			},
+			map[string]interface{}{
+				"a": []interface{}{
+					map[string]interface{}{
+						"i": 42,
+					},
+				},
+			},
+			"a.0.i",
+		},
+		{
+			"Array with nil element",
+			map[string]interface{}{
+				"a": []interface{}{nil},
+			},
+			map[string]interface{}{
+				"a": []interface{}{
+					map[string]interface{}{
+						"i": 42,
+					},
+				},
+			},
+			"a.0.i",
+		},
+	}
+
+	opts := []Option{PathSep(".")}
+	for i, test := range tests {
+		t.Logf("run test (%v): %v", i, test.name)
+		cfg, err := NewFrom(test.nilCfg, opts...)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		_, err = cfg.Int(test.path, -1, opts...)
+		if err == nil {
+			t.Errorf("Failed: nil value '%v' accessessible", test.path)
+			continue
+		}
+
+		err = cfg.Merge(test.cfg, opts...)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		i, err := cfg.Int(test.path, -1, opts...)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+
+		assert.Equal(t, 42, int(i))
+	}
+}

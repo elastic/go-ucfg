@@ -7,12 +7,14 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 ### Changed
+- merging sub-configs enforces strict variable expansion #85
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+- fix merging nil sub-configs #85
 
 ## [0.4.4]
 
