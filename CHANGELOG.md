@@ -7,12 +7,15 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 ### Changed
+- Add per element type stop set for handling unquoted strings (reduces need for quoting strings in environment variables) #80
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+- fix issue unpacking array from environment variable into struct array fields #80
+- fix unparsed values being used for unpacking #80
 
 ## [0.4.4]
 
