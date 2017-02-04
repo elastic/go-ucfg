@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Introduce ,ignore struct tag option to optionally ignore exported fields. #89
 
 ### Changed
 
@@ -13,6 +14,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 
 ### Fixed
+- Ignore private struct fields when merging a struct into a config. #89
 
 ## [0.4.5]
 

@@ -374,23 +374,23 @@ func TestMergeChildArray(t *testing.T) {
 }
 
 func TestMergeSquash(t *testing.T) {
-	type subType struct{ B bool }
-	type subInterface struct{ B interface{} }
+	type SubType struct{ B bool }
+	type SubInterface struct{ B interface{} }
 
 	tests := []interface{}{
 		&struct {
-			C subType `config:",squash"`
-		}{subType{true}},
+			C SubType `config:",squash"`
+		}{SubType{true}},
 		&struct {
-			subType `config:",squash"`
-		}{subType{true}},
+			SubType `config:",squash"`
+		}{SubType{true}},
 
 		&struct {
-			C subInterface `config:",squash"`
-		}{subInterface{true}},
+			C SubInterface `config:",squash"`
+		}{SubInterface{true}},
 		&struct {
-			subInterface `config:",squash"`
-		}{subInterface{true}},
+			SubInterface `config:",squash"`
+		}{SubInterface{true}},
 
 		&struct {
 			C map[string]bool `config:",squash"`
@@ -402,9 +402,6 @@ func TestMergeSquash(t *testing.T) {
 
 		&struct {
 			C node `config:",squash"`
-		}{node{"b": true}},
-		&struct {
-			node `config:",squash"`
 		}{node{"b": true}},
 	}
 
