@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 - Introduce ,ignore struct tag option to optionally ignore exported fields. #89
+- Add support for custom Unpacker method with `*Config` being convertible to first parameter. The custom method must be compatible to `ConfigUnpacker`. #90
 
 ### Changed
 
