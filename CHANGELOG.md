@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Allow to diff keys of two different configuration #93
 
 ### Changed
 
@@ -34,7 +35,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [0.4.4]
 
 ### Added
-- Add support for pure array config files #82 
+- Add support for pure array config files #82
 
 ### Changed
 - Invalid top-level types return non-critical error (no stack-trace) on merge #82
