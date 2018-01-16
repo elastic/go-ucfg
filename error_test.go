@@ -3,6 +3,7 @@ package ucfg
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"path"
 	"reflect"
@@ -54,6 +55,8 @@ func TestErrorMessages(t *testing.T) {
 		"arr_missing_w_meta":         raiseMissingArr(context{}, testMeta, 5),
 		"arr_missing_nested_wo_meta": raiseMissingArr(testNestedCtx, nil, 5),
 		"arr_missing_nested_w_meta":  raiseMissingArr(testNestedCtx, testMeta, 5),
+
+		"cyclic_reference": raiseCyclicErr("top.key"),
 
 		"arr_oob_wo_meta":        raiseIndexOutOfBounds(nil, cfgSub{c}, 5),
 		"arr_oob_w_meta":         raiseIndexOutOfBounds(nil, cfgSub{cMeta}, 5),
@@ -173,27 +176,27 @@ func TestErrorMessages(t *testing.T) {
 	}
 
 	for name, result := range tests {
-		t.Logf("Test error message for: %v", name)
+		t.Run(fmt.Sprintf("Test error message for: %v", name), func(t *testing.T) {
+			message := result.Message()
+			goldenFile := path.Join(goldenPath, name+".golden")
 
-		message := result.Message()
-		goldenFile := path.Join(goldenPath, name+".golden")
-
-		if updateFlag != nil && *updateFlag {
-			t.Logf("writing golden file: %v", goldenFile)
-			t.Logf("%v", message)
-			t.Log("")
-			err := ioutil.WriteFile(goldenFile, []byte(message), 0666)
-			if err != nil {
-				t.Fatalf("Failed to write golden file ('%v'): %v", goldenFile, err)
+			if updateFlag != nil && *updateFlag {
+				t.Logf("writing golden file: %v", goldenFile)
+				t.Logf("%v", message)
+				t.Log("")
+				err := ioutil.WriteFile(goldenFile, []byte(message), 0666)
+				if err != nil {
+					t.Fatalf("Failed to write golden file ('%v'): %v", goldenFile, err)
+				}
 			}
-		}
 
-		tmp, err := ioutil.ReadFile(goldenFile)
-		if err != nil {
-			t.Fatalf("Failed to read golden file ('%v'): %v", goldenFile, err)
-		}
+			tmp, err := ioutil.ReadFile(goldenFile)
+			if err != nil {
+				t.Fatalf("Failed to read golden file ('%v'): %v", goldenFile, err)
+			}
 
-		golden := string(tmp)
-		assert.Equal(t, golden, message)
+			golden := string(tmp)
+			assert.Equal(t, golden, message)
+		})
 	}
 }
