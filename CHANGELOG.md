@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Detect cyclic reference and allow to search top level key with the other resolvers. #97
 - Allow to diff keys of two different configuration #93
 
 ### Changed
