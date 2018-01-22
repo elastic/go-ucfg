@@ -68,7 +68,7 @@ var (
 
 	ErrTODO = errors.New("TODO - implement me")
 
-	ErrDuplicateKeey = errors.New("duplicate key")
+	ErrDuplicateKey = errors.New("duplicate key")
 
 	ErrOverflow = errors.New("integer overflow")
 
@@ -163,7 +163,7 @@ func messagePath(reason error, meta *Meta, message, path string) string {
 }
 
 func raiseDuplicateKey(cfg *Config, name string) Error {
-	return raisePathErr(ErrDuplicateKeey, cfg.metadata, "", cfg.PathOf(name, "."))
+	return raisePathErr(ErrDuplicateKey, cfg.metadata, "", cfg.PathOf(name, "."))
 }
 
 func raiseCyclicErr(field string) Error {
