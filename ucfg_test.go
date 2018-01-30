@@ -241,3 +241,45 @@ func TestTopYamlKeyInEnvResolvers(t *testing.T) {
 		})
 	}
 }
+
+func TestMultipleDirectReference(t *testing.T) {
+	cfg := map[string]interface{}{
+		"path.home": "hello",
+		"path.logs": "${path.home}",
+		"output": map[string]interface{}{
+			"path": "${path.logs}",
+		},
+	}
+
+	c := New()
+	err := c.Merge(cfg, opts...)
+	assert.NoError(t, err)
+
+	t.Run("into a struct", func(t *testing.T) {
+		config := struct {
+			Path struct {
+				Home string `config:"home"`
+				Logs string `config:"logs"`
+			} `config:"path"`
+			Output struct {
+				Path string `config:"path"`
+			} `config:"output"`
+		}{}
+
+		err = c.Unpack(&config, opts...)
+		if assert.NoError(t, err) {
+			assert.Equal(t, "hello", config.Output.Path)
+		}
+	})
+
+	t.Run("into a map", func(t *testing.T) {
+		m := map[string]interface{}{}
+		err = c.Unpack(&m, opts...)
+		if assert.NoError(t, err) {
+			v, _ := m["output"]
+			output, _ := v.(map[string]interface{})
+			path, _ := output["path"]
+			assert.Equal(t, "hello", path)
+		}
+	})
+}
