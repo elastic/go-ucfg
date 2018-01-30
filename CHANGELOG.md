@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- Fix: an issue with the Cyclic reference algorithm when a direct reference was pointing
+  to another reference. #100
 
 ### Added
 
