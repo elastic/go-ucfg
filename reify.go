@@ -399,14 +399,6 @@ func reifyMergeValue(
 
 	baseType := chaseTypePointers(old.Type())
 
-	if v, ok := valueIsUnpacker(old); ok {
-		err := unpackWith(opts.opts, v, val)
-		if err != nil {
-			return reflect.Value{}, err
-		}
-		return old, nil
-	}
-
 	if tConfig.ConvertibleTo(baseType) {
 		sub, err := val.toConfig(opts.opts)
 		if err != nil {
@@ -438,6 +430,14 @@ func reifyMergeValue(
 
 		// old != value -> merge value into old
 		return oldValue, mergeConfig(opts.opts, subOld, sub)
+	}
+
+	if v, ok := valueIsUnpacker(old); ok {
+		err := unpackWith(opts.opts, v, val)
+		if err != nil {
+			return reflect.Value{}, err
+		}
+		return old, nil
 	}
 
 	switch baseType.Kind() {

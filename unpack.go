@@ -117,6 +117,12 @@ func typeIsUnpacker(t reflect.Type) (reflect.Value, bool) {
 }
 
 func implementsUnpacker(t reflect.Type) bool {
+	// ucfg.Config or structures that can be casted to ucfg.Config are not
+	// Unpackers.
+	if tConfig.ConvertibleTo(chaseTypePointers(t)) {
+		return false
+	}
+
 	for _, tUnpack := range tUnpackers {
 		if t.Implements(tUnpack) {
 			return true
