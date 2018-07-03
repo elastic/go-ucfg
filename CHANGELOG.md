@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 
 ### Fixed
+- Fix: do not treat ucfg.Config (or castable type) as Unpacker. #106
 
 ## [0.5.1]
 
