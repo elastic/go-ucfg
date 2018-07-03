@@ -83,6 +83,18 @@ func New() *Config {
 	}
 }
 
+// NustNewFrom creates a new config object normalizing and copying from into the new
+// Config object. MustNewFrom uses Merge to copy from.
+//
+// MustNewFrom supports the options: PathSep, MetaData, StructTag, VarExp
+func MustNewFrom(from interface{}, opts ...Option) *Config {
+	c := New()
+	if err := c.Merge(from, opts...); err != nil {
+		panic(err)
+	}
+	return c
+}
+
 // NewFrom creates a new config object normalizing and copying from into the new
 // Config object. NewFrom uses Merge to copy from.
 //
@@ -233,4 +245,20 @@ func (f *fields) setAt(idx int, parent, v value) {
 	}
 
 	f.a[idx] = v
+}
+
+func (f *fields) append(parent value, a []value) {
+	l := len(f.a)
+	count := len(a)
+	if count == 0 {
+		return
+	}
+
+	for i := 0; i < count; i, l = i+1, l+1 {
+		ctx := context{
+			parent: parent,
+			field:  fmt.Sprintf("%v", l),
+		}
+		f.setAt(l, parent, a[i].cpy(ctx))
+	}
 }

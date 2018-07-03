@@ -429,7 +429,7 @@ func reifyMergeValue(
 		}
 
 		// old != value -> merge value into old
-		return oldValue, mergeConfig(opts.opts, subOld, sub)
+		return oldValue, mergeFieldConfig(opts, subOld, sub)
 	}
 
 	if v, ok := valueIsUnpacker(old); ok {
@@ -459,10 +459,35 @@ func reifyMergeValue(
 		return reifyArray(opts, old, baseType, val)
 
 	case reflect.Slice:
-		return reifySlice(opts, baseType, val)
+		return reifySliceMerge(opts, old, baseType, val)
 	}
 
 	return reifyPrimitive(opts, val, t, baseType)
+}
+
+func mergeFieldConfig(opts fieldOptions, to, from *Config) Error {
+	switch opts.tag.cfgHandling {
+	case cfgReplace:
+		to.fields = from.fields
+		return nil
+
+	case cfgPrepend:
+		// dictionaries must be merged
+		if err := mergeConfigDict(opts.opts, to, from); err != nil {
+			return err
+		}
+		return mergeConfigPrependArr(opts.opts, to, from)
+
+	case cfgAppend:
+		// dictionaries must be merged
+		if err := mergeConfigDict(opts.opts, to, from); err != nil {
+			return err
+		}
+		return mergeConfigAppendArr(opts.opts, to, from)
+
+	default:
+		return mergeConfig(opts.opts, to, from)
+	}
 }
 
 func reifyArray(
@@ -479,11 +504,29 @@ func reifyArray(
 		ctx := val.Context()
 		return reflect.Value{}, raiseArraySize(ctx, val.meta(), len(arr), tTo.Len())
 	}
-	return reifyDoArray(opts, to, tTo.Elem(), val, arr)
+	return reifyDoArray(opts, to, tTo.Elem(), 0, val, arr)
 }
 
 func reifySlice(
 	opts fieldOptions,
+	tTo reflect.Type,
+	val value,
+) (reflect.Value, Error) {
+	/*
+		arr, err := castArr(opts.opts, val)
+		if err != nil {
+			return reflect.Value{}, err
+		}
+
+		to := reflect.MakeSlice(tTo, len(arr), len(arr))
+		return reifyDoArray(opts, to, tTo.Elem(), val, arr)
+	*/
+	return reifySliceMerge(opts, reflect.Value{}, tTo, val)
+}
+
+func reifySliceMerge(
+	opts fieldOptions,
+	old reflect.Value,
 	tTo reflect.Type,
 	val value,
 ) (reflect.Value, Error) {
@@ -492,22 +535,58 @@ func reifySlice(
 		return reflect.Value{}, err
 	}
 
-	to := reflect.MakeSlice(tTo, len(arr), len(arr))
-	return reifyDoArray(opts, to, tTo.Elem(), val, arr)
+	arrMergeCfg := opts.tag.cfgHandling
+
+	l := len(arr)
+	start := 0
+	cpyStart := 0
+
+	withOld := old.IsValid() && !old.IsNil()
+	if withOld {
+		ol := old.Len()
+
+		switch arrMergeCfg {
+		case cfgReplace:
+			// do nothing
+
+		case cfgAppend:
+			l += ol
+			start = ol
+
+		case cfgPrepend:
+			cpyStart = l
+			l += ol
+
+		default:
+			if l < ol {
+				l = ol
+			}
+		}
+	}
+	tmp := reflect.MakeSlice(tTo, l, l)
+
+	if withOld {
+		reflect.Copy(tmp.Slice(cpyStart, tmp.Len()), old)
+	}
+	return reifyDoArray(opts, tmp, tTo.Elem(), start, val, arr)
 }
 
 func reifyDoArray(
 	opts fieldOptions,
 	to reflect.Value, elemT reflect.Type,
+	start int,
 	val value,
 	arr []value,
 ) (reflect.Value, Error) {
-	for i, from := range arr {
-		v, err := reifyValue(opts, elemT, from)
+	idx := start
+	for _, from := range arr {
+		to.Index(idx)
+		v, err := reifyMergeValue(opts, to.Index(idx), from)
 		if err != nil {
 			return reflect.Value{}, err
 		}
-		to.Index(i).Set(v)
+		to.Index(idx).Set(v)
+		idx++
 	}
 
 	if err := runValidators(to.Interface(), opts.validators); err != nil {

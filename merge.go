@@ -137,15 +137,29 @@ func mergeConfigArr(opts *options, to, from *Config) Error {
 	}
 
 	// add additional array entries not yet in 'to'
-	for ; l < end; l++ {
-		ctx := context{
-			parent: cfgSub{to},
-			field:  fmt.Sprintf("%v", l),
-		}
-		v := from.fields.array()[l]
-		to.fields.setAt(l, cfgSub{to}, v.cpy(ctx))
+	return mergeConfigAppendArr(opts, to, from)
+}
+
+func mergeConfigPrependArr(opts *options, to, from *Config) Error {
+	a1 := to.fields.array()
+	a2 := from.fields.array()
+	if len(a2) == 0 {
+		return nil
 	}
 
+	var parent value = cfgSub{to}
+	var fields = fields{
+		d: to.fields.d,
+		a: make([]value, 0, len(a1)+len(a2)),
+	}
+	fields.append(parent, a2)
+	fields.append(parent, a1)
+	*to.fields = fields
+	return nil
+}
+
+func mergeConfigAppendArr(opts *options, to, from *Config) Error {
+	to.fields.append(cfgSub{to}, from.fields.array())
 	return nil
 }
 
