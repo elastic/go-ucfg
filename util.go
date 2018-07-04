@@ -33,10 +33,11 @@ type tagOptions struct {
 type configHandling uint8
 
 const (
-	cfgMerge configHandling = iota
-	cfgReplace
-	cfgAppend
-	cfgPrepend
+	cfgDefaultHandling configHandling = iota
+	cfgMergeValues
+	cfgReplaceValue
+	cfgArrAppend
+	cfgArrPrepend
 )
 
 var noTagOpts = tagOptions{}
@@ -51,13 +52,13 @@ func parseTags(tag string) (string, tagOptions) {
 		case "ignore":
 			opts.ignore = true
 		case "merge":
-			opts.cfgHandling = cfgMerge
+			opts.cfgHandling = cfgMergeValues
 		case "replace":
-			opts.cfgHandling = cfgReplace
+			opts.cfgHandling = cfgReplaceValue
 		case "append":
-			opts.cfgHandling = cfgAppend
+			opts.cfgHandling = cfgArrAppend
 		case "prepend":
-			opts.cfgHandling = cfgPrepend
+			opts.cfgHandling = cfgArrPrepend
 		}
 	}
 	return s[0], opts

@@ -950,3 +950,121 @@ func TestMergeNil(t *testing.T) {
 		assert.Equal(t, 42, int(i))
 	}
 }
+
+func TestMergeGlobalArrConfig(t *testing.T) {
+	type testCase struct {
+		options  []Option
+		in       []interface{}
+		expected interface{}
+	}
+
+	cases := map[string]testCase{
+		"merge array values": testCase{
+			in: []interface{}{
+				map[string]interface{}{
+					"a": []interface{}{
+						map[string]interface{}{"b": 1},
+					},
+				},
+				map[string]interface{}{
+					"a": []interface{}{
+						map[string]interface{}{"c": 2},
+						map[string]interface{}{"d": 3},
+					},
+				},
+			},
+			expected: map[string]interface{}{
+				"a": []interface{}{
+					map[string]interface{}{"b": uint64(1), "c": uint64(2)},
+					map[string]interface{}{"d": uint64(3)},
+				},
+			},
+		},
+
+		"replace array values": testCase{
+			options: []Option{ReplaceValues},
+			in: []interface{}{
+				map[string]interface{}{
+					"a": []interface{}{
+						map[string]interface{}{"b": 1},
+					},
+				},
+				map[string]interface{}{
+					"a": []interface{}{
+						map[string]interface{}{"c": 2},
+						map[string]interface{}{"d": 3},
+					},
+				},
+			},
+			expected: map[string]interface{}{
+				"a": []interface{}{
+					map[string]interface{}{"c": uint64(2)},
+					map[string]interface{}{"d": uint64(3)},
+				},
+			},
+		},
+
+		"append array values": testCase{
+			options: []Option{AppendValues},
+			in: []interface{}{
+				map[string]interface{}{
+					"a": []interface{}{
+						map[string]interface{}{"b": 1},
+					},
+				},
+				map[string]interface{}{
+					"a": []interface{}{
+						map[string]interface{}{"c": 2},
+						map[string]interface{}{"d": 3},
+					},
+				},
+			},
+			expected: map[string]interface{}{
+				"a": []interface{}{
+					map[string]interface{}{"b": uint64(1)},
+					map[string]interface{}{"c": uint64(2)},
+					map[string]interface{}{"d": uint64(3)},
+				},
+			},
+		},
+
+		"prepend array values": testCase{
+			options: []Option{PrependValues},
+			in: []interface{}{
+				map[string]interface{}{
+					"a": []interface{}{
+						map[string]interface{}{"b": 1},
+					},
+				},
+				map[string]interface{}{
+					"a": []interface{}{
+						map[string]interface{}{"c": 2},
+						map[string]interface{}{"d": 3},
+					},
+				},
+			},
+			expected: map[string]interface{}{
+				"a": []interface{}{
+					map[string]interface{}{"c": uint64(2)},
+					map[string]interface{}{"d": uint64(3)},
+					map[string]interface{}{"b": uint64(1)},
+				},
+			},
+		},
+	}
+
+	for name, test := range cases {
+		test := test
+		t.Run(name, func(t *testing.T) {
+			cfg := New()
+			for _, in := range test.in {
+				err := cfg.Merge(in, test.options...)
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			assertConfig(t, cfg, test.expected)
+		})
+	}
+}

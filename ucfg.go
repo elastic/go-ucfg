@@ -262,3 +262,11 @@ func (f *fields) append(parent value, a []value) {
 		f.setAt(l, parent, a[i].cpy(ctx))
 	}
 }
+
+func (o *fieldOptions) configHandling() configHandling {
+	h := o.tag.cfgHandling
+	if h == cfgDefaultHandling {
+		h = o.opts.configValueHandling
+	}
+	return h
+}

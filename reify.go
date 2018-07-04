@@ -29,7 +29,7 @@ import (
 // and pointers as necessary.
 //
 // Unpack supports the options: PathSep, StructTag, ValidatorTag, Env, Resolve,
-// ResolveEnv.
+// ResolveEnv, ReplaceValues, AppendValues, PrependValues.
 //
 // When unpacking into a value, Unpack first will try to call Unpack if the
 // value implements the Unpacker interface. Otherwise, Unpack tries to convert
@@ -78,7 +78,12 @@ import (
 //  If the tag sets the `,ignore` flag, the field will not be overwritten.
 //  If the tag sets the `,inline` or `,squash` flag, Unpack will apply the current
 //  configuration namespace to the fields.
-//
+//  If the tag option `replace` is configured, arrays and *ucfg.Config
+//  convertible fields are replaced by the new values.
+//  If the tag options `append` or `prepend` is used, arrays will be merged by
+//  appending/prepending the new array contents.
+//  The struct tag options `replace`, `append`, and `prepend` overwrites the
+//  global value merging strategy (e.g. ReplaceValues, AppendValues, ...) for all sub-fields.
 //
 // Fields available in a struct or a map, but not in the Config object, will not
 // be touched. Default values should be set in the target value before calling Unpack.
@@ -234,6 +239,14 @@ func reifyStruct(opts *options, orig reflect.Value, cfg *Config) Error {
 			name, tagOpts := parseTags(stField.Tag.Get(opts.tag))
 			if tagOpts.ignore {
 				continue
+			}
+
+			// create new context, overwriting configValueHandling for all sub-operations
+			if tagOpts.cfgHandling != opts.configValueHandling {
+				tmp := &options{}
+				*tmp = *opts
+				tmp.configValueHandling = tagOpts.cfgHandling
+				opts = tmp
 			}
 
 			opts.activeFields = NewFieldSet(parentFields)
@@ -466,28 +479,7 @@ func reifyMergeValue(
 }
 
 func mergeFieldConfig(opts fieldOptions, to, from *Config) Error {
-	switch opts.tag.cfgHandling {
-	case cfgReplace:
-		to.fields = from.fields
-		return nil
-
-	case cfgPrepend:
-		// dictionaries must be merged
-		if err := mergeConfigDict(opts.opts, to, from); err != nil {
-			return err
-		}
-		return mergeConfigPrependArr(opts.opts, to, from)
-
-	case cfgAppend:
-		// dictionaries must be merged
-		if err := mergeConfigDict(opts.opts, to, from); err != nil {
-			return err
-		}
-		return mergeConfigAppendArr(opts.opts, to, from)
-
-	default:
-		return mergeConfig(opts.opts, to, from)
-	}
+	return mergeConfig(opts.opts, to, from)
 }
 
 func reifyArray(
@@ -512,15 +504,6 @@ func reifySlice(
 	tTo reflect.Type,
 	val value,
 ) (reflect.Value, Error) {
-	/*
-		arr, err := castArr(opts.opts, val)
-		if err != nil {
-			return reflect.Value{}, err
-		}
-
-		to := reflect.MakeSlice(tTo, len(arr), len(arr))
-		return reifyDoArray(opts, to, tTo.Elem(), val, arr)
-	*/
 	return reifySliceMerge(opts, reflect.Value{}, tTo, val)
 }
 
@@ -535,7 +518,7 @@ func reifySliceMerge(
 		return reflect.Value{}, err
 	}
 
-	arrMergeCfg := opts.tag.cfgHandling
+	arrMergeCfg := opts.configHandling()
 
 	l := len(arr)
 	start := 0
@@ -546,14 +529,14 @@ func reifySliceMerge(
 		ol := old.Len()
 
 		switch arrMergeCfg {
-		case cfgReplace:
+		case cfgReplaceValue:
 			// do nothing
 
-		case cfgAppend:
+		case cfgArrAppend:
 			l += ol
 			start = ol
 
-		case cfgPrepend:
+		case cfgArrPrepend:
 			cpyStart = l
 			l += ol
 
