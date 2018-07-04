@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Add *Config merging options merge, append, prepend, replace. #107
 
 ### Changed
 
