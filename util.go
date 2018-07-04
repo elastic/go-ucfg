@@ -23,9 +23,22 @@ import (
 )
 
 type tagOptions struct {
-	squash bool
-	ignore bool
+	squash      bool
+	ignore      bool
+	cfgHandling configHandling
 }
+
+// configHandling configures the operation to execute if we merge into a struct
+// field that holds an unpacked config object.
+type configHandling uint8
+
+const (
+	cfgDefaultHandling configHandling = iota
+	cfgMergeValues
+	cfgReplaceValue
+	cfgArrAppend
+	cfgArrPrepend
+)
 
 var noTagOpts = tagOptions{}
 
@@ -38,6 +51,14 @@ func parseTags(tag string) (string, tagOptions) {
 			opts.squash = true
 		case "ignore":
 			opts.ignore = true
+		case "merge":
+			opts.cfgHandling = cfgMergeValues
+		case "replace":
+			opts.cfgHandling = cfgReplaceValue
+		case "append":
+			opts.cfgHandling = cfgArrAppend
+		case "prepend":
+			opts.cfgHandling = cfgArrPrepend
 		}
 	}
 	return s[0], opts
