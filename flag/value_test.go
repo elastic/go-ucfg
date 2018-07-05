@@ -44,6 +44,20 @@ func TestFlagValueLast(t *testing.T) {
 
 }
 
+func TestFlagValueMissing(t *testing.T) {
+	config, err := parseTestFlags("-D b=true -D -D s=")
+	assert.NoError(t, err)
+
+	b, err := config.Bool("b", -1, ucfg.PathSep("."))
+	assert.NoError(t, err)
+	assert.Equal(t, true, b)
+
+	s, err := config.String("s", -1, ucfg.PathSep("."))
+	assert.Error(t, err)
+	assert.Equal(t, "missing field accessing 's'", err.Error())
+	assert.Equal(t, "", s)
+}
+
 func TestFlagValueNested(t *testing.T) {
 	config, err := parseTestFlags("-D c.b=true -D c.b2 -D c.i=42 -D c.f=3.14 -D c.s=string")
 	assert.NoError(t, err)

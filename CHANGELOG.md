@@ -7,6 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 ### Changed
+- Ignore flag keys with missing values. #111
 
 ### Deprecated
 
