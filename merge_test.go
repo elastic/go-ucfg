@@ -731,7 +731,7 @@ func TestMergeRegex(t *testing.T) {
 			continue
 		}
 
-		assert.Equal(t, regex, check.Regex)
+		assert.Equal(t, regex.String(), check.Regex.String())
 	}
 }
 
