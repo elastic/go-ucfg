@@ -7,13 +7,17 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 ### Changed
-- Ignore flag keys with missing values. #111
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+
+## [0.6.1]
+
+### Fixed
+- Ignore flag keys with missing values. #111
 
 ## [0.6.0]
 
@@ -198,7 +202,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Introduced CHANGELOG.md for documenting changes to ucfg.
 
 
-[Unreleased]: https://github.com/elastic/go-ucfg/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/elastic/go-ucfg/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/elastic/go-ucfg/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/elastic/go-ucfg/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/elastic/go-ucfg/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/elastic/go-ucfg/compare/v0.4.6...v0.5.0
