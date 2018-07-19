@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 
 ### Fixed
+- Fix escape character not removed from escaped string #115
 
 ## [0.6.1]
 
