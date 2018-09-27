@@ -15,14 +15,6 @@
 			"revisionTime": "2016-01-10T10:55:54Z"
 		},
 		{
-			"checksumSHA1": "cKNzpMpci3WUAzXpe+tVnBv2cjE=",
-			"path": "github.com/satori/go.uuid",
-			"revision": "f9ab0dce87d815821e221626b772e3475a0d2749",
-			"revisionTime": "2016-03-24T11:22:44Z",
-			"version": "v1.0.0",
-			"versionExact": "v1.0.0"
-		},
-		{
 			"checksumSHA1": "Le1psgZO0t6mRg6oY5dmnjH13hk=",
 			"path": "github.com/stretchr/testify/assert",
 			"revision": "b91bfb9ebec76498946beb6af7c0230c7cc7ba6c",
