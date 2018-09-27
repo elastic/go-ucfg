@@ -7,11 +7,17 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 ### Changed
-- New UUID lib: github.com/gofrs/uuid. #116
 
 ### Deprecated
 
 ### Removed
+
+### Fixed
+
+## [0.6.2]
+
+### Changed
+- New UUID lib: github.com/gofrs/uuid. #116
 
 ### Fixed
 - Fix escape character not removed from escaped string #115
@@ -204,7 +210,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Introduced CHANGELOG.md for documenting changes to ucfg.
 
 
-[Unreleased]: https://github.com/elastic/go-ucfg/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/elastic/go-ucfg/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/elastic/go-ucfg/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/elastic/go-ucfg/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/elastic/go-ucfg/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/elastic/go-ucfg/compare/v0.5.0...v0.5.1
