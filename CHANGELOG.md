@@ -7,6 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 ### Changed
+- New UUID lib: github.com/gofrs/uuid. #116
 
 ### Deprecated
 
