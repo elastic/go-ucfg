@@ -185,12 +185,9 @@ func newSplice(ctx context, m *Meta, s varEvaler) *cfgDynamic {
 }
 
 func newDyn(ctx context, m *Meta, val dynValue) *cfgDynamic {
-	dyn := new(cfgDynamic)
-	randID := fmt.Sprintf("%p-%d", &dyn, time.Now().Unix())
-	id := string(atomic.AddInt32(&spliceSeq, 1)) + randID
-	dyn.cfgPrimitive = cfgPrimitive{ctx, m}
-	dyn.id = cacheID(id)
-	dyn.dyn = val
+	seq := atomic.AddInt32(&spliceSeq, 1)
+	dyn := &cfgDynamic{cfgPrimitive: cfgPrimitive{ctx, m}, dyn: val}
+	dyn.id = cacheID(fmt.Sprintf("%8X-%4X-%p", time.Now().Unix(), seq, dyn))
 	return dyn
 }
 
