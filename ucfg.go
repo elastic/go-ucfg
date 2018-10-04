@@ -259,11 +259,7 @@ func (f *fields) append(parent value, a []value) {
 			parent: parent,
 			field:  fmt.Sprintf("%v", l),
 		}
-		val, err := a[i].cpy(ctx)
-		if err != nil {
-			panic(err)
-		}
-		f.setAt(l, parent, val)
+		f.setAt(l, parent, a[i].cpy(ctx))
 	}
 }
 

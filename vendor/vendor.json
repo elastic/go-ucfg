@@ -9,12 +9,6 @@
 			"revisionTime": "2017-10-02T20:02:53Z"
 		},
 		{
-			"checksumSHA1": "BfjvAbPn5t/2KrdC5E7418OuzV8=",
-			"path": "github.com/gofrs/uuid",
-			"revision": "47cd1dca1a6e7f807d5a492bd7e7f41d0855b5a1",
-			"revisionTime": "2018-09-14T05:15:27Z"
-		},
-		{
 			"checksumSHA1": "LuFv4/jlrmFNnDb/5SCSEPAM9vU=",
 			"path": "github.com/pmezard/go-difflib/difflib",
 			"revision": "792786c7400a136282c1664665ae0a8db921c6c2",
