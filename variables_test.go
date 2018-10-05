@@ -42,6 +42,7 @@ func TestVarExpParserSuccess(t *testing.T) {
 		{"plain string", "string", str("string")},
 		{"string containing :", "just:a:string", str("just:a:string")},
 		{"string containing }", "abc } def", str("abc } def")},
+		{"string containging regex with $", "log$|leg$", str("log$|leg$")},
 		{"string with escaped var", "escaped $${var}", str("escaped ${var}")},
 		{"reference", "${reference}", ref("reference")},
 		{"exp in middle", "test ${splice} this",

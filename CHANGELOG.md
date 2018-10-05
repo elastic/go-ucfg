@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 
 ### Fixed
+- Do not treat $ as escape char in plain strings/regexes #120
 
 ## [0.6.3]
 
