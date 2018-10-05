@@ -429,12 +429,7 @@ func lexer(in string) (<-chan token, <-chan error) {
 					lex <- openToken
 					off++
 					varcount++
-				case '$':
-					if content[off+1] == '{' { // remove $
-						content = content[:idx] + content[off:]
-						continue
-					}
-				case '}': // escape }
+				case '$', '}': // escape $} and $$
 					content = content[:idx] + content[off:]
 					continue
 				default:
