@@ -300,3 +300,23 @@ func TestMultipleDirectReference(t *testing.T) {
 		}
 	})
 }
+
+func TestResolveNOOP(t *testing.T) {
+	opts := []Option{
+		PathSep("."),
+		ResolveNOOP,
+	}
+
+	cfg := map[string]interface{}{
+		"a.top":         "top-level",
+		"f.l.reference": "${a.key}",
+	}
+
+	c, err := NewFrom(cfg, opts...)
+	assert.NoError(t, err)
+
+	v, err := c.String("f.l.reference", -1, opts...)
+	if assert.NoError(t, err) {
+		assert.Equal(t, "${a.key}", v)
+	}
+}

@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Added a NOOP resolver that will return the key wrapped in the field reference syntax. #xxx
 
 ### Changed
 
