@@ -293,9 +293,9 @@ func TestMultipleDirectReference(t *testing.T) {
 		m := map[string]interface{}{}
 		err = c.Unpack(&m, opts...)
 		if assert.NoError(t, err) {
-			v, _ := m["output"]
-			output, _ := v.(map[string]interface{})
-			path, _ := output["path"]
+			v := m["output"]
+			output := v.(map[string]interface{})
+			path := output["path"]
 			assert.Equal(t, "hello", path)
 		}
 	})

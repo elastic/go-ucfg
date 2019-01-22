@@ -377,7 +377,7 @@ func (c cfgSub) reify(opts *options) (interface{}, error) {
 	case len(fields) > 0 && len(arr) == 0:
 		m := make(map[string]interface{})
 		for k, v := range fields {
-			opts.activeFields = NewFieldSet(parentFields)
+			opts.activeFields = newFieldSet(parentFields)
 			var err error
 			if m[k], err = v.reify(opts); err != nil {
 				return nil, err
@@ -387,7 +387,7 @@ func (c cfgSub) reify(opts *options) (interface{}, error) {
 	case len(fields) == 0 && len(arr) > 0:
 		m := make([]interface{}, len(arr))
 		for i, v := range arr {
-			opts.activeFields = NewFieldSet(parentFields)
+			opts.activeFields = newFieldSet(parentFields)
 			var err error
 			if m[i], err = v.reify(opts); err != nil {
 				return nil, err
@@ -397,14 +397,14 @@ func (c cfgSub) reify(opts *options) (interface{}, error) {
 	default:
 		m := make(map[string]interface{})
 		for k, v := range fields {
-			opts.activeFields = NewFieldSet(parentFields)
+			opts.activeFields = newFieldSet(parentFields)
 			var err error
 			if m[k], err = v.reify(opts); err != nil {
 				return nil, err
 			}
 		}
 		for i, v := range arr {
-			opts.activeFields = NewFieldSet(parentFields)
+			opts.activeFields = newFieldSet(parentFields)
 			var err error
 			m[fmt.Sprintf("%d", i)], err = v.reify(opts)
 			if err != nil {
