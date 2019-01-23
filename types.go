@@ -554,6 +554,10 @@ func (s spliceDynValue) String() string {
 }
 
 func parseValue(p *cfgPrimitive, opts *options, str string) (value, error) {
+	if opts.noParse {
+		return nil, raiseNoParse(p.ctx, p.meta())
+	}
+
 	ifc, err := parse.Value(str)
 	if err != nil {
 		return nil, err

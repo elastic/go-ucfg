@@ -141,6 +141,35 @@ func (c *Config) HasField(name string) bool {
 	return ok
 }
 
+// Remove removes a setting from the config. If the configuration references
+// another configuration namespace, then the setting will be removed from the
+// linked reference.
+// Remove returns true if the setting was removed. If the path can't be
+// resolved (e.g. due to type mismatch) Remove will return an error.
+//
+// Settings can be created on Unpack via Env, Resolve, and ResolveEnv. Settings
+// generated dynamically on Unpack can not be removed. Remove ignores any
+// configured environments and will return an error if a value can not be
+// removed for this reason.
+//
+// The setting path is constructed from name and idx. If name is set and idx is -1,
+// only the name is used to access the setting by name. If name is empty, idx
+// must be >= 0, assuming the Config is a list. If both name and idx are set,
+// the name must point to a list.
+//
+// Remove supports the options: PathSep
+func (c *Config) Remove(name string, idx int, options ...Option) (bool, error) {
+	opts := makeOptions(options)
+
+	// ignore environments
+	opts.env = nil
+	opts.resolvers = nil
+	opts.noParse = true
+
+	p := parsePathIdx(name, opts.pathSep, idx)
+	return p.Remove(c, opts)
+}
+
 // Path gets the absolute path of c separated by sep. If c is a root-Config an
 // empty string will be returned.
 func (c *Config) Path(sep string) string {
@@ -226,6 +255,26 @@ func (f *fields) dict() map[string]value {
 
 func (f *fields) array() []value {
 	return f.a
+}
+
+func (f *fields) del(name string) bool {
+	_, exists := f.d[name]
+	if exists {
+		delete(f.d, name)
+	}
+	return exists
+}
+
+func (f *fields) delAt(i int) bool {
+	a := f.a
+	if i < 0 || len(a) <= i {
+		return false
+	}
+
+	copy(a[i:], a[i+1:])
+	a[len(a)-1] = nil
+	f.a = a[:len(a)-1]
+	return true
 }
 
 func (f *fields) set(name string, v value) {
