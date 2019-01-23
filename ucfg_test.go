@@ -364,7 +364,7 @@ func TestHas(t *testing.T) {
 			has:  false,
 			path: "a", idx: 10,
 		},
-		"intermedia is primitive": {
+		"intermediate is primitive": {
 			cfg:  map[string]interface{}{"a.b": 1},
 			fail: true,
 			path: "a.b.c", idx: -1,

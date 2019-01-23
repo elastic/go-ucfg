@@ -118,7 +118,6 @@ func (p cfgPath) Has(cfg *Config, opt *options) (bool, Error) {
 		field := fields[0]
 		next, err := field.GetValue(opt, cur)
 		if err != nil {
-
 			// has checks if a value is missing -> ErrMissing is no error but a valid
 			// outcome
 			if err.Reason() == ErrMissing {
