@@ -11,6 +11,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Deprecated
 
 ### Removed
+- Remove CI and support for go versions <1.10. #128
 
 ### Fixed
 
