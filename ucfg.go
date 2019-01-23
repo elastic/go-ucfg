@@ -83,7 +83,7 @@ func New() *Config {
 	}
 }
 
-// NustNewFrom creates a new config object normalizing and copying from into the new
+// MustNewFrom creates a new config object normalizing and copying from into the new
 // Config object. MustNewFrom uses Merge to copy from.
 //
 // MustNewFrom supports the options: PathSep, MetaData, StructTag, VarExp

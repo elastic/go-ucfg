@@ -24,24 +24,24 @@ import (
 )
 
 func TestFieldsetAddAField(t *testing.T) {
-	fs := NewFieldSet(nil)
+	fs := newFieldSet(nil)
 	fs.Add("hello")
 	assert.True(t, fs.Has("hello"))
 }
 
 func TestFieldsetReturnsTheListOfFields(t *testing.T) {
-	fs1 := NewFieldSet(nil)
+	fs1 := newFieldSet(nil)
 	fs1.Add("hello")
 	fs1.Add("bye")
-	fs2 := NewFieldSet(fs1)
+	fs2 := newFieldSet(fs1)
 	fs2.Add("adios")
 	assert.ElementsMatch(t, []string{"hello", "bye", "adios"}, fs2.Names())
 }
 
 func TestFieldSetHas(t *testing.T) {
-	fs1 := NewFieldSet(nil)
+	fs1 := newFieldSet(nil)
 	fs1.Add("parent")
-	fs2 := NewFieldSet(fs1)
+	fs2 := newFieldSet(fs1)
 	fs2.Add("child")
 
 	t.Run("ParentHasField", func(t *testing.T) {
@@ -58,9 +58,9 @@ func TestFieldSetHas(t *testing.T) {
 }
 
 func TestFieldSetAddNew(t *testing.T) {
-	fs1 := NewFieldSet(nil)
+	fs1 := newFieldSet(nil)
 	fs1.Add("parent")
-	fs2 := NewFieldSet(fs1)
+	fs2 := newFieldSet(fs1)
 	fs2.Add("child")
 
 	t.Run("ParentHasField", func(t *testing.T) {
