@@ -320,3 +320,66 @@ func TestResolveNOOP(t *testing.T) {
 		assert.Equal(t, "${a.key}", v)
 	}
 }
+
+func TestHas(t *testing.T) {
+	cases := map[string]struct {
+		cfg  map[string]interface{}
+		has  bool
+		fail bool
+		path string
+		idx  int
+	}{
+		"exists": {
+			cfg:  map[string]interface{}{"a": 1},
+			has:  true,
+			path: "a", idx: -1,
+		},
+		"unkown": {
+			cfg:  map[string]interface{}{"a": 1},
+			has:  false,
+			path: "b", idx: -1,
+		},
+		"nested find primitive": {
+			cfg:  map[string]interface{}{"a.b": 1},
+			has:  true,
+			path: "a.b", idx: -1,
+		},
+		"nested find obj": {
+			cfg:  map[string]interface{}{"a.b.c": 1},
+			has:  true,
+			path: "a.b", idx: -1,
+		},
+		"unknown nested": {
+			cfg:  map[string]interface{}{"a.b.c": 1},
+			has:  false,
+			path: "a.d", idx: -1,
+		},
+		"array in len": {
+			cfg:  map[string]interface{}{"a": []interface{}{1, 2}},
+			has:  true,
+			path: "a", idx: 1,
+		},
+		"array out of index": {
+			cfg:  map[string]interface{}{"a": []interface{}{1, 2}},
+			has:  false,
+			path: "a", idx: 10,
+		},
+		"intermedia is primitive": {
+			cfg:  map[string]interface{}{"a.b": 1},
+			fail: true,
+			path: "a.b.c", idx: -1,
+		},
+	}
+
+	for name, test := range cases {
+		test := test
+		t.Run(name, func(t *testing.T) {
+			opts := []Option{PathSep("."), VarExp}
+
+			cfg := MustNewFrom(test.cfg, opts...)
+			b, err := cfg.Has(test.path, test.idx, opts...)
+			assert.Equal(t, test.has, b)
+			assert.Equal(t, test.fail, err != nil)
+		})
+	}
+}

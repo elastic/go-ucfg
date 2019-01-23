@@ -110,6 +110,33 @@ func (i idxField) String() string {
 	return fmt.Sprintf("%d", i.i)
 }
 
+func (p cfgPath) Has(cfg *Config, opt *options) (bool, Error) {
+	fields := p.fields
+
+	cur := value(cfgSub{cfg})
+	for ; len(fields) > 0; fields = fields[1:] {
+		field := fields[0]
+		next, err := field.GetValue(opt, cur)
+		if err != nil {
+
+			// has checks if a value is missing -> ErrMissing is no error but a valid
+			// outcome
+			if err.Reason() == ErrMissing {
+				err = nil
+			}
+			return false, err
+		}
+
+		if next == nil {
+			return false, nil
+		}
+
+		cur = next
+	}
+
+	return true, nil
+}
+
 func (p cfgPath) GetValue(cfg *Config, opt *options) (value, Error) {
 	fields := p.fields
 

@@ -126,6 +126,15 @@ func (c *Config) GetFields() []string {
 	return names
 }
 
+// Has checks if a field by the given path+idx configuration exists.
+// Has returns an error if the path can not be resolved because a primitive
+// value is found in the middle of the traversal.
+func (c *Config) Has(name string, idx int, options ...Option) (bool, error) {
+	opts := makeOptions(options)
+	p := parsePathIdx(name, opts.pathSep, idx)
+	return p.Has(c, opts)
+}
+
 // HasField checks if c has a top-level named key name.
 func (c *Config) HasField(name string) bool {
 	_, ok := c.fields.get(name)
