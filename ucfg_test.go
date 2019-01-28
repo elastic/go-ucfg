@@ -383,3 +383,105 @@ func TestHas(t *testing.T) {
 		})
 	}
 }
+
+func TestRemove(t *testing.T) {
+	type spec struct {
+		has   bool
+		fails bool
+		path  string
+		idx   int
+	}
+
+	cases := map[string]struct {
+		cfg   map[string]interface{}
+		wants map[string]interface{}
+		spec  spec
+	}{
+		"exist": {
+			cfg:   map[string]interface{}{"field": "test"},
+			wants: nil,
+			spec:  spec{has: true, path: "field", idx: -1},
+		},
+		"unknown field": {
+			cfg:   map[string]interface{}{"field": "test"},
+			wants: map[string]interface{}{"field": "test"},
+			spec:  spec{has: false, path: "unknown", idx: -1},
+		},
+		"nested": {
+			cfg:   map[string]interface{}{"a.b": "keep", "a.c": "remove"},
+			wants: map[string]interface{}{"a": map[string]interface{}{"b": "keep"}},
+			spec:  spec{has: true, path: "a.c", idx: -1},
+		},
+		"unknown nested": {
+			cfg:   map[string]interface{}{"a.b": "keep", "a.c": "keep"},
+			wants: map[string]interface{}{"a": map[string]interface{}{"b": "keep", "c": "keep"}},
+			spec:  spec{has: false, path: "a.d", idx: -1},
+		},
+		"array start": {
+			cfg:   map[string]interface{}{"arr": []interface{}{"a", "b", "c"}},
+			wants: map[string]interface{}{"arr": []interface{}{"b", "c"}},
+			spec:  spec{has: true, path: "arr", idx: 0},
+		},
+		"array end": {
+			cfg:   map[string]interface{}{"arr": []interface{}{"a", "b", "c"}},
+			wants: map[string]interface{}{"arr": []interface{}{"a", "b"}},
+			spec:  spec{has: true, path: "arr", idx: 2},
+		},
+		"array middle": {
+			cfg:   map[string]interface{}{"arr": []interface{}{"a", "b", "c"}},
+			wants: map[string]interface{}{"arr": []interface{}{"a", "c"}},
+			spec:  spec{has: true, path: "arr", idx: 1},
+		},
+		"array out of index": {
+			cfg:   map[string]interface{}{"arr": []interface{}{"a", "b", "c"}},
+			wants: map[string]interface{}{"arr": []interface{}{"a", "b", "c"}},
+			spec:  spec{has: false, path: "arr", idx: 5},
+		},
+		"full namespace": {
+			cfg:   map[string]interface{}{"a.b": 1, "a.c": 2, "x": "keep"},
+			wants: map[string]interface{}{"x": "keep"},
+			spec:  spec{has: true, path: "a", idx: -1},
+		},
+		"shared via reference": {
+			cfg: map[string]interface{}{"a": "${b}", "b.c": "remove", "b.d": "keep"},
+			wants: map[string]interface{}{
+				"a": map[string]interface{}{
+					"d": "keep",
+				},
+				"b": map[string]interface{}{
+					"d": "keep",
+				},
+			},
+			spec: spec{has: true, path: "a.c", idx: -1},
+		},
+		"fail if no object": {
+			cfg:  map[string]interface{}{"a": "test"},
+			spec: spec{fails: true, path: "a.b", idx: -1},
+		},
+	}
+
+	for name, test := range cases {
+		test := test
+		t.Run(name, func(t *testing.T) {
+			opts := []Option{PathSep("."), VarExp}
+
+			cfg := MustNewFrom(test.cfg, opts...)
+			b, err := cfg.Remove(test.spec.path, test.spec.idx, opts...)
+			if err != nil && !test.spec.fails {
+				t.Fatal("unexpected error:", err)
+			}
+			assert.Equal(t, test.spec.has, b, "unexpected remove operation result")
+
+			if test.spec.fails {
+				return
+			}
+
+			var actual map[string]interface{}
+			if err := cfg.Unpack(&actual, opts...); err != nil {
+				t.Fatal("unpacking config after remove failed:", err)
+			}
+
+			assert.Equal(t, test.wants, actual)
+		})
+	}
+}

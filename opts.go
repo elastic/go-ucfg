@@ -33,6 +33,7 @@ type options struct {
 	env          []*Config
 	resolvers    []func(name string) (string, error)
 	varexp       bool
+	noParse      bool
 
 	configValueHandling configHandling
 

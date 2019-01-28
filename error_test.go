@@ -138,6 +138,11 @@ func TestErrorMessages(t *testing.T) {
 		"unsupported_input_type_nested_w_meta": raiseUnsupportedInputType(
 			testNestedCtx, testMeta, reflect.ValueOf(1)),
 
+		"no_parse":               raiseNoParse(context{}, testMeta),
+		"no_parse_w_meta":        raiseNoParse(context{}, testMeta),
+		"no_parse_nested":        raiseNoParse(testNestedCtx, nil),
+		"no_parse_nested_w_meta": raiseNoParse(testNestedCtx, testMeta),
+
 		"nil_value_error":  raiseNil(ErrNilValue),
 		"nil_config_error": raiseNil(ErrNilConfig),
 
@@ -209,7 +214,7 @@ func TestErrorMessages(t *testing.T) {
 
 			tmp, err := ioutil.ReadFile(goldenFile)
 			if err != nil {
-				t.Fatalf("Failed to read golden file ('%v'): %v", goldenFile, err)
+				t.Fatalf("Failed to read golden file ('%v'): %v\nExpected contents: '%v'", goldenFile, err, message)
 			}
 
 			golden := string(tmp)

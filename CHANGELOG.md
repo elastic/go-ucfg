@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 - Add (*Config).Has. #127
+- Add (*Config).Remove. #126
 
 ### Changed
 
