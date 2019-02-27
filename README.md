@@ -57,13 +57,13 @@ ucfg allows to automatically validate fields and set defaults for fields in case
 ```golang
 // Defines struct to read config from
 type ExampleConfig struct {
-    Counter  string 	`config:"counter" validate:"min=0, max=9"`
+    Counter  int 	`config:"counter" validate:"min=0, max=9"`
 }
 
 // Defines default config option
 var (
     defaultConfig = ExampleConfig{
-		    Counter: string(4),
+		    Counter: 4,
     }
 )
 
