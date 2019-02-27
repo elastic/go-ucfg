@@ -63,7 +63,7 @@ type ExampleConfig struct {
 // Defines default config option
 var (
     defaultConfig = ExampleConfig{
-		    Counter: 4,
+		    Counter: string(4),
     }
 )
 
@@ -71,12 +71,12 @@ func main() {
     appConfig := defaultConfig // copy default config so it's not overwritten
     config, err := yaml.NewConfigWithFile(path, ucfg.PathSep("."))
     if err != nil {
-        fmt.Fprintln(err)
+        fmt.Println(err)
         os.Exit(1)
     }
     err = config.Unpack(&appConfig)
     if err != nil {
-        fmt.Fprintln(err)
+        fmt.Println(err)
         os.Exit(1)
     }
 }
