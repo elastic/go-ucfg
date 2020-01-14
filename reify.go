@@ -577,6 +577,11 @@ func reifyDoArray(
 		return reflect.Value{}, raiseValidation(ctx, val.meta(), "", err)
 	}
 
+	if err := tryValidate(to); err != nil {
+		ctx := val.Context()
+		return reflect.Value{}, raiseValidation(ctx, val.meta(), "", err)
+	}
+
 	return to, nil
 }
 
