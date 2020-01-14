@@ -27,6 +27,7 @@ import (
 )
 
 type myNonzeroInt int
+type myCustomList []int
 
 type structValidator struct{ I int }
 type ptrStructValidator struct{ I int }
@@ -35,6 +36,13 @@ var errZeroTest = errors.New("value must not be 0")
 
 func (m myNonzeroInt) Validate() error {
 	return testZeroErr(int(m))
+}
+
+func (l myCustomList) Validate() error {
+	if len(l) == 0 {
+		return errZeroTest
+	}
+	return nil
 }
 
 func (s structValidator) Validate() error {
@@ -59,6 +67,7 @@ func TestValidationPass(t *testing.T) {
 		"i": 5,
 		"d": -10,
 		"f": 3.14,
+		"l": []int{0, 1},
 	})
 
 	tests := []interface{}{
@@ -163,6 +172,11 @@ func TestValidationPass(t *testing.T) {
 			X time.Duration `config:"f" validate:"min=3, max=20"`
 		}{},
 
+		// validate field 'l'
+		&struct {
+			L myCustomList
+		}{},
+
 		// other
 		&struct {
 			X int // field not present in config, but not required
@@ -184,6 +198,7 @@ func TestValidationFail(t *testing.T) {
 		"i": 0,
 		"d": -10,
 		"f": 3.14,
+		"l": []int{},
 	})
 
 	tests := []interface{}{
@@ -259,6 +274,11 @@ func TestValidationFail(t *testing.T) {
 		}{},
 		&struct {
 			X time.Duration `config:"f" validate:"min=20s"`
+		}{},
+
+		// test field 'l'
+		&struct {
+			X myCustomList `config:"l"`
 		}{},
 
 		// other

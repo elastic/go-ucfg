@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 
 ### Fixed
+- Call Validate on custom slice types. #133
 
 ## [0.7.0]
 
