@@ -182,6 +182,9 @@ func reifyMap(opts *options, to reflect.Value, from *Config) Error {
 
 	fields := from.fields.dict()
 	if len(fields) == 0 {
+		if err := tryValidate(to); err != nil {
+			return raiseValidation(from.ctx, from.metadata, "", err)
+		}
 		return nil
 	}
 
@@ -206,6 +209,10 @@ func reifyMap(opts *options, to reflect.Value, from *Config) Error {
 			return err
 		}
 		to.SetMapIndex(key, v)
+	}
+
+	if err := tryValidate(to); err != nil {
+		return raiseValidation(from.ctx, from.metadata, "", err)
 	}
 
 	return nil

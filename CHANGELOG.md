@@ -15,6 +15,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 - Call Validate on custom slice types. #133
+- Call Validate on custom map types. #136
 
 ## [0.7.0]
 
