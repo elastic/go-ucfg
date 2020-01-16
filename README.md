@@ -2,11 +2,12 @@
 Status](https://travis-ci.org/elastic/go-ucfg.svg?branch=master)](https://travis-ci.org/elastic/go-ucfg)
 [![Go Report
 Card](https://goreportcard.com/badge/github.com/elastic/go-ucfg)](https://goreportcard.com/report/github.com/elastic/go-ucfg)
+[![codecov](https://codecov.io/gh/elastic/go-ucfg/branch/master/graph/badge.svg)](https://codecov.io/gh/elastic/go-ucfg)
 
 
 # ucfg - Universal Configuration
 
-`ucfg` is a Golang library to handle yaml and json configuration files in your Golang project. It was developed for the [libbeat framework](https://github.com/elastic/beats/tree/master/libbeat) and used by all [beats](https://github.com/elastic/beats).
+`ucfg` is a Golang library to handle hjson, json, and yaml configuration files in your Golang project. It was developed for the [libbeat framework](https://github.com/elastic/beats/tree/master/libbeat) and used by all [beats](https://github.com/elastic/beats).
 
 
 ## API Documentation
