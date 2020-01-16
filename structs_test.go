@@ -67,7 +67,6 @@ func TestStructMergeUnpackTyped(t *testing.T) {
 			},
 			env: testEnv{"env_strings": "one"},
 		},
-
 		{
 			t: &struct {
 				Hosts []string
@@ -78,6 +77,17 @@ func TestStructMergeUnpackTyped(t *testing.T) {
 				"hosts": "${hosts_from_env}",
 			},
 			env: testEnv{"hosts_from_env": "host1:1234,host2:4567"},
+		},
+		{
+			t: &struct {
+				Hosts []string
+			}{
+				Hosts: []string{"{host1}:1234", "host2:4567"},
+			},
+			cfg: map[string]interface{}{
+				"hosts": "${hosts_from_env}",
+			},
+			env: testEnv{"hosts_from_env": "{host1}:1234,host2:4567"},
 		},
 		{
 			t: &struct {

@@ -533,7 +533,7 @@ func (r *refDynValue) getValue(
 		}
 		return nil, err
 	}
-	return parseValue(p, opts, str)
+	return parseValue(p, opts, str, parse.EnvParserConfig)
 }
 
 func (s spliceDynValue) getValue(
@@ -546,19 +546,19 @@ func (s spliceDynValue) getValue(
 		return nil, err
 	}
 
-	return parseValue(p, opts, str)
+	return parseValue(p, opts, str, parse.DefaultParserConfig)
 }
 
 func (s spliceDynValue) String() string {
 	return "<splice>"
 }
 
-func parseValue(p *cfgPrimitive, opts *options, str string) (value, error) {
+func parseValue(p *cfgPrimitive, opts *options, str string, parserCfg parse.ParserConfig) (value, error) {
 	if opts.noParse {
 		return nil, raiseNoParse(p.ctx, p.meta())
 	}
 
-	ifc, err := parse.Value(str)
+	ifc, err := parse.ValueWithConfig(str, parserCfg)
 	if err != nil {
 		return nil, err
 	}

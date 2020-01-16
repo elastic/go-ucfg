@@ -115,6 +115,7 @@ func TestUnpackPrimitivesValuesResolve(t *testing.T) {
 			U uint
 			F float64
 			S string
+			W string
 		}{},
 		&struct {
 			B interface{}
@@ -122,6 +123,7 @@ func TestUnpackPrimitivesValuesResolve(t *testing.T) {
 			U interface{}
 			F interface{}
 			S interface{}
+			W interface{}
 		}{},
 		&struct {
 			B *bool
@@ -129,6 +131,7 @@ func TestUnpackPrimitivesValuesResolve(t *testing.T) {
 			U *uint
 			F *float64
 			S *string
+			W *string
 		}{},
 	}
 
@@ -141,6 +144,7 @@ func TestUnpackPrimitivesValuesResolve(t *testing.T) {
 				"v_u": "23",
 				"v_f": "3.14",
 				"v_s": "string",
+				"v_w": "{string}",
 			}[name], nil
 		}),
 	}
@@ -151,6 +155,7 @@ func TestUnpackPrimitivesValuesResolve(t *testing.T) {
 		"u": "${v_u}",
 		"f": "${v_f}",
 		"s": "${v_s}",
+		"w": "${v_w}",
 	}, cfgOpts...)
 
 	for i, out := range tests {
@@ -186,11 +191,15 @@ func TestUnpackPrimitivesValuesResolve(t *testing.T) {
 		s, err := c.String("s", -1, cfgOpts...)
 		assert.NoError(t, err)
 
+		w, err := c.String("w", -1, cfgOpts...)
+		assert.NoError(t, err)
+
 		assert.Equal(t, true, b)
 		assert.Equal(t, 42, int(i))
 		assert.Equal(t, 23, int(u))
 		assert.Equal(t, 3.14, f)
 		assert.Equal(t, "string", s)
+		assert.Equal(t, "{string}", w)
 	}
 }
 

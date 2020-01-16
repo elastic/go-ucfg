@@ -25,8 +25,33 @@ import (
 	"unicode"
 )
 
+// ParserConfig allows enabling and disabling parser features.
+type ParserConfig struct {
+	Array        bool
+	Object       bool
+	StringDQuote bool
+	StringSQuote bool
+}
+
+// DefaultParserConfig is the default config with all parser features enabled.
+var DefaultParserConfig = ParserConfig{
+	Array:        true,
+	Object:       true,
+	StringDQuote: true,
+	StringSQuote: true,
+}
+
+// EnvParserConfig is configuration for parser when the value comes from environmental variable.
+var EnvParserConfig = ParserConfig{
+	Array:        true,
+	Object:       false,
+	StringDQuote: true,
+	StringSQuote: true,
+}
+
 type flagParser struct {
 	input string
+	cfg   ParserConfig
 }
 
 // stopSet definitions for handling unquoted strings
@@ -52,7 +77,25 @@ const (
 // In addition, top-level values can be separated by ',' to build arrays
 // without having to use [].
 func Value(content string) (interface{}, error) {
-	p := &flagParser{strings.TrimSpace(content)}
+	return ValueWithConfig(content, DefaultParserConfig)
+}
+
+// ValueWithConfig parses command line arguments, supporting
+// boolean, numbers, strings, arrays, objects when enabled.
+//
+// The parser implements a superset of JSON, but only a subset of YAML by
+// allowing for arrays and objects having a trailing comma. In addition 3
+// strings types are supported:
+//
+// 1. single quoted string (no unescaping of any characters)
+// 2. double quoted strings (characters are escaped)
+// 3. strings without quotes. String parsing stops in
+//   special characters like '[]{},:'
+//
+// In addition, top-level values can be separated by ',' to build arrays
+// without having to use [].
+func ValueWithConfig(content string, cfg ParserConfig) (interface{}, error) {
+	p := &flagParser{strings.TrimSpace(content), cfg}
 	v, err := p.parse()
 	if err != nil {
 		return nil, fmt.Errorf("%v when parsing '%v'", err.Error(), content)
@@ -99,13 +142,25 @@ func (p *flagParser) parseValue(stopSet string) (interface{}, error) {
 
 	switch in[0] {
 	case '[':
-		return p.parseArray()
+		if p.cfg.Array {
+			return p.parseArray()
+		}
+		return p.parsePrimitive(stopSet)
 	case '{':
-		return p.parseObj()
+		if p.cfg.Object {
+			return p.parseObj()
+		}
+		return p.parsePrimitive(stopSet)
 	case '"':
-		return p.parseStringDQuote()
+		if p.cfg.StringDQuote {
+			return p.parseStringDQuote()
+		}
+		return p.parsePrimitive(stopSet)
 	case '\'':
-		return p.parseStringSQuote()
+		if p.cfg.StringSQuote {
+			return p.parseStringSQuote()
+		}
+		return p.parsePrimitive(stopSet)
 	default:
 		return p.parsePrimitive(stopSet)
 	}
