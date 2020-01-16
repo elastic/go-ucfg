@@ -28,11 +28,26 @@ import (
 
 type myNonzeroInt int
 type myCustomList []int
+type myCustomMap map[string]int
+type myNonzeroList []myNonzeroInt
+type myNonzeroMap map[string]myNonzeroInt
+
+type mapValidator myNonzeroMap
 
 type structValidator struct{ I int }
 type ptrStructValidator struct{ I int }
+type structMapValidator struct {
+	I int
+	M mapValidator
+}
+type structNestedValidator struct {
+	I int
+	N structMapValidator
+}
 
 var errZeroTest = errors.New("value must not be 0")
+var errEmptyTest = errors.New("value must not be empty")
+var errMoreTest = errors.New("value must have more than 1 element")
 
 func (m myNonzeroInt) Validate() error {
 	return testZeroErr(int(m))
@@ -40,7 +55,21 @@ func (m myNonzeroInt) Validate() error {
 
 func (l myCustomList) Validate() error {
 	if len(l) == 0 {
-		return errZeroTest
+		return errEmptyTest
+	}
+	return nil
+}
+
+func (p myCustomMap) Validate() error {
+	if len(p) == 0 {
+		return errEmptyTest
+	}
+	return nil
+}
+
+func (p mapValidator) Validate() error {
+	if len(p) <= 1 {
+		return errMoreTest
 	}
 	return nil
 }
@@ -50,6 +79,14 @@ func (s structValidator) Validate() error {
 }
 
 func (p *ptrStructValidator) Validate() error {
+	return testZeroErr(p.I)
+}
+
+func (p structMapValidator) Validate() error {
+	return testZeroErr(p.I)
+}
+
+func (p structNestedValidator) Validate() error {
 	return testZeroErr(p.I)
 }
 
@@ -68,6 +105,34 @@ func TestValidationPass(t *testing.T) {
 		"d": -10,
 		"f": 3.14,
 		"l": []int{0, 1},
+		"m": myCustomMap{
+			"key": 1,
+		},
+		"n": myNonzeroList{myNonzeroInt(1)},
+		"o": myNonzeroMap{
+			"key": myNonzeroInt(1),
+		},
+		"p": mapValidator{
+			"one": 1,
+			"two": 2,
+		},
+		"q": structMapValidator{
+			I: 1,
+			M: mapValidator{
+				"one": 1,
+				"two": 2,
+			},
+		},
+		"r": structNestedValidator{
+			I: 1,
+			N: structMapValidator{
+				I: 1,
+				M: mapValidator{
+					"one": 1,
+					"two": 2,
+				},
+			},
+		},
 	})
 
 	tests := []interface{}{
@@ -177,6 +242,36 @@ func TestValidationPass(t *testing.T) {
 			L myCustomList
 		}{},
 
+		// validation field 'm'
+		&struct {
+			M myCustomMap
+		}{},
+
+		// validation field 'n'
+		&struct {
+			N myNonzeroList
+		}{},
+
+		// validation field 'o'
+		&struct {
+			O myNonzeroMap
+		}{},
+
+		// validation field 'p'
+		&struct {
+			P mapValidator
+		}{},
+
+		// validation field 'q'
+		&struct {
+			Q structMapValidator
+		}{},
+
+		// validation field 'r'
+		&struct {
+			R structNestedValidator
+		}{},
+
 		// other
 		&struct {
 			X int // field not present in config, but not required
@@ -199,6 +294,71 @@ func TestValidationFail(t *testing.T) {
 		"d": -10,
 		"f": 3.14,
 		"l": []int{},
+		"m": myCustomMap{},
+		"n": myNonzeroList{myNonzeroInt(0)},
+		"o": myNonzeroMap{
+			"key": myNonzeroInt(0),
+		},
+		"p0": mapValidator{},
+		"p1": mapValidator{
+			"one": 0,
+		},
+		"p2": mapValidator{
+			"one": 1,
+		},
+		"q0": structMapValidator{
+			I: 0,
+			M: mapValidator{
+				"one": 1,
+				"two": 2,
+			},
+		},
+		"q1": structMapValidator{
+			I: 1,
+			M: mapValidator{},
+		},
+		"q2": structMapValidator{
+			I: 1,
+			M: mapValidator{
+				"one": 1,
+			},
+		},
+		"r0": structNestedValidator{
+			I: 0,
+			N: structMapValidator{
+				I: 1,
+				M: mapValidator{
+					"one": 1,
+					"two": 2,
+				},
+			},
+		},
+		"r1": structNestedValidator{
+			I: 1,
+			N: structMapValidator{
+				I: 0,
+				M: mapValidator{
+					"one": 1,
+					"two": 2,
+				},
+			},
+		},
+		"r2": structNestedValidator{
+			I: 1,
+			N: structMapValidator{
+				I: 1,
+				M: mapValidator{},
+			},
+		},
+		"r3": structNestedValidator{
+			I: 1,
+			N: structMapValidator{
+				I: 1,
+				M: mapValidator{
+					"one": 1,
+				},
+			},
+		},
 	})
 
 	tests := []interface{}{
@@ -279,6 +439,57 @@ func TestValidationFail(t *testing.T) {
 		// test field 'l'
 		&struct {
 			X myCustomList `config:"l"`
+		}{},
+
+		// validation field 'm'
+		&struct {
+			M myCustomMap
+		}{},
+
+		// validation field 'n'
+		&struct {
+			N myNonzeroList
+		}{},
+
+		// validation field 'o'
+		&struct {
+			O myNonzeroMap
+		}{},
+
+		// validation 'p' fields
+		&struct {
+			P mapValidator `config:"p0"`
+		}{},
+		&struct {
+			P mapValidator `config:"p1"`
+		}{},
+		&struct {
+			P mapValidator `config:"p2"`
+		}{},
+
+		// validation 'q' fields
+		&struct {
+			Q structMapValidator `config:"q0"`
+		}{},
+		&struct {
+			Q structMapValidator `config:"q1"`
+		}{},
+		&struct {
+			Q structMapValidator `config:"q2"`
+		}{},
+
+		// validation 'r' fields
+		&struct {
+			R structNestedValidator `config:"r0"`
+		}{},
+		&struct {
+			R structNestedValidator `config:"r1"`
+		}{},
+		&struct {
+			R structNestedValidator `config:"r2"`
+		}{},
+		&struct {
+			R structNestedValidator `config:"r3"`
 		}{},
 
 		// other
