@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/elastic/go-ucfg/parse"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -67,7 +68,6 @@ func TestStructMergeUnpackTyped(t *testing.T) {
 			},
 			env: testEnv{"env_strings": "one"},
 		},
-
 		{
 			t: &struct {
 				Hosts []string
@@ -78,6 +78,17 @@ func TestStructMergeUnpackTyped(t *testing.T) {
 				"hosts": "${hosts_from_env}",
 			},
 			env: testEnv{"hosts_from_env": "host1:1234,host2:4567"},
+		},
+		{
+			t: &struct {
+				Hosts []string
+			}{
+				Hosts: []string{"{host1}:1234", "host2:4567"},
+			},
+			cfg: map[string]interface{}{
+				"hosts": "${hosts_from_env}",
+			},
+			env: testEnv{"hosts_from_env": "{host1}:1234,host2:4567"},
 		},
 		{
 			t: &struct {
@@ -207,16 +218,16 @@ func TestIgnoreStructFields(t *testing.T) {
 }
 
 func resolveTestEnv(e testEnv) Option {
-	fail := func(name string) (string, error) {
-		return "", fmt.Errorf("empty environment variable %v", name)
+	fail := func(name string) (string, parse.Config, error) {
+		return "", parse.EnvConfig, fmt.Errorf("empty environment variable %v", name)
 	}
 
 	if e == nil {
 		return Resolve(fail)
 	}
-	return Resolve(func(name string) (string, error) {
+	return Resolve(func(name string) (string, parse.Config, error) {
 		if v := e[name]; v != "" {
-			return v, nil
+			return v, parse.EnvConfig, nil
 		}
 		return fail(name)
 	})

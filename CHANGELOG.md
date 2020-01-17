@@ -6,8 +6,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 - Add support for HJSON. #131
+- Add new parse.Config to adjust parsing of varibles returned by a Resolve. #139
 
 ### Changed
+- Moved internal/parse to parse module. #139
+- Add parse.Config to resolvers return. #139
 
 ### Deprecated
 
@@ -16,6 +19,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - Call Validate on custom slice types. #133
 - Call Validate on custom map types. #136
+- Disabled object parsing of environment variables. #139
 
 ## [0.7.0]
 
