@@ -49,6 +49,14 @@ var EnvParserConfig = ParserConfig{
 	StringSQuote: true,
 }
 
+// NoopParserConfig is configuration for parser that disables all options.
+var NoopParserConfig = ParserConfig{
+	Array:        false,
+	Object:       false,
+	StringDQuote: false,
+	StringSQuote: false,
+}
+
 type flagParser struct {
 	input string
 	cfg   ParserConfig
@@ -67,11 +75,11 @@ const (
 //
 // The parser implements a superset of JSON, but only a subset of YAML by
 // allowing for arrays and objects having a trailing comma. In addition 3
-// strings types are supported:
+// string types are supported:
 //
 // 1. single quoted string (no unescaping of any characters)
 // 2. double quoted strings (characters are escaped)
-// 3. strings without quotes. String parsing stops in
+// 3. strings without quotes. String parsing stops at
 //   special characters like '[]{},:'
 //
 // In addition, top-level values can be separated by ',' to build arrays
@@ -85,22 +93,32 @@ func Value(content string) (interface{}, error) {
 //
 // The parser implements a superset of JSON, but only a subset of YAML by
 // allowing for arrays and objects having a trailing comma. In addition 3
-// strings types are supported:
+// string types are supported:
 //
 // 1. single quoted string (no unescaping of any characters)
 // 2. double quoted strings (characters are escaped)
-// 3. strings without quotes. String parsing stops in
+// 3. strings without quotes. String parsing stops at
 //   special characters like '[]{},:'
 //
 // In addition, top-level values can be separated by ',' to build arrays
 // without having to use [].
 func ValueWithConfig(content string, cfg ParserConfig) (interface{}, error) {
 	p := &flagParser{strings.TrimSpace(content), cfg}
+	if err := p.validateConfig(); err != nil {
+		return nil, err
+	}
 	v, err := p.parse()
 	if err != nil {
 		return nil, fmt.Errorf("%v when parsing '%v'", err.Error(), content)
 	}
 	return v, nil
+}
+
+func (p *flagParser) validateConfig() error {
+	if !p.cfg.Array && p.cfg.Object {
+		return fmt.Errorf("cfg.Array cannot be disabled when cfg.Object is enabled")
+	}
+	return nil
 }
 
 func (p *flagParser) parse() (interface{}, error) {
