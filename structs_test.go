@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/elastic/go-ucfg/parse"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -217,16 +218,16 @@ func TestIgnoreStructFields(t *testing.T) {
 }
 
 func resolveTestEnv(e testEnv) Option {
-	fail := func(name string) (string, error) {
-		return "", fmt.Errorf("empty environment variable %v", name)
+	fail := func(name string) (string, parse.Config, error) {
+		return "", parse.EnvConfig, fmt.Errorf("empty environment variable %v", name)
 	}
 
 	if e == nil {
 		return Resolve(fail)
 	}
-	return Resolve(func(name string) (string, error) {
+	return Resolve(func(name string) (string, parse.Config, error) {
 		if v := e[name]; v != "" {
-			return v, nil
+			return v, parse.EnvConfig, nil
 		}
 		return fail(name)
 	})

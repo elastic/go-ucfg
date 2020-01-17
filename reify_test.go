@@ -20,6 +20,7 @@ package ucfg
 import (
 	"testing"
 
+	"github.com/elastic/go-ucfg/parse"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -137,7 +138,7 @@ func TestUnpackPrimitivesValuesResolve(t *testing.T) {
 
 	cfgOpts := []Option{
 		VarExp,
-		Resolve(func(name string) (string, error) {
+		Resolve(func(name string) (string, parse.Config, error) {
 			return map[string]string{
 				"v_b": "true",
 				"v_i": "42",
@@ -145,7 +146,7 @@ func TestUnpackPrimitivesValuesResolve(t *testing.T) {
 				"v_f": "3.14",
 				"v_s": "string",
 				"v_w": "{string}",
-			}[name], nil
+			}[name], parse.EnvConfig, nil
 		}),
 	}
 

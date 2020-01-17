@@ -22,6 +22,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/elastic/go-ucfg/parse"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -190,11 +191,11 @@ func TestCyclicReferenceShouldFallbackToOtherResolvers(t *testing.T) {
 		"top.reference": "${top.reference}",
 	}
 
-	resolveFn := func(key string) (string, error) {
+	resolveFn := func(key string) (string, parse.Config, error) {
 		if key == "top.reference" {
-			return "reference-found", nil
+			return "reference-found", parse.DefaultConfig, nil
 		}
-		return "", ErrMissing
+		return "", parse.DefaultConfig, ErrMissing
 	}
 
 	opts := []Option{
@@ -212,11 +213,11 @@ func TestCyclicReferenceShouldFallbackToOtherResolvers(t *testing.T) {
 }
 
 func TestTopYamlKeyInEnvResolvers(t *testing.T) {
-	resolveFn := func(key string) (string, error) {
+	resolveFn := func(key string) (string, parse.Config, error) {
 		if key == "a.key" {
-			return "key-found", nil
+			return "key-found", parse.DefaultConfig, nil
 		}
-		return "", fmt.Errorf("could not find the key: %s", key)
+		return "", parse.DefaultConfig, fmt.Errorf("could not find the key: %s", key)
 	}
 
 	opts := []Option{

@@ -25,32 +25,32 @@ import (
 	"unicode"
 )
 
-// ParserConfig allows enabling and disabling parser features.
-type ParserConfig struct {
+// Config allows enabling and disabling parser features.
+type Config struct {
 	Array        bool
 	Object       bool
 	StringDQuote bool
 	StringSQuote bool
 }
 
-// DefaultParserConfig is the default config with all parser features enabled.
-var DefaultParserConfig = ParserConfig{
+// DefaultConfig is the default config with all parser features enabled.
+var DefaultConfig = Config{
 	Array:        true,
 	Object:       true,
 	StringDQuote: true,
 	StringSQuote: true,
 }
 
-// EnvParserConfig is configuration for parser when the value comes from environmental variable.
-var EnvParserConfig = ParserConfig{
+// EnvConfig is configuration for parser when the value comes from environmental variable.
+var EnvConfig = Config{
 	Array:        true,
 	Object:       false,
 	StringDQuote: true,
 	StringSQuote: true,
 }
 
-// NoopParserConfig is configuration for parser that disables all options.
-var NoopParserConfig = ParserConfig{
+// NoopConfig is configuration for parser that disables all options.
+var NoopConfig = Config{
 	Array:        false,
 	Object:       false,
 	StringDQuote: false,
@@ -59,7 +59,7 @@ var NoopParserConfig = ParserConfig{
 
 type flagParser struct {
 	input string
-	cfg   ParserConfig
+	cfg   Config
 }
 
 // stopSet definitions for handling unquoted strings
@@ -85,7 +85,7 @@ const (
 // In addition, top-level values can be separated by ',' to build arrays
 // without having to use [].
 func Value(content string) (interface{}, error) {
-	return ValueWithConfig(content, DefaultParserConfig)
+	return ValueWithConfig(content, DefaultConfig)
 }
 
 // ValueWithConfig parses command line arguments, supporting
@@ -102,7 +102,7 @@ func Value(content string) (interface{}, error) {
 //
 // In addition, top-level values can be separated by ',' to build arrays
 // without having to use [].
-func ValueWithConfig(content string, cfg ParserConfig) (interface{}, error) {
+func ValueWithConfig(content string, cfg Config) (interface{}, error) {
 	p := &flagParser{strings.TrimSpace(content), cfg}
 	if err := p.validateConfig(); err != nil {
 		return nil, err

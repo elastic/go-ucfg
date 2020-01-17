@@ -216,8 +216,8 @@ func TestFlagValueParsingWithNoObj(t *testing.T) {
 	for i, test := range tests {
 		t.Logf("run test (%v): %v", i, test.input)
 
-		// `EnvParserConfig` has Object disabled.
-		v, err := ValueWithConfig(test.input, EnvParserConfig)
+		// `EnvConfig` has Object disabled.
+		v, err := ValueWithConfig(test.input, EnvConfig)
 		if err != nil {
 			t.Error(err)
 			continue
@@ -312,7 +312,7 @@ func TestFlagValueParsingWithNoArrayObj(t *testing.T) {
 	for i, test := range tests {
 		t.Logf("run test (%v): %v", i, test.input)
 
-		v, err := ValueWithConfig(test.input, ParserConfig{
+		v, err := ValueWithConfig(test.input, Config{
 			Array:        false,
 			Object:       false,
 			StringDQuote: true,
@@ -427,7 +427,7 @@ func TestFlagValueParsingWithNoStringDQuote(t *testing.T) {
 	for i, test := range tests {
 		t.Logf("run test (%v): %v", i, test.input)
 
-		v, err := ValueWithConfig(test.input, ParserConfig{
+		v, err := ValueWithConfig(test.input, Config{
 			Array:        true,
 			Object:       true,
 			StringDQuote: false,
@@ -542,7 +542,7 @@ func TestFlagValueParsingWithNoStringSQuote(t *testing.T) {
 	for i, test := range tests {
 		t.Logf("run test (%v): %v", i, test.input)
 
-		v, err := ValueWithConfig(test.input, ParserConfig{
+		v, err := ValueWithConfig(test.input, Config{
 			Array:        true,
 			Object:       true,
 			StringDQuote: true,
@@ -657,7 +657,7 @@ func TestFlagValueParsingWithNoStringDQuoteOrSQuote(t *testing.T) {
 	for i, test := range tests {
 		t.Logf("run test (%v): %v", i, test.input)
 
-		v, err := ValueWithConfig(test.input, ParserConfig{
+		v, err := ValueWithConfig(test.input, Config{
 			Array:        true,
 			Object:       true,
 			StringDQuote: false,
@@ -770,7 +770,7 @@ func TestFlagValueParsingWithNoop(t *testing.T) {
 	for i, test := range tests {
 		t.Logf("run test (%v): %v", i, test.input)
 
-		v, err := ValueWithConfig(test.input, NoopParserConfig)
+		v, err := ValueWithConfig(test.input, NoopConfig)
 		if err != nil {
 			t.Error(err)
 			continue
