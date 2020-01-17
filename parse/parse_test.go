@@ -23,6 +23,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestParseWithObjectButNoArrayErrors(t *testing.T) {
+	_, err := ValueWithConfig("", Config{
+		Array:        false,
+		Object:       true,
+		StringDQuote: true,
+		StringSQuote: true,
+	})
+	if err == nil {
+		t.Error("should have failed")
+	}
+}
+
 func TestFlagValueParsingWithAll(t *testing.T) {
 	tests := []struct {
 		input    string
