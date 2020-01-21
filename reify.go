@@ -229,6 +229,9 @@ func reifyStruct(opts *options, orig reflect.Value, cfg *Config) Error {
 		to.Set(orig)
 	}
 
+	// Execute InitDefaults on the structure when defined.
+	tryInitDefaults(to)
+
 	if v, ok := valueIsUnpacker(to); ok {
 		err := unpackWith(opts, v, cfgSub{cfg})
 		if err != nil {
