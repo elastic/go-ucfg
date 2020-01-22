@@ -229,15 +229,14 @@ func reifyStruct(opts *options, orig reflect.Value, cfg *Config) Error {
 		to.Set(orig)
 	}
 
-	// Execute InitDefaults on the structure when defined.
-	tryInitDefaults(to)
-
 	if v, ok := valueIsUnpacker(to); ok {
+		tryInitDefaults(v)
 		err := unpackWith(opts, v, cfgSub{cfg})
 		if err != nil {
 			return err
 		}
 	} else {
+		tryInitDefaults(to)
 		numField := to.NumField()
 		for i := 0; i < numField; i++ {
 			stField := to.Type().Field(i)
@@ -288,7 +287,7 @@ func reifyStruct(opts *options, orig reflect.Value, cfg *Config) Error {
 			} else {
 				name = fieldName(name, stField.Name)
 				fopts := fieldOptions{opts: opts, tag: tagOpts, validators: validators}
-				if err := reifyGetField(cfg, fopts, name, vField); err != nil {
+				if err := reifyGetField(cfg, fopts, name, vField, stField.Type); err != nil {
 					return err
 				}
 			}
@@ -308,6 +307,7 @@ func reifyGetField(
 	opts fieldOptions,
 	name string,
 	to reflect.Value,
+	baseType reflect.Type,
 ) Error {
 	p := parsePath(name, opts.opts.pathSep)
 	value, err := p.GetValue(cfg, opts.opts)
@@ -319,10 +319,17 @@ func reifyGetField(
 	}
 
 	if isNil(value) {
-		if err := runValidators(nil, opts.validators); err != nil {
-			return raiseValidation(cfg.ctx, cfg.metadata, name, err)
+		if !hasInitDefaults(baseType) {
+			if err := runValidators(nil, opts.validators); err != nil {
+				return raiseValidation(cfg.ctx, cfg.metadata, name, err)
+			}
+			return nil
 		}
-		return nil
+
+		// Config contained no value for field, but the type on the field defines
+		// InitDefault. So use a nil value so reifyMergeValue can load the field
+		// and call the InitDefault.
+		value = &cfgNil{cfgPrimitive{cfg.ctx, cfg.metadata}}
 	}
 
 	v, err := reifyMergeValue(opts, to, value)
@@ -456,6 +463,7 @@ func reifyMergeValue(
 	}
 
 	if v, ok := valueIsUnpacker(old); ok {
+		tryInitDefaults(v)
 		err := unpackWith(opts.opts, v, val)
 		if err != nil {
 			return reflect.Value{}, err
@@ -630,7 +638,9 @@ func reifyPrimitive(
 ) (reflect.Value, Error) {
 	// zero initialize value if val==nil
 	if isNil(val) {
-		return pointerize(t, baseType, reflect.Zero(baseType)), nil
+		v := pointerize(t, baseType, reflect.Zero(baseType))
+		tryInitDefaults(v)
+		return v, nil
 	}
 
 	var v reflect.Value
@@ -638,6 +648,7 @@ func reifyPrimitive(
 	var ok bool
 
 	if v, ok = typeIsUnpacker(baseType); ok {
+		tryInitDefaults(v)
 		err := unpackWith(opts.opts, v, val)
 		if err != nil {
 			return reflect.Value{}, err

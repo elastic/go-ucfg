@@ -23,9 +23,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type myIntInitializer int
+
 type structInitializer struct {
 	I int
 	J int
+}
+
+func (i *myIntInitializer) InitDefaults() {
+	*i = myIntInitializer(3)
 }
 
 func (s *structInitializer) InitDefaults() {
@@ -35,6 +41,7 @@ func (s *structInitializer) InitDefaults() {
 type nestedStructInitializer struct {
 	N structInitializer
 	O int
+	P myIntInitializer
 }
 
 func (n *nestedStructInitializer) InitDefaults() {
@@ -42,6 +49,34 @@ func (n *nestedStructInitializer) InitDefaults() {
 
 	// overridden by InitDefaults from structInitializer
 	n.N.J = 15
+}
+
+func TestInitDefaultsPrimitive(t *testing.T) {
+	c, _ := NewFrom(map[string]interface{}{})
+
+	// unpack S
+	r := &struct {
+		I myIntInitializer
+	}{}
+
+	err := c.Unpack(r)
+	assert.NoError(t, err)
+	assert.Equal(t, myIntInitializer(3), r.I)
+}
+
+func TestInitDefaultsPrimitiveSet(t *testing.T) {
+	c, _ := NewFrom(map[string]interface{}{
+		"i": 25,
+	})
+
+	// unpack S
+	r := &struct {
+		I myIntInitializer
+	}{}
+
+	err := c.Unpack(r)
+	assert.NoError(t, err)
+	assert.Equal(t, myIntInitializer(25), r.I)
 }
 
 func TestInitDefaultsSingle(t *testing.T) {
@@ -81,4 +116,21 @@ func TestInitDefaultsNested(t *testing.T) {
 	assert.Equal(t, 5, r.S.N.I)
 	assert.Equal(t, 10, r.S.N.J)
 	assert.Equal(t, 20, r.S.O)
+	assert.Equal(t, myIntInitializer(3), r.S.P)
+}
+
+func TestInitDefaultsNestedEmpty(t *testing.T) {
+	c, _ := NewFrom(map[string]interface{}{})
+
+	// unpack S
+	r := &struct {
+		S nestedStructInitializer
+	}{}
+
+	err := c.Unpack(r)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, r.S.N.I)
+	assert.Equal(t, 10, r.S.N.J)
+	assert.Equal(t, 20, r.S.O)
+	assert.Equal(t, myIntInitializer(3), r.S.P)
 }

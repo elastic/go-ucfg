@@ -30,16 +30,25 @@ type Initializer interface {
 
 func tryInitDefaults(val reflect.Value) {
 	t := val.Type()
-	var initializer Initializer
 
+	var initializer Initializer
 	if t.Implements(iInitializer) {
 		initializer = val.Interface().(Initializer)
 	} else if reflect.PtrTo(t).Implements(iInitializer) {
 		val = pointerize(reflect.PtrTo(t), t, val)
 		initializer = val.Interface().(Initializer)
 	}
-
 	if initializer != nil {
 		initializer.InitDefaults()
 	}
+}
+
+func hasInitDefaults(t reflect.Type) bool {
+	if t.Implements(iInitializer) {
+		return true
+	}
+	if reflect.PtrTo(t).Implements(iInitializer) {
+		return true
+	}
+	return false
 }
