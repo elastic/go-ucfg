@@ -232,7 +232,7 @@ func reifyStruct(opts *options, orig reflect.Value, cfg *Config) Error {
 	}
 
 	if v, ok := valueIsUnpacker(to); ok {
-		err := unpackWith(opts, v, cfgSub{cfg})
+		err := unpackWith(opts, v, cfgSubFlex{cfgSub{cfg}})
 		if err != nil {
 			return err
 		}

@@ -89,6 +89,8 @@ type cfgString struct {
 	s string
 }
 
+type cfgSubFlex struct{ cfgSub }
+
 type cfgSub struct {
 	c *Config
 }
@@ -438,6 +440,12 @@ func (c cfgSub) reify(opts *options) (interface{}, error) {
 		return m, nil
 	}
 }
+
+func (cfgSubFlex) toBool(*options) (bool, error)     { return false, nil }
+func (cfgSubFlex) toString(*options) (string, error) { return "", nil }
+func (cfgSubFlex) toInt(*options) (int64, error)     { return 0, nil }
+func (cfgSubFlex) toUint(*options) (uint64, error)   { return 0, nil }
+func (cfgSubFlex) toFloat(*options) (float64, error) { return 0, nil }
 
 func (d *cfgDynamic) typ(opts *options) (ti typeInfo, err error) {
 	d.withValue(&err, opts, func(v value) {
