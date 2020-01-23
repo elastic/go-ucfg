@@ -24,24 +24,34 @@ import (
 )
 
 type myIntInitializer int
+type myMapInitializer map[string]string
+
+func (i *myIntInitializer) InitDefaults() {
+	*i = myIntInitializer(3)
+}
+
+func (m *myMapInitializer) InitDefaults() {
+	(*m)["init"] = "defaults"
+}
 
 type structInitializer struct {
 	I int
 	J int
 }
 
-func (i *myIntInitializer) InitDefaults() {
-	*i = myIntInitializer(3)
-}
-
 func (s *structInitializer) InitDefaults() {
 	s.J = 10
 }
 
+type structNoInitalizer struct {
+	I myIntInitializer
+}
+
 type nestedStructInitializer struct {
+	M myMapInitializer
 	N structInitializer
 	O int
-	P myIntInitializer
+	P structNoInitalizer
 }
 
 func (n *nestedStructInitializer) InitDefaults() {
@@ -49,6 +59,17 @@ func (n *nestedStructInitializer) InitDefaults() {
 
 	// overridden by InitDefaults from structInitializer
 	n.N.J = 15
+}
+
+type ptrNestedStructInitializer struct {
+	M *myMapInitializer
+	N *structInitializer
+	O int
+	P *structNoInitalizer
+}
+
+func (n *ptrNestedStructInitializer) InitDefaults() {
+	n.O = 20
 }
 
 func TestInitDefaultsPrimitive(t *testing.T) {
@@ -77,6 +98,62 @@ func TestInitDefaultsPrimitiveSet(t *testing.T) {
 	err := c.Unpack(r)
 	assert.NoError(t, err)
 	assert.Equal(t, myIntInitializer(25), r.I)
+}
+
+func TestInitDefaultsMap(t *testing.T) {
+	c, _ := NewFrom(map[string]interface{}{})
+
+	// unpack S
+	r := &struct {
+		M myMapInitializer
+	}{}
+
+	err := c.Unpack(r)
+	assert.NoError(t, err)
+	assert.Equal(t, myMapInitializer{
+		"init": "defaults",
+	}, r.M)
+}
+
+func TestInitDefaultsMapUpdate(t *testing.T) {
+	c, _ := NewFrom(map[string]interface{}{
+		"m": map[string]interface{}{
+			"other": "config",
+		},
+	})
+
+	// unpack S
+	r := &struct {
+		M myMapInitializer
+	}{}
+
+	err := c.Unpack(r)
+	assert.NoError(t, err)
+	assert.Equal(t, myMapInitializer{
+		"init":  "defaults",
+		"other": "config",
+	}, r.M)
+}
+
+func TestInitDefaultsMapReplace(t *testing.T) {
+	c, _ := NewFrom(map[string]interface{}{
+		"m": map[string]interface{}{
+			"init":  "replace",
+			"other": "config",
+		},
+	})
+
+	// unpack S
+	r := &struct {
+		M myMapInitializer
+	}{}
+
+	err := c.Unpack(r)
+	assert.NoError(t, err)
+	assert.Equal(t, myMapInitializer{
+		"init":  "replace",
+		"other": "config",
+	}, r.M)
 }
 
 func TestInitDefaultsSingle(t *testing.T) {
@@ -113,10 +190,13 @@ func TestInitDefaultsNested(t *testing.T) {
 
 	err := c.Unpack(r)
 	assert.NoError(t, err)
+	assert.Equal(t, myMapInitializer{
+		"init": "defaults",
+	}, r.S.M)
 	assert.Equal(t, 5, r.S.N.I)
 	assert.Equal(t, 10, r.S.N.J)
 	assert.Equal(t, 20, r.S.O)
-	assert.Equal(t, myIntInitializer(3), r.S.P)
+	assert.Equal(t, myIntInitializer(3), r.S.P.I)
 }
 
 func TestInitDefaultsNestedEmpty(t *testing.T) {
@@ -129,8 +209,30 @@ func TestInitDefaultsNestedEmpty(t *testing.T) {
 
 	err := c.Unpack(r)
 	assert.NoError(t, err)
+	assert.Equal(t, myMapInitializer{
+		"init": "defaults",
+	}, r.S.M)
 	assert.Equal(t, 0, r.S.N.I)
 	assert.Equal(t, 10, r.S.N.J)
 	assert.Equal(t, 20, r.S.O)
-	assert.Equal(t, myIntInitializer(3), r.S.P)
+	assert.Equal(t, myIntInitializer(3), r.S.P.I)
+}
+
+func TestInitDefaultsPtrNestedEmpty(t *testing.T) {
+	c, _ := NewFrom(map[string]interface{}{})
+
+	// unpack S
+	r := &struct {
+		S ptrNestedStructInitializer
+	}{}
+
+	err := c.Unpack(r)
+	assert.NoError(t, err)
+	assert.Equal(t, myMapInitializer{
+		"init": "defaults",
+	}, *r.S.M)
+	assert.Equal(t, 0, r.S.N.I)
+	assert.Equal(t, 10, r.S.N.J)
+	assert.Equal(t, 20, r.S.O)
+	assert.Equal(t, myIntInitializer(3), r.S.P.I)
 }

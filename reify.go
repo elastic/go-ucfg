@@ -180,6 +180,11 @@ func reifyMap(opts *options, to reflect.Value, from *Config) Error {
 		return raiseKeyInvalidTypeUnpack(to.Type(), from)
 	}
 
+	if to.IsNil() {
+		to.Set(reflect.MakeMap(to.Type()))
+	}
+	tryInitDefaults(to)
+
 	fields := from.fields.dict()
 	if len(fields) == 0 {
 		if err := tryValidate(to); err != nil {
@@ -188,9 +193,6 @@ func reifyMap(opts *options, to reflect.Value, from *Config) Error {
 		return nil
 	}
 
-	if to.IsNil() {
-		to.Set(reflect.MakeMap(to.Type()))
-	}
 	for k, value := range fields {
 		opts.activeFields = newFieldSet(parentFields)
 		key := reflect.ValueOf(k)
@@ -230,7 +232,6 @@ func reifyStruct(opts *options, orig reflect.Value, cfg *Config) Error {
 	}
 
 	if v, ok := valueIsUnpacker(to); ok {
-		tryInitDefaults(v)
 		err := unpackWith(opts, v, cfgSub{cfg})
 		if err != nil {
 			return err
@@ -286,6 +287,9 @@ func reifyStruct(opts *options, orig reflect.Value, cfg *Config) Error {
 				}
 			} else {
 				name = fieldName(name, stField.Name)
+				if name == "i" {
+					name = "i"
+				}
 				fopts := fieldOptions{opts: opts, tag: tagOpts, validators: validators}
 				if err := reifyGetField(cfg, fopts, name, vField, stField.Type); err != nil {
 					return err
@@ -319,17 +323,17 @@ func reifyGetField(
 	}
 
 	if isNil(value) {
-		if !hasInitDefaults(baseType) {
+		// Primitive types return early when it doesn't implement the Initializer interface.
+		baseType = chaseTypePointers(baseType)
+		if baseType.Kind() != reflect.Map && baseType.Kind() != reflect.Struct && !hasInitDefaults(baseType) {
 			if err := runValidators(nil, opts.validators); err != nil {
 				return raiseValidation(cfg.ctx, cfg.metadata, name, err)
 			}
 			return nil
 		}
-
-		// Config contained no value for field, but the type on the field defines
-		// InitDefault. So use a nil value so reifyMergeValue can load the field
-		// and call the InitDefault.
-		value = &cfgNil{cfgPrimitive{cfg.ctx, cfg.metadata}}
+		// None primitive types always get initialized even if it doesn't implement the
+		// Initializer interface, because nested types might implement the Initializer interface.
+		value = &cfgEmpty{cfgPrimitive{cfg.ctx, cfg.metadata}}
 	}
 
 	v, err := reifyMergeValue(opts, to, value)
@@ -337,7 +341,7 @@ func reifyGetField(
 		return err
 	}
 
-	to.Set(v)
+	to.Set(pointerize(to.Type(), v.Type(), v))
 	return nil
 }
 
@@ -463,7 +467,6 @@ func reifyMergeValue(
 	}
 
 	if v, ok := valueIsUnpacker(old); ok {
-		tryInitDefaults(v)
 		err := unpackWith(opts.opts, v, val)
 		if err != nil {
 			return reflect.Value{}, err
@@ -637,10 +640,9 @@ func reifyPrimitive(
 	t, baseType reflect.Type,
 ) (reflect.Value, Error) {
 	// zero initialize value if val==nil
-	if isNil(val) {
+	if isNil(val) || isEmpty(val) {
 		v := pointerize(t, baseType, reflect.Zero(baseType))
-		tryInitDefaults(v)
-		return v, nil
+		return tryInitDefaults(v), nil
 	}
 
 	var v reflect.Value
@@ -648,7 +650,6 @@ func reifyPrimitive(
 	var ok bool
 
 	if v, ok = typeIsUnpacker(baseType); ok {
-		tryInitDefaults(v)
 		err := unpackWith(opts.opts, v, val)
 		if err != nil {
 			return reflect.Value{}, err

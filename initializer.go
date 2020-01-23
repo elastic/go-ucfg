@@ -28,19 +28,21 @@ type Initializer interface {
 	InitDefaults()
 }
 
-func tryInitDefaults(val reflect.Value) {
+func tryInitDefaults(val reflect.Value) reflect.Value {
 	t := val.Type()
 
 	var initializer Initializer
 	if t.Implements(iInitializer) {
 		initializer = val.Interface().(Initializer)
-	} else if reflect.PtrTo(t).Implements(iInitializer) {
-		val = pointerize(reflect.PtrTo(t), t, val)
-		initializer = val.Interface().(Initializer)
-	}
-	if initializer != nil {
 		initializer.InitDefaults()
+		return val
+	} else if reflect.PtrTo(t).Implements(iInitializer) {
+		tmp := pointerize(reflect.PtrTo(t), t, val)
+		initializer = tmp.Interface().(Initializer)
+		initializer.InitDefaults()
+		return tmp.Elem()
 	}
+	return val
 }
 
 func hasInitDefaults(t reflect.Type) bool {

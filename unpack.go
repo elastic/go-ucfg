@@ -215,7 +215,7 @@ func unpackWith(opts *options, v reflect.Value, with value) Error {
 
 	}
 
-	if err != nil {
+	if err != nil && err != ErrEmpty {
 		return raisePathErr(err, meta, "", ctx.path("."))
 	}
 	return nil

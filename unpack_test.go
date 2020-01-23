@@ -146,7 +146,9 @@ func TestReifyUnpackers(t *testing.T) {
 	}
 
 	// apply configurations
-	for _, c := range configs {
+	for i, c := range configs {
+		t.Logf("Test config (%v): %#v", i, c)
+
 		cfg, err := NewFrom(c)
 		if err != nil {
 			t.Fatal(err)
@@ -204,7 +206,9 @@ func TestReifyUnpackersPtr(t *testing.T) {
 	}
 
 	// apply configurations
-	for _, c := range configs {
+	for i, c := range configs {
+		t.Logf("Test config (%v): %#v", i, c)
+
 		cfg, err := NewFrom(c)
 		if err != nil {
 			t.Fatal(err)
