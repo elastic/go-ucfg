@@ -87,7 +87,11 @@ import (
 //
 // When unpacking into a map, primitive, or struct Unpack will call InitDefaults if
 // the type implements the Initializer interface. The Initializer interface is not supported
-// on arrays or slices.
+// on arrays or slices. InitDefaults is initialized top-down, meaning that if struct contains
+// a map, struct, or primitive that also implements the Initializer interface the contained
+// type will be initialized after the struct that contains it. (e.g. if we have
+// type A struct { B B }, with both A, and B implementing InitDefaults, then A.InitDefaults
+// is called before B.InitDefaults).
 //
 // Fields available in a struct or a map, but not in the Config object, will not
 // be touched by Unpack unless they are initialized from InitDefaults.
@@ -315,7 +319,7 @@ func reifyGetField(
 	opts fieldOptions,
 	name string,
 	to reflect.Value,
-	baseType reflect.Type,
+	fieldType reflect.Type,
 ) Error {
 	p := parsePath(name, opts.opts.pathSep)
 	value, err := p.GetValue(cfg, opts.opts)
@@ -328,8 +332,8 @@ func reifyGetField(
 
 	if isNil(value) {
 		// Primitive types return early when it doesn't implement the Initializer interface.
-		baseType = chaseTypePointers(baseType)
-		if baseType.Kind() != reflect.Map && baseType.Kind() != reflect.Struct && !hasInitDefaults(baseType) {
+		fieldType = chaseTypePointers(fieldType)
+		if fieldType.Kind() != reflect.Map && fieldType.Kind() != reflect.Struct && !hasInitDefaults(fieldType) {
 			if err := runValidators(nil, opts.validators); err != nil {
 				return raiseValidation(cfg.ctx, cfg.metadata, name, err)
 			}

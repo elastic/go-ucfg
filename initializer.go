@@ -40,6 +40,9 @@ func tryInitDefaults(val reflect.Value) reflect.Value {
 		tmp := pointerize(reflect.PtrTo(t), t, val)
 		initializer = tmp.Interface().(Initializer)
 		initializer.InitDefaults()
+
+		// Return the element in the pointer so the value is set into the
+		// field and not a pointer to the value.
 		return tmp.Elem()
 	}
 	return val
