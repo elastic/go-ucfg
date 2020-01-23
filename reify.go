@@ -85,8 +85,12 @@ import (
 //  The struct tag options `replace`, `append`, and `prepend` overwrites the
 //  global value merging strategy (e.g. ReplaceValues, AppendValues, ...) for all sub-fields.
 //
+// When unpacking into a map, primitive, or struct Unpack will call InitDefaults if
+// the type implements the Initializer interface. The Initializer interface is not supported
+// on arrays or slices.
+//
 // Fields available in a struct or a map, but not in the Config object, will not
-// be touched. Default values should be set in the target value before calling Unpack.
+// be touched by Unpack unless they are initialized from InitDefaults.
 //
 // Type aliases like "type myTypeAlias T" are unpacked using Unpack if the alias
 // implements the Unpacker interface. Otherwise unpacking rules for type T will be used.
