@@ -89,14 +89,11 @@ type cfgString struct {
 	s string
 }
 
-type cfgSubFlex struct{ cfgSub }
-
 type cfgSub struct {
 	c *Config
 }
 
 type cfgNil struct{ cfgPrimitive }
-type cfgEmpty struct{ cfgPrimitive }
 
 type cfgPrimitive struct {
 	ctx      context
@@ -224,29 +221,6 @@ func (c *cfgNil) reflect(opts *options) (reflect.Value, error) {
 }
 
 func (c *cfgNil) toConfig(*options) (*Config, error) {
-	n := New()
-	n.ctx = c.ctx
-	return n, nil
-}
-
-func (c *cfgEmpty) cpy(ctx context) value             { return &cfgEmpty{cfgPrimitive{ctx, c.metadata}} }
-func (*cfgEmpty) Len(*options) (int, error)           { return 0, ErrEmpty }
-func (*cfgEmpty) toBool(*options) (bool, error)       { return false, ErrEmpty }
-func (*cfgEmpty) toString(*options) (string, error)   { return "", ErrEmpty }
-func (*cfgEmpty) toInt(*options) (int64, error)       { return 0, ErrEmpty }
-func (*cfgEmpty) toUint(*options) (uint64, error)     { return 0, ErrEmpty }
-func (*cfgEmpty) toFloat(*options) (float64, error)   { return 0, ErrEmpty }
-func (*cfgEmpty) reify(*options) (interface{}, error) { return nil, nil }
-func (*cfgEmpty) typ(*options) (typeInfo, error)      { return typeInfo{"any", reflect.PtrTo(tConfig)}, nil }
-func (c *cfgEmpty) meta() *Meta                       { return c.metadata }
-func (c *cfgEmpty) setMeta(m *Meta)                   { c.metadata = m }
-
-func (c *cfgEmpty) reflect(opts *options) (reflect.Value, error) {
-	cfg, _ := c.toConfig(opts)
-	return reflect.ValueOf(cfg), nil
-}
-
-func (c *cfgEmpty) toConfig(*options) (*Config, error) {
 	n := New()
 	n.ctx = c.ctx
 	return n, nil
@@ -441,12 +415,6 @@ func (c cfgSub) reify(opts *options) (interface{}, error) {
 	}
 }
 
-func (cfgSubFlex) toBool(*options) (bool, error)     { return false, nil }
-func (cfgSubFlex) toString(*options) (string, error) { return "", nil }
-func (cfgSubFlex) toInt(*options) (int64, error)     { return 0, nil }
-func (cfgSubFlex) toUint(*options) (uint64, error)   { return 0, nil }
-func (cfgSubFlex) toFloat(*options) (float64, error) { return 0, nil }
-
 func (d *cfgDynamic) typ(opts *options) (ti typeInfo, err error) {
 	d.withValue(&err, opts, func(v value) {
 		ti, err = v.typ(opts)
@@ -629,14 +597,6 @@ func isNil(v value) bool {
 		return true
 	}
 	_, tst := v.(*cfgNil)
-	return tst
-}
-
-func isEmpty(v value) bool {
-	if v == nil {
-		return true
-	}
-	_, tst := v.(*cfgEmpty)
 	return tst
 }
 

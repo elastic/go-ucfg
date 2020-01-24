@@ -240,7 +240,7 @@ func reifyStruct(opts *options, orig reflect.Value, cfg *Config) Error {
 	}
 
 	if v, ok := valueIsUnpacker(to); ok {
-		err := unpackWith(opts, v, cfgSubFlex{cfgSub{cfg}})
+		err := unpackWith(opts, v, cfgSub{cfg})
 		if err != nil {
 			return err
 		}
@@ -331,17 +331,28 @@ func reifyGetField(
 	}
 
 	if isNil(value) {
+		// When fieldType is a pointer and the value is nil, return nil as the
+		// underlying type should not be allocated.
+		if fieldType.Kind() == reflect.Ptr {
+			if err := runValidators(nil, opts.validators); err != nil {
+				return raiseValidation(cfg.ctx, cfg.metadata, name, err)
+			}
+			return nil
+		}
+
 		// Primitive types return early when it doesn't implement the Initializer interface.
-		fieldType = chaseTypePointers(fieldType)
 		if fieldType.Kind() != reflect.Map && fieldType.Kind() != reflect.Struct && !hasInitDefaults(fieldType) {
 			if err := runValidators(nil, opts.validators); err != nil {
 				return raiseValidation(cfg.ctx, cfg.metadata, name, err)
 			}
 			return nil
 		}
+
 		// None primitive types always get initialized even if it doesn't implement the
 		// Initializer interface, because nested types might implement the Initializer interface.
-		value = &cfgEmpty{cfgPrimitive{cfg.ctx, cfg.metadata}}
+		if value == nil {
+			value = &cfgNil{cfgPrimitive{cfg.ctx, cfg.metadata}}
+		}
 	}
 
 	v, err := reifyMergeValue(opts, to, value)
@@ -648,7 +659,7 @@ func reifyPrimitive(
 	t, baseType reflect.Type,
 ) (reflect.Value, Error) {
 	// zero initialize value if val==nil
-	if isNil(val) || isEmpty(val) {
+	if isNil(val) {
 		v := pointerize(t, baseType, reflect.Zero(baseType))
 		return tryInitDefaults(v), nil
 	}

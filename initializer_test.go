@@ -228,11 +228,8 @@ func TestInitDefaultsPtrNestedEmpty(t *testing.T) {
 
 	err := c.Unpack(r)
 	assert.NoError(t, err)
-	assert.Equal(t, myMapInitializer{
-		"init": "defaults",
-	}, *r.S.M)
-	assert.Equal(t, 0, r.S.N.I)
-	assert.Equal(t, 10, r.S.N.J)
+	assert.Nil(t, r.S.M)
+	assert.Nil(t, r.S.N)
+	assert.Nil(t, r.S.P)
 	assert.Equal(t, 20, r.S.O)
-	assert.Equal(t, myIntInitializer(3), r.S.P.I)
 }
