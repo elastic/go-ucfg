@@ -91,7 +91,10 @@ import (
 // a map, struct, or primitive that also implements the Initializer interface the contained
 // type will be initialized after the struct that contains it. (e.g. if we have
 // type A struct { B B }, with both A, and B implementing InitDefaults, then A.InitDefaults
-// is called before B.InitDefaults).
+// is called before B.InitDefaults). In the case that a struct contains a pointer to
+// a type that implements the Initializer interface and the configuration doesn't contain a
+// value for that field then the pointer will not be initialized and InitDefaults will not
+// be called.
 //
 // Fields available in a struct or a map, but not in the Config object, will not
 // be touched by Unpack unless they are initialized from InitDefaults.
