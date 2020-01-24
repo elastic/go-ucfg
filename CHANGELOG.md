@@ -7,6 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - Add support for HJSON. #131
 - Add new parse.Config to adjust parsing of varibles returned by a Resolve. #139
+- Add call to InitDefaults when map, primitives, or structs implement Initializer interface during Unpack. #104
 
 ### Changed
 - Moved internal/parse to parse module. #139

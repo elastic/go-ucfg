@@ -85,8 +85,19 @@ import (
 //  The struct tag options `replace`, `append`, and `prepend` overwrites the
 //  global value merging strategy (e.g. ReplaceValues, AppendValues, ...) for all sub-fields.
 //
+// When unpacking into a map, primitive, or struct Unpack will call InitDefaults if
+// the type implements the Initializer interface. The Initializer interface is not supported
+// on arrays or slices. InitDefaults is initialized top-down, meaning that if struct contains
+// a map, struct, or primitive that also implements the Initializer interface the contained
+// type will be initialized after the struct that contains it. (e.g. if we have
+// type A struct { B B }, with both A, and B implementing InitDefaults, then A.InitDefaults
+// is called before B.InitDefaults). In the case that a struct contains a pointer to
+// a type that implements the Initializer interface and the configuration doesn't contain a
+// value for that field then the pointer will not be initialized and InitDefaults will not
+// be called.
+//
 // Fields available in a struct or a map, but not in the Config object, will not
-// be touched. Default values should be set in the target value before calling Unpack.
+// be touched by Unpack unless they are initialized from InitDefaults.
 //
 // Type aliases like "type myTypeAlias T" are unpacked using Unpack if the alias
 // implements the Unpacker interface. Otherwise unpacking rules for type T will be used.
@@ -180,6 +191,11 @@ func reifyMap(opts *options, to reflect.Value, from *Config) Error {
 		return raiseKeyInvalidTypeUnpack(to.Type(), from)
 	}
 
+	if to.IsNil() {
+		to.Set(reflect.MakeMap(to.Type()))
+	}
+	tryInitDefaults(to)
+
 	fields := from.fields.dict()
 	if len(fields) == 0 {
 		if err := tryValidate(to); err != nil {
@@ -188,9 +204,6 @@ func reifyMap(opts *options, to reflect.Value, from *Config) Error {
 		return nil
 	}
 
-	if to.IsNil() {
-		to.Set(reflect.MakeMap(to.Type()))
-	}
 	for k, value := range fields {
 		opts.activeFields = newFieldSet(parentFields)
 		key := reflect.ValueOf(k)
@@ -235,6 +248,7 @@ func reifyStruct(opts *options, orig reflect.Value, cfg *Config) Error {
 			return err
 		}
 	} else {
+		tryInitDefaults(to)
 		numField := to.NumField()
 		for i := 0; i < numField; i++ {
 			stField := to.Type().Field(i)
@@ -285,7 +299,7 @@ func reifyStruct(opts *options, orig reflect.Value, cfg *Config) Error {
 			} else {
 				name = fieldName(name, stField.Name)
 				fopts := fieldOptions{opts: opts, tag: tagOpts, validators: validators}
-				if err := reifyGetField(cfg, fopts, name, vField); err != nil {
+				if err := reifyGetField(cfg, fopts, name, vField, stField.Type); err != nil {
 					return err
 				}
 			}
@@ -305,6 +319,7 @@ func reifyGetField(
 	opts fieldOptions,
 	name string,
 	to reflect.Value,
+	fieldType reflect.Type,
 ) Error {
 	p := parsePath(name, opts.opts.pathSep)
 	value, err := p.GetValue(cfg, opts.opts)
@@ -316,10 +331,28 @@ func reifyGetField(
 	}
 
 	if isNil(value) {
-		if err := runValidators(nil, opts.validators); err != nil {
-			return raiseValidation(cfg.ctx, cfg.metadata, name, err)
+		// When fieldType is a pointer and the value is nil, return nil as the
+		// underlying type should not be allocated.
+		if fieldType.Kind() == reflect.Ptr {
+			if err := runValidators(nil, opts.validators); err != nil {
+				return raiseValidation(cfg.ctx, cfg.metadata, name, err)
+			}
+			return nil
 		}
-		return nil
+
+		// Primitive types return early when it doesn't implement the Initializer interface.
+		if fieldType.Kind() != reflect.Map && fieldType.Kind() != reflect.Struct && !hasInitDefaults(fieldType) {
+			if err := runValidators(nil, opts.validators); err != nil {
+				return raiseValidation(cfg.ctx, cfg.metadata, name, err)
+			}
+			return nil
+		}
+
+		// None primitive types always get initialized even if it doesn't implement the
+		// Initializer interface, because nested types might implement the Initializer interface.
+		if value == nil {
+			value = &cfgNil{cfgPrimitive{cfg.ctx, cfg.metadata}}
+		}
 	}
 
 	v, err := reifyMergeValue(opts, to, value)
@@ -327,7 +360,7 @@ func reifyGetField(
 		return err
 	}
 
-	to.Set(v)
+	to.Set(pointerize(to.Type(), v.Type(), v))
 	return nil
 }
 
@@ -627,7 +660,8 @@ func reifyPrimitive(
 ) (reflect.Value, Error) {
 	// zero initialize value if val==nil
 	if isNil(val) {
-		return pointerize(t, baseType, reflect.Zero(baseType)), nil
+		v := pointerize(t, baseType, reflect.Zero(baseType))
+		return tryInitDefaults(v), nil
 	}
 
 	var v reflect.Value

@@ -400,7 +400,7 @@ func TestRemove(t *testing.T) {
 	}{
 		"exist": {
 			cfg:   map[string]interface{}{"field": "test"},
-			wants: nil,
+			wants: map[string]interface{}{},
 			spec:  spec{has: true, path: "field", idx: -1},
 		},
 		"unknown field": {
