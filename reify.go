@@ -298,9 +298,6 @@ func reifyStruct(opts *options, orig reflect.Value, cfg *Config) Error {
 				}
 			} else {
 				name = fieldName(name, stField.Name)
-				if name == "i" {
-					name = "i"
-				}
 				fopts := fieldOptions{opts: opts, tag: tagOpts, validators: validators}
 				if err := reifyGetField(cfg, fopts, name, vField, stField.Type); err != nil {
 					return err
