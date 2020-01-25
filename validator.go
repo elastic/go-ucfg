@@ -24,6 +24,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 )
 
 // Validator interface provides additional validation support to Unpack. The
@@ -124,8 +126,92 @@ func tryValidate(val reflect.Value) error {
 }
 
 func runValidators(val interface{}, validators []validatorTag) error {
+	if validators == nil {
+		return nil
+	}
 	for _, tag := range validators {
 		if err := tag.cb(val, tag.param); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func tryValidateValue(val reflect.Value, opts *options, validators []validatorTag) error {
+	var curr interface{}
+	if val.IsValid() {
+		curr = val.Interface()
+	}
+	if err := runValidators(curr, validators); err != nil {
+		return err
+	}
+	if !val.IsValid() {
+		return nil
+	}
+
+	var err error
+	switch chaseValue(val).Kind() {
+	case reflect.Struct:
+		err = validateStruct(val, opts)
+	case reflect.Map:
+		err = validateMap(val, opts)
+	case reflect.Array, reflect.Slice:
+		err = validateArray(val, opts)
+	}
+
+	if err != nil {
+		return err
+	}
+	return tryValidate(val)
+}
+
+func validateStruct(val reflect.Value, opts *options) error {
+	val = chaseValue(val)
+	numField := val.NumField()
+	for i := 0; i < numField; i++ {
+		stField := val.Type().Field(i)
+
+		// ignore non exported fields
+		if rune, _ := utf8.DecodeRuneInString(stField.Name); !unicode.IsUpper(rune) {
+			continue
+		}
+		_, tagOpts := parseTags(stField.Tag.Get(opts.tag))
+		if tagOpts.ignore {
+			continue
+		}
+
+		// create new context, overwriting configValueHandling for all sub-operations
+		if tagOpts.cfgHandling != opts.configValueHandling {
+			tmp := &options{}
+			*tmp = *opts
+			tmp.configValueHandling = tagOpts.cfgHandling
+			opts = tmp
+		}
+
+		vField := val.Field(i)
+		validators, err := parseValidatorTags(stField.Tag.Get(opts.validatorTag))
+		if err != nil {
+			return raiseCritical(err, "")
+		}
+		if err := tryValidateValue(vField, opts, validators); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateMap(val reflect.Value, opts *options) error {
+	for _, key := range val.MapKeys() {
+		if err := tryValidateValue(val.MapIndex(key), opts, nil); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateArray(val reflect.Value, opts *options) error {
+	for i := 0; i < val.Len(); i++ {
+		if err := tryValidateValue(val.Index(i), opts, nil); err != nil {
 			return err
 		}
 	}
@@ -148,7 +234,7 @@ func validateNonZero(v interface{}, name string) error {
 		return nil
 	}
 
-	val := reflect.ValueOf(v)
+	val := chaseValue(reflect.ValueOf(v))
 	switch val.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		if val.Int() != 0 {
@@ -305,7 +391,20 @@ func validateRequired(v interface{}, name string) error {
 	if v == nil {
 		return ErrRequired
 	}
-	return validateNonEmpty(v, name)
+	val := reflect.ValueOf(v)
+	if val.Kind() == reflect.Ptr && val.IsNil() {
+		return ErrRequired
+	}
+	if isInt(val.Kind()) || isUint(val.Kind()) || isFloat(val.Kind()) {
+		if err := validateNonZero(v, name); err != nil {
+			return ErrRequired
+		}
+		return nil
+	}
+	if err := validateNonEmpty(v, name); err != nil {
+		return ErrRequired
+	}
+	return nil
 }
 
 func validateNonEmpty(v interface{}, _ string) error {

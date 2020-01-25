@@ -97,7 +97,9 @@ import (
 // be called.
 //
 // Fields available in a struct or a map, but not in the Config object, will not
-// be touched by Unpack unless they are initialized from InitDefaults.
+// be touched by Unpack unless they are initialized from InitDefaults. Those values will
+// be validated using the same rules below just as if the values came from the configuration.
+// This gives the requirement that pre-filled in values or defaults must also validate.
 //
 // Type aliases like "type myTypeAlias T" are unpacked using Unpack if the alias
 // implements the Unpacker interface. Otherwise unpacking rules for type T will be used.
@@ -198,7 +200,7 @@ func reifyMap(opts *options, to reflect.Value, from *Config) Error {
 
 	fields := from.fields.dict()
 	if len(fields) == 0 {
-		if err := tryValidate(to); err != nil {
+		if err := tryValidateValue(to, opts, nil); err != nil {
 			return raiseValidation(from.ctx, from.metadata, "", err)
 		}
 		return nil
@@ -334,7 +336,7 @@ func reifyGetField(
 		// When fieldType is a pointer and the value is nil, return nil as the
 		// underlying type should not be allocated.
 		if fieldType.Kind() == reflect.Ptr {
-			if err := runValidators(nil, opts.validators); err != nil {
+			if err := tryValidateValue(to, opts.opts, opts.validators); err != nil {
 				return raiseValidation(cfg.ctx, cfg.metadata, name, err)
 			}
 			return nil
@@ -342,7 +344,7 @@ func reifyGetField(
 
 		// Primitive types return early when it doesn't implement the Initializer interface.
 		if fieldType.Kind() != reflect.Map && fieldType.Kind() != reflect.Struct && !hasInitDefaults(fieldType) {
-			if err := runValidators(nil, opts.validators); err != nil {
+			if err := tryValidateValue(to, opts.opts, opts.validators); err != nil {
 				return raiseValidation(cfg.ctx, cfg.metadata, name, err)
 			}
 			return nil
