@@ -21,6 +21,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Call Validate on custom slice types. #133
 - Call Validate on custom map types. #136
 - Disabled object parsing of environment variables. #139
+- Apply validation to defaults passed into Unpack when Config doesn't contain a value. #42
 
 ## [0.7.0]
 
