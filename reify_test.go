@@ -870,6 +870,9 @@ func TestUnpackStructWithArrConfig(t *testing.T) {
 	for name, test := range cases {
 		test := test
 		t.Run(name, func(t *testing.T) {
+			if name == "append" {
+				name = "append"
+			}
 			config := MustNewFrom(test.config)
 			err := config.Unpack(test.target.to)
 			if assert.NoError(t, err) {

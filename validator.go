@@ -24,8 +24,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode"
-	"unicode/utf8"
 )
 
 // Validator interface provides additional validation support to Unpack. The
@@ -137,7 +135,7 @@ func runValidators(val interface{}, validators []validatorTag) error {
 	return nil
 }
 
-func tryValidateValue(val reflect.Value, opts *options, validators []validatorTag) error {
+func tryRecursiveValidate(val reflect.Value, opts *options, validators []validatorTag) error {
 	var curr interface{}
 	if val.IsValid() {
 		curr = val.Interface()
@@ -169,31 +167,15 @@ func validateStruct(val reflect.Value, opts *options) error {
 	val = chaseValue(val)
 	numField := val.NumField()
 	for i := 0; i < numField; i++ {
-		stField := val.Type().Field(i)
-
-		// ignore non exported fields
-		if rune, _ := utf8.DecodeRuneInString(stField.Name); !unicode.IsUpper(rune) {
+		_, _, vField, opts, _, vString, skip := accessField(val, i, opts)
+		if skip {
 			continue
 		}
-		_, tagOpts := parseTags(stField.Tag.Get(opts.tag))
-		if tagOpts.ignore {
-			continue
-		}
-
-		// create new context, overwriting configValueHandling for all sub-operations
-		if tagOpts.cfgHandling != opts.configValueHandling {
-			tmp := &options{}
-			*tmp = *opts
-			tmp.configValueHandling = tagOpts.cfgHandling
-			opts = tmp
-		}
-
-		vField := val.Field(i)
-		validators, err := parseValidatorTags(stField.Tag.Get(opts.validatorTag))
+		validators, err := parseValidatorTags(vString)
 		if err != nil {
 			return raiseCritical(err, "")
 		}
-		if err := tryValidateValue(vField, opts, validators); err != nil {
+		if err := tryRecursiveValidate(vField, opts, validators); err != nil {
 			return err
 		}
 	}
@@ -202,7 +184,7 @@ func validateStruct(val reflect.Value, opts *options) error {
 
 func validateMap(val reflect.Value, opts *options) error {
 	for _, key := range val.MapKeys() {
-		if err := tryValidateValue(val.MapIndex(key), opts, nil); err != nil {
+		if err := tryRecursiveValidate(val.MapIndex(key), opts, nil); err != nil {
 			return err
 		}
 	}
@@ -211,7 +193,7 @@ func validateMap(val reflect.Value, opts *options) error {
 
 func validateArray(val reflect.Value, opts *options) error {
 	for i := 0; i < val.Len(); i++ {
-		if err := tryValidateValue(val.Index(i), opts, nil); err != nil {
+		if err := tryRecursiveValidate(val.Index(i), opts, nil); err != nil {
 			return err
 		}
 	}

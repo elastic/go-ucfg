@@ -21,8 +21,6 @@ import (
 	"reflect"
 	"regexp"
 	"time"
-	"unicode"
-	"unicode/utf8"
 )
 
 // Unpack unpacks c into a struct, a map, or a slice allocating maps, slices,
@@ -200,7 +198,7 @@ func reifyMap(opts *options, to reflect.Value, from *Config) Error {
 
 	fields := from.fields.dict()
 	if len(fields) == 0 {
-		if err := tryValidateValue(to, opts, nil); err != nil {
+		if err := tryRecursiveValidate(to, opts, nil); err != nil {
 			return raiseValidation(from.ctx, from.metadata, "", err)
 		}
 		return nil
@@ -253,29 +251,11 @@ func reifyStruct(opts *options, orig reflect.Value, cfg *Config) Error {
 		tryInitDefaults(to)
 		numField := to.NumField()
 		for i := 0; i < numField; i++ {
-			stField := to.Type().Field(i)
-
-			// ignore non exported fields
-			if rune, _ := utf8.DecodeRuneInString(stField.Name); !unicode.IsUpper(rune) {
+			name, tField, vField, opts, tagOpts, vString, skip := accessField(to, i, opts)
+			if skip {
 				continue
 			}
-			name, tagOpts := parseTags(stField.Tag.Get(opts.tag))
-			if tagOpts.ignore {
-				continue
-			}
-
-			// create new context, overwriting configValueHandling for all sub-operations
-			if tagOpts.cfgHandling != opts.configValueHandling {
-				tmp := &options{}
-				*tmp = *opts
-				tmp.configValueHandling = tagOpts.cfgHandling
-				opts = tmp
-			}
-
-			opts.activeFields = newFieldSet(parentFields)
-
-			vField := to.Field(i)
-			validators, err := parseValidatorTags(stField.Tag.Get(opts.validatorTag))
+			validators, err := parseValidatorTags(vString)
 			if err != nil {
 				return raiseCritical(err, "")
 			}
@@ -296,12 +276,11 @@ func reifyStruct(opts *options, orig reflect.Value, cfg *Config) Error {
 					vField.Set(v)
 
 				default:
-					return raiseInlineNeedsObject(cfg, stField.Name, vField.Type())
+					return raiseInlineNeedsObject(cfg, name, vField.Type())
 				}
 			} else {
-				name = fieldName(name, stField.Name)
 				fopts := fieldOptions{opts: opts, tag: tagOpts, validators: validators}
-				if err := reifyGetField(cfg, fopts, name, vField, stField.Type); err != nil {
+				if err := reifyGetField(cfg, fopts, name, vField, tField); err != nil {
 					return err
 				}
 			}
@@ -336,7 +315,7 @@ func reifyGetField(
 		// When fieldType is a pointer and the value is nil, return nil as the
 		// underlying type should not be allocated.
 		if fieldType.Kind() == reflect.Ptr {
-			if err := tryValidateValue(to, opts.opts, opts.validators); err != nil {
+			if err := tryRecursiveValidate(to, opts.opts, opts.validators); err != nil {
 				return raiseValidation(cfg.ctx, cfg.metadata, name, err)
 			}
 			return nil
@@ -344,7 +323,7 @@ func reifyGetField(
 
 		// Primitive types return early when it doesn't implement the Initializer interface.
 		if fieldType.Kind() != reflect.Map && fieldType.Kind() != reflect.Struct && !hasInitDefaults(fieldType) {
-			if err := tryValidateValue(to, opts.opts, opts.validators); err != nil {
+			if err := tryRecursiveValidate(to, opts.opts, opts.validators); err != nil {
 				return raiseValidation(cfg.ctx, cfg.metadata, name, err)
 			}
 			return nil
@@ -603,15 +582,20 @@ func reifyDoArray(
 	val value,
 	arr []value,
 ) (reflect.Value, Error) {
-	idx := start
-	for _, from := range arr {
-		to.Index(idx)
-		v, err := reifyMergeValue(opts, to.Index(idx), from)
-		if err != nil {
-			return reflect.Value{}, err
+	aLen := len(arr)
+	tLen := to.Len()
+	for idx := 0; idx < tLen; idx++ {
+		if idx >= start && idx < start+aLen {
+			v, err := reifyMergeValue(opts, to.Index(idx), arr[idx-start])
+			if err != nil {
+				return reflect.Value{}, err
+			}
+			to.Index(idx).Set(v)
+		} else {
+			if err := tryRecursiveValidate(to.Index(idx), opts.opts, nil); err != nil {
+				return reflect.Value{}, raiseValidation(val.Context(), val.meta(), "", err)
+			}
 		}
-		to.Index(idx).Set(v)
-		idx++
 	}
 
 	if err := runValidators(to.Interface(), opts.validators); err != nil {

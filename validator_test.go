@@ -878,6 +878,14 @@ func TestValidationFailOnDefaults(t *testing.T) {
 				I: -1,
 			},
 		},
+
+		// validate array
+		&myNonzeroList{0},
+
+		// validate map
+		&myNonzeroMap{
+			"zero": 0,
+		},
 	}
 
 	for i, test := range tests {

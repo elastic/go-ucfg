@@ -20,6 +20,8 @@ package ucfg
 import (
 	"reflect"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 type tagOptions struct {
@@ -171,4 +173,27 @@ func isFloat(k reflect.Kind) bool {
 	default:
 		return false
 	}
+}
+
+func accessField(structVal reflect.Value, fieldIdx int, opts *options) (string, reflect.Type, reflect.Value, *options, tagOptions, string, bool) {
+	stField := structVal.Type().Field(fieldIdx)
+
+	// ignore non exported fields
+	if rune, _ := utf8.DecodeRuneInString(stField.Name); !unicode.IsUpper(rune) {
+		return "", nil, reflect.Value{}, opts, tagOptions{}, "", true
+	}
+	name, tagOpts := parseTags(stField.Tag.Get(opts.tag))
+	if tagOpts.ignore {
+		return "", nil, reflect.Value{}, opts, tagOpts, "", true
+	}
+
+	// create new context, overwriting configValueHandling for all sub-operations
+	if tagOpts.cfgHandling != opts.configValueHandling {
+		tmp := &options{}
+		*tmp = *opts
+		tmp.configValueHandling = tagOpts.cfgHandling
+		opts = tmp
+	}
+
+	return fieldName(name, stField.Name), stField.Type, structVal.Field(fieldIdx), opts, tagOpts, stField.Tag.Get(opts.validatorTag), false
 }
