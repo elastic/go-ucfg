@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 
 ### Fixed
+- Prevent Validate from being called when value is a pointer or interface and is nil. #144
 
 ## [0.8.0]
 

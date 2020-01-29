@@ -50,6 +50,16 @@ type structWithValidationTags struct {
 	I int `validate:"positive"`
 }
 
+type nestedPtrStructValidator struct {
+	A *ptrStructValidator `validate:"required"`
+	B *ptrStructValidator `validate:"required"`
+}
+
+type nestedNestedPtrStructValidator struct {
+	A *nestedPtrStructValidator
+	B *nestedPtrStructValidator
+}
+
 var errZeroTest = errors.New("value must not be 0")
 var errEmptyTest = errors.New("value must not be empty")
 var errMoreTest = errors.New("value must have more than 1 element")
@@ -281,6 +291,14 @@ func TestValidationPass(t *testing.T) {
 		&struct {
 			X int // field not present in config, but not required
 		}{},
+		&struct {
+			X *ptrStructValidator // Validator not called as its nil value
+		}{},
+		&struct {
+			X *nestedNestedPtrStructValidator
+		}{
+			X: &nestedNestedPtrStructValidator{},
+		},
 	}
 
 	for i, test := range tests {
@@ -501,6 +519,11 @@ func TestValidationFail(t *testing.T) {
 		&struct {
 			X int `validate:"required"`
 		}{},
+		&struct {
+			X *nestedPtrStructValidator
+		}{
+			X: &nestedPtrStructValidator{},
+		},
 	}
 
 	for i, test := range tests {
