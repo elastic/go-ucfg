@@ -110,6 +110,10 @@ func tryValidate(val reflect.Value) error {
 	t := val.Type()
 	var validator Validator
 
+	if (t.Kind() == reflect.Ptr || t.Kind() == reflect.Interface) && val.IsNil() {
+		return nil
+	}
+
 	if t.Implements(tValidator) {
 		validator = val.Interface().(Validator)
 	} else if reflect.PtrTo(t).Implements(tValidator) {

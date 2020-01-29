@@ -281,6 +281,9 @@ func TestValidationPass(t *testing.T) {
 		&struct {
 			X int // field not present in config, but not required
 		}{},
+		&struct {
+			X *ptrStructValidator // Validator not called as its nil value
+		}{},
 	}
 
 	for i, test := range tests {
