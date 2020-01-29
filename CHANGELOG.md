@@ -5,6 +5,18 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+## [0.8.0]
+
+### Added
 - Add support for HJSON. #131
 - Add new parse.Config to adjust parsing of varibles returned by a Resolve. #139
 - Add call to InitDefaults when map, primitives, or structs implement Initializer interface during Unpack. #104
@@ -12,10 +24,6 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 - Moved internal/parse to parse module. #139
 - Add parse.Config to resolvers return. #139
-
-### Deprecated
-
-### Removed
 
 ### Fixed
 - Call Validate on custom slice types. #133
@@ -243,7 +251,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Introduced CHANGELOG.md for documenting changes to ucfg.
 
 
-[Unreleased]: https://github.com/elastic/go-ucfg/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/elastic/go-ucfg/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/elastic/go-ucfg/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/elastic/go-ucfg/compare/v0.6.5...v0.7.0
 [0.6.5]: https://github.com/elastic/go-ucfg/compare/v0.6.4...v0.6.5
 [0.6.4]: https://github.com/elastic/go-ucfg/compare/v0.6.3...v0.6.4
