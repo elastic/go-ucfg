@@ -167,15 +167,15 @@ func validateStruct(val reflect.Value, opts *options) error {
 	val = chaseValue(val)
 	numField := val.NumField()
 	for i := 0; i < numField; i++ {
-		_, _, vField, opts, _, vString, skip := accessField(val, i, opts)
+		fInfo, skip, err := accessField(val, i, opts)
+		if err != nil {
+			return err
+		}
 		if skip {
 			continue
 		}
-		validators, err := parseValidatorTags(vString)
-		if err != nil {
-			return raiseCritical(err, "")
-		}
-		if err := tryRecursiveValidate(vField, opts, validators); err != nil {
+
+		if err := tryRecursiveValidate(fInfo.value, fInfo.options, fInfo.validatorTags); err != nil {
 			return err
 		}
 	}

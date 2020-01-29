@@ -251,36 +251,35 @@ func reifyStruct(opts *options, orig reflect.Value, cfg *Config) Error {
 		tryInitDefaults(to)
 		numField := to.NumField()
 		for i := 0; i < numField; i++ {
-			name, tField, vField, opts, tagOpts, vString, skip := accessField(to, i, opts)
+			fInfo, skip, err := accessField(to, i, opts)
+			if err != nil {
+				return err
+			}
 			if skip {
 				continue
 			}
-			validators, err := parseValidatorTags(vString)
-			if err != nil {
-				return raiseCritical(err, "")
-			}
 
-			if tagOpts.squash {
-				vField := chaseValue(vField)
+			if fInfo.tagOptions.squash {
+				vField := chaseValue(fInfo.value)
 				switch vField.Kind() {
 				case reflect.Struct, reflect.Map:
-					if err := reifyInto(opts, vField, cfg); err != nil {
+					if err := reifyInto(fInfo.options, fInfo.value, cfg); err != nil {
 						return err
 					}
 				case reflect.Slice, reflect.Array:
-					fopts := fieldOptions{opts: opts, tag: tagOpts, validators: validators}
-					v, err := reifyMergeValue(fopts, vField, cfgSub{cfg})
+					fopts := fieldOptions{opts: fInfo.options, tag: fInfo.tagOptions, validators: fInfo.validatorTags}
+					v, err := reifyMergeValue(fopts, fInfo.value, cfgSub{cfg})
 					if err != nil {
 						return err
 					}
 					vField.Set(v)
 
 				default:
-					return raiseInlineNeedsObject(cfg, name, vField.Type())
+					return raiseInlineNeedsObject(cfg, fInfo.name, fInfo.value.Type())
 				}
 			} else {
-				fopts := fieldOptions{opts: opts, tag: tagOpts, validators: validators}
-				if err := reifyGetField(cfg, fopts, name, vField, tField); err != nil {
+				fopts := fieldOptions{opts: fInfo.options, tag: fInfo.tagOptions, validators: fInfo.validatorTags}
+				if err := reifyGetField(cfg, fopts, fInfo.name, fInfo.value, fInfo.ftype); err != nil {
 					return err
 				}
 			}
