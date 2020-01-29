@@ -19,6 +19,7 @@ package ucfg
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"testing"
 	"time"
@@ -43,6 +44,10 @@ type structMapValidator struct {
 type structNestedValidator struct {
 	I int
 	N structMapValidator
+}
+
+type structWithValidationTags struct {
+	I int `validate:"positive"`
 }
 
 var errZeroTest = errors.New("value must not be 0")
@@ -279,10 +284,10 @@ func TestValidationPass(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		t.Logf("Test config (%v): %#v", i, test)
-
-		err := c.Unpack(test)
-		assert.NoError(t, err)
+		t.Run(fmt.Sprintf("Test config (%v): %#v", i, test), func(t *testing.T) {
+			err := c.Unpack(test)
+			assert.NoError(t, err)
+		})
 	}
 }
 
@@ -499,10 +504,10 @@ func TestValidationFail(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		t.Logf("Test config (%v): %#v", i, test)
-
-		err := c.Unpack(test)
-		assert.True(t, err != nil)
+		t.Run(fmt.Sprintf("Test config (%v): %#v", i, test), func(t *testing.T) {
+			err := c.Unpack(test)
+			assert.True(t, err != nil)
+		})
 	}
 }
 
@@ -535,13 +540,13 @@ func TestValidateRequiredFailing(t *testing.T) {
 		}{}},
 
 		// Access empty string field "b"
-		{ErrEmpty, &struct {
+		{ErrRequired, &struct {
 			B string `validate:"required"`
 		}{}},
-		{ErrEmpty, &struct {
+		{ErrRequired, &struct {
 			B *string `validate:"required"`
 		}{}},
-		{ErrEmpty, &struct {
+		{ErrRequired, &struct {
 			B *regexp.Regexp `validate:"required"`
 		}{}},
 
@@ -563,23 +568,23 @@ func TestValidateRequiredFailing(t *testing.T) {
 		}{}},
 
 		// Check empty []string field 'd'
-		{ErrEmpty, &struct {
+		{ErrRequired, &struct {
 			D []string `validate:"required"`
 		}{}},
 	}
 
 	for i, test := range tests {
-		t.Logf("Test config (%v): %#v => %v", i, test.config, test.err)
+		t.Run(fmt.Sprintf("Test config (%v): %#v => %v", i, test.config, test.err), func(t *testing.T) {
+			err := c.Unpack(test.config)
+			if err == nil {
+				t.Error("Expected error")
+				return
+			}
 
-		err := c.Unpack(test.config)
-		if err == nil {
-			t.Error("Expected error")
-			continue
-		}
-
-		t.Logf("Unpack returned error: %v", err)
-		err = err.(Error).Reason()
-		assert.Equal(t, test.err, err)
+			t.Logf("Unpack returned error: %v", err)
+			err = err.(Error).Reason()
+			assert.Equal(t, test.err, err)
+		})
 	}
 }
 
@@ -655,16 +660,238 @@ func TestValidateNonzeroFailing(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		t.Logf("Test config (%v): %#v => %v", i, test.config, test.err)
+		t.Run(fmt.Sprintf("Test config (%v): %#v => %v", i, test.config, test.err), func(t *testing.T) {
+			err := c.Unpack(test.config)
+			if err == nil {
+				t.Error("Expected error")
+				return
+			}
 
-		err := c.Unpack(test.config)
-		if err == nil {
-			t.Error("Expected error")
-			continue
-		}
+			t.Logf("Unpack returned error: %v", err)
+			err = err.(Error).Reason()
+			assert.Equal(t, test.err, err)
+		})
+	}
+}
 
-		t.Logf("Unpack returned error: %v", err)
-		err = err.(Error).Reason()
-		assert.Equal(t, test.err, err)
+func TestValidationFailOnDefaults(t *testing.T) {
+	c := New()
+
+	tests := []interface{}{
+		// test field 'a'
+		&struct {
+			X int `config:"a" validate:"nonzero"`
+		}{
+			X: 0,
+		},
+		&struct {
+			X myNonzeroInt `config:"a"`
+		}{
+			X: 0,
+		},
+		&struct {
+			Tmp structValidator `config:",inline"`
+		}{
+			Tmp: structValidator{
+				I: 0,
+			},
+		},
+		&struct {
+			Tmp ptrStructValidator `config:",inline"`
+		}{
+			Tmp: ptrStructValidator{
+				I: 0,
+			},
+		},
+		&struct {
+			X int `config:"a" validate:"min=10"`
+		}{
+			X: 9,
+		},
+		&struct {
+			X time.Duration `config:"a" validate:"nonzero"`
+		}{
+			X: time.Duration(0),
+		},
+		&struct {
+			X time.Duration `config:"a" validate:"min=10"`
+		}{
+			X: time.Duration(9),
+		},
+		&struct {
+			X time.Duration `config:"a" validate:"min=10ns"`
+		}{
+			X: time.Duration(9 * time.Nanosecond),
+		},
+
+		// test field 'b'
+		&struct {
+			X int `config:"b" validate:"max=8"`
+		}{
+			X: 9,
+		},
+		&struct {
+			X int `config:"b" validate:"min=20"`
+		}{
+			X: 19,
+		},
+		&struct {
+			X time.Duration `config:"b" validate:"max=8ms"`
+		}{
+			X: time.Duration(9 * time.Millisecond),
+		},
+		&struct {
+			X time.Duration `config:"b" validate:"min=20h"`
+		}{
+			X: time.Duration(19 * time.Hour),
+		},
+
+		// test field 'd'
+		&struct {
+			X int `config:"d" validate:"positive"`
+		}{
+			X: -1,
+		},
+		&struct {
+			X int `config:"d" validate:"max=-11"`
+		}{
+			X: -10,
+		},
+		&struct {
+			X int `config:"d" validate:"min=20"`
+		}{
+			X: 19,
+		},
+		&struct {
+			X time.Duration `config:"d" validate:"positive"`
+		}{
+			X: time.Duration(-1),
+		},
+		&struct {
+			X time.Duration `config:"d" validate:"max=-11s"`
+		}{
+			X: time.Duration(-10 * time.Second),
+		},
+		&struct {
+			X time.Duration `config:"d" validate:"min=20h"`
+		}{
+			X: time.Duration(19 * time.Hour),
+		},
+
+		// test field 'f'
+		&struct {
+			X float64 `config:"f" validate:"max=1"`
+		}{
+			X: 2,
+		},
+		&struct {
+			X float64 `config:"f" validate:"min=20"`
+		}{
+			X: 19,
+		},
+		&struct {
+			X time.Duration `config:"f" validate:"max=1s"`
+		}{
+			X: time.Duration(2 * time.Second),
+		},
+		&struct {
+			X time.Duration `config:"f" validate:"min=20s"`
+		}{
+			X: time.Duration(19 * time.Second),
+		},
+
+		// test field 'l'
+		&struct {
+			X myCustomList `config:"l"`
+		}{
+			X: myCustomList{},
+		},
+
+		// validation field 'm'
+		&struct {
+			M myCustomMap
+		}{
+			M: myCustomMap{},
+		},
+
+		// validation field 'n'
+		&struct {
+			N myNonzeroList
+		}{
+			N: myNonzeroList{0},
+		},
+
+		// validation field 'o'
+		&struct {
+			O myNonzeroMap
+		}{
+			O: myNonzeroMap{
+				"zero": 0,
+			},
+		},
+
+		// validation 'p' field
+		&struct {
+			P mapValidator `config:"p"`
+		}{
+			P: mapValidator{
+				"zero": 0,
+			},
+		},
+
+		// validation 'q' field
+		&struct {
+			Q structMapValidator
+		}{
+			Q: structMapValidator{
+				I: 0,
+			},
+		},
+
+		// validation 'r' field
+		&struct {
+			R structNestedValidator
+		}{
+			R: structNestedValidator{
+				I: 0,
+			},
+		},
+		&struct {
+			R *structNestedValidator
+		}{
+			R: &structNestedValidator{
+				I: 1,
+				N: structMapValidator{
+					I: 1,
+					M: mapValidator{
+						"one": 1,
+					},
+				},
+			},
+		},
+
+		// validation 's' field
+		&struct {
+			S *structWithValidationTags
+		}{
+			S: &structWithValidationTags{
+				I: -1,
+			},
+		},
+
+		// validate array
+		&myNonzeroList{0},
+
+		// validate map
+		&myNonzeroMap{
+			"zero": 0,
+		},
+	}
+
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("Test config (%v): %#v", i, test), func(t *testing.T) {
+			err := c.Unpack(test)
+			assert.True(t, err != nil)
+		})
 	}
 }
