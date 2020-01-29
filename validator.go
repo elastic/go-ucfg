@@ -151,6 +151,11 @@ func tryRecursiveValidate(val reflect.Value, opts *options, validators []validat
 		return nil
 	}
 
+	t := val.Type()
+	if (t.Kind() == reflect.Ptr || t.Kind() == reflect.Interface) && val.IsNil() {
+		return nil
+	}
+
 	var err error
 	switch chaseValue(val).Kind() {
 	case reflect.Struct:
