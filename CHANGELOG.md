@@ -13,6 +13,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Removed
 
 ### Fixed
+
+## [0.8.1]
+
+### Fixed
 - Prevent Validate from being called when value is a pointer or interface and is nil. #144
 
 ## [0.8.0]
@@ -252,7 +256,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Introduced CHANGELOG.md for documenting changes to ucfg.
 
 
-[Unreleased]: https://github.com/elastic/go-ucfg/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/elastic/go-ucfg/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/elastic/go-ucfg/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/elastic/go-ucfg/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/elastic/go-ucfg/compare/v0.6.5...v0.7.0
 [0.6.5]: https://github.com/elastic/go-ucfg/compare/v0.6.4...v0.6.5
