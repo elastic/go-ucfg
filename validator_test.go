@@ -299,6 +299,12 @@ func TestValidationPass(t *testing.T) {
 		}{
 			X: &nestedNestedPtrStructValidator{},
 		},
+		&struct {
+			X []string `validate:"nonzero"` // field not present in config, nonzero (no error)
+		}{},
+		&struct {
+			X map[string]string `validate:"nonzero"` // field not present in config, nonzero (no error)
+		}{},
 	}
 
 	for i, test := range tests {
@@ -539,6 +545,7 @@ func TestValidateRequiredFailing(t *testing.T) {
 		"b": "",
 		"c": nil,
 		"d": []string{},
+		"f": map[string]string{},
 	})
 
 	tests := []struct {
@@ -590,10 +597,29 @@ func TestValidateRequiredFailing(t *testing.T) {
 			C time.Duration `validate:"required"`
 		}{}},
 
-		// Check empty []string field 'd'
+		// Check required []string field 'd'
 		{ErrRequired, &struct {
 			D []string `validate:"required"`
 		}{}},
+
+		// Check required []string filed 'e' not in config (pre-initialized)
+		{ErrRequired, &struct {
+			E []string `validate:"required"`
+		}{
+			E: []string{},
+		}},
+
+		// Check empty map[string]string field 'f'
+		{ErrRequired, &struct {
+			F map[string]string `validate:"required"`
+		}{}},
+
+		// Check required map[string] 'g' not in config (pre-initialized)
+		{ErrRequired, &struct {
+			G map[string]string `validate:"required"`
+		}{
+			G: map[string]string{},
+		}},
 	}
 
 	for i, test := range tests {
@@ -616,6 +642,7 @@ func TestValidateNonzeroFailing(t *testing.T) {
 		"i": 0,
 		"s": "",
 		"a": []int{},
+		"c": map[string]string{},
 	})
 
 	tests := []struct {
@@ -680,6 +707,38 @@ func TestValidateNonzeroFailing(t *testing.T) {
 		{ErrEmpty, &struct {
 			A []uint8 `validate:"nonzero"`
 		}{}},
+
+		// test array type accessing 'b' (pre-initialized)
+		{ErrEmpty, &struct {
+			B []int `validate:"nonzero"`
+		}{
+			B: []int{},
+		}},
+		{ErrEmpty, &struct {
+			B []uint8 `validate:"nonzero"`
+		}{
+			B: []uint8{},
+		}},
+
+		// test array type accessing 'c'
+		{ErrEmpty, &struct {
+			C map[string]string `validate:"nonzero"`
+		}{}},
+		{ErrEmpty, &struct {
+			C map[string]string `validate:"nonzero"`
+		}{}},
+
+		// test array type accessing 'd' (pre-initialized)
+		{ErrEmpty, &struct {
+			D map[string]string `validate:"nonzero"`
+		}{
+			D: map[string]string{},
+		}},
+		{ErrEmpty, &struct {
+			D map[string]string `validate:"nonzero"`
+		}{
+			D: map[string]string{},
+		}},
 	}
 
 	for i, test := range tests {
