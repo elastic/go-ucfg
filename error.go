@@ -102,6 +102,10 @@ var (
 	ErrArrayEmpty = errors.New("empty array")
 
 	ErrMapEmpty = errors.New("empty map")
+
+	ErrRegexEmpty = errors.New("regex value is not set")
+
+	ErrStringEmpty = errors.New("string value is not set")
 )
 
 // Error Classes

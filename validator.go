@@ -405,14 +405,14 @@ func validateNonEmpty(v interface{}, name string) error {
 func validateNonEmptyWithAllowNil(v interface{}, _ string, allowNil bool) error {
 	if s, ok := v.(string); ok {
 		if s == "" {
-			return ErrEmpty
+			return ErrStringEmpty
 		}
 		return nil
 	}
 
 	if r, ok := v.(regexp.Regexp); ok {
 		if r.String() == "" {
-			return ErrEmpty
+			return ErrRegexEmpty
 		}
 		return nil
 	}

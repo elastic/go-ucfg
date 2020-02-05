@@ -559,10 +559,10 @@ func TestValidateRequiredFailing(t *testing.T) {
 		{ErrRequired, &struct {
 			A int `validate:"required"`
 		}{}},
-		{ErrEmpty, &struct {
+		{ErrStringEmpty, &struct {
 			A string `validate:"required"`
 		}{}},
-		{ErrArrayEmpty, &struct {
+		{ErrRequired, &struct {
 			A []string `validate:"required"`
 		}{}},
 		{ErrRequired, &struct {
@@ -570,13 +570,13 @@ func TestValidateRequiredFailing(t *testing.T) {
 		}{}},
 
 		// Access empty string field "b"
-		{ErrEmpty, &struct {
+		{ErrStringEmpty, &struct {
 			B string `validate:"required"`
 		}{}},
-		{ErrEmpty, &struct {
+		{ErrStringEmpty, &struct {
 			B *string `validate:"required"`
 		}{}},
-		{ErrEmpty, &struct {
+		{ErrRegexEmpty, &struct {
 			B *regexp.Regexp `validate:"required"`
 		}{}},
 
@@ -587,10 +587,10 @@ func TestValidateRequiredFailing(t *testing.T) {
 		{ErrRequired, &struct {
 			C int `validate:"required"`
 		}{}},
-		{ErrEmpty, &struct {
+		{ErrStringEmpty, &struct {
 			C string `validate:"required"`
 		}{}},
-		{ErrArrayEmpty, &struct {
+		{ErrRequired, &struct {
 			C []string `validate:"required"`
 		}{}},
 		{ErrRequired, &struct {
@@ -690,13 +690,13 @@ func TestValidateNonzeroFailing(t *testing.T) {
 		}{}},
 
 		// test string types accessing 's'
-		{ErrEmpty, &struct {
+		{ErrStringEmpty, &struct {
 			S string `validate:"nonzero"`
 		}{}},
-		{ErrEmpty, &struct {
+		{ErrStringEmpty, &struct {
 			S *string `validate:"nonzero"`
 		}{}},
-		{ErrEmpty, &struct {
+		{ErrRegexEmpty, &struct {
 			S *regexp.Regexp `validate:"nonzero"`
 		}{}},
 
