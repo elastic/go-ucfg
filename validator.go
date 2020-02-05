@@ -419,8 +419,11 @@ func validateNonEmptyWithAllowNil(v interface{}, _ string, allowNil bool) error 
 
 	val := reflect.ValueOf(v)
 	if val.Kind() == reflect.Array || val.Kind() == reflect.Slice {
-		if allowNil && val.IsNil() {
-			return nil
+		if val.IsNil() {
+			if allowNil {
+				return nil
+			}
+			return ErrRequired
 		}
 		if val.Len() == 0 {
 			return ErrArrayEmpty
@@ -428,8 +431,11 @@ func validateNonEmptyWithAllowNil(v interface{}, _ string, allowNil bool) error 
 		return nil
 	}
 	if val.Kind() == reflect.Map {
-		if allowNil && val.IsNil() {
-			return nil
+		if val.IsNil() {
+			if allowNil {
+				return nil
+			}
+			return ErrRequired
 		}
 		if val.Len() == 0 {
 			return ErrMapEmpty
