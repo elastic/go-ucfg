@@ -559,10 +559,10 @@ func TestValidateRequiredFailing(t *testing.T) {
 		{ErrRequired, &struct {
 			A int `validate:"required"`
 		}{}},
-		{ErrRequired, &struct {
+		{ErrEmpty, &struct {
 			A string `validate:"required"`
 		}{}},
-		{ErrRequired, &struct {
+		{ErrArrayEmpty, &struct {
 			A []string `validate:"required"`
 		}{}},
 		{ErrRequired, &struct {
@@ -570,13 +570,13 @@ func TestValidateRequiredFailing(t *testing.T) {
 		}{}},
 
 		// Access empty string field "b"
-		{ErrRequired, &struct {
+		{ErrEmpty, &struct {
 			B string `validate:"required"`
 		}{}},
-		{ErrRequired, &struct {
+		{ErrEmpty, &struct {
 			B *string `validate:"required"`
 		}{}},
-		{ErrRequired, &struct {
+		{ErrEmpty, &struct {
 			B *regexp.Regexp `validate:"required"`
 		}{}},
 
@@ -587,10 +587,10 @@ func TestValidateRequiredFailing(t *testing.T) {
 		{ErrRequired, &struct {
 			C int `validate:"required"`
 		}{}},
-		{ErrRequired, &struct {
+		{ErrEmpty, &struct {
 			C string `validate:"required"`
 		}{}},
-		{ErrRequired, &struct {
+		{ErrArrayEmpty, &struct {
 			C []string `validate:"required"`
 		}{}},
 		{ErrRequired, &struct {
@@ -598,24 +598,24 @@ func TestValidateRequiredFailing(t *testing.T) {
 		}{}},
 
 		// Check required []string field 'd'
-		{ErrRequired, &struct {
+		{ErrArrayEmpty, &struct {
 			D []string `validate:"required"`
 		}{}},
 
 		// Check required []string filed 'e' not in config (pre-initialized)
-		{ErrRequired, &struct {
+		{ErrArrayEmpty, &struct {
 			E []string `validate:"required"`
 		}{
 			E: []string{},
 		}},
 
 		// Check empty map[string]string field 'f'
-		{ErrRequired, &struct {
+		{ErrMapEmpty, &struct {
 			F map[string]string `validate:"required"`
 		}{}},
 
 		// Check required map[string] 'g' not in config (pre-initialized)
-		{ErrRequired, &struct {
+		{ErrMapEmpty, &struct {
 			G map[string]string `validate:"required"`
 		}{
 			G: map[string]string{},
@@ -701,40 +701,40 @@ func TestValidateNonzeroFailing(t *testing.T) {
 		}{}},
 
 		// test array type accessing 'a'
-		{ErrEmpty, &struct {
+		{ErrArrayEmpty, &struct {
 			A []int `validate:"nonzero"`
 		}{}},
-		{ErrEmpty, &struct {
+		{ErrArrayEmpty, &struct {
 			A []uint8 `validate:"nonzero"`
 		}{}},
 
 		// test array type accessing 'b' (pre-initialized)
-		{ErrEmpty, &struct {
+		{ErrArrayEmpty, &struct {
 			B []int `validate:"nonzero"`
 		}{
 			B: []int{},
 		}},
-		{ErrEmpty, &struct {
+		{ErrArrayEmpty, &struct {
 			B []uint8 `validate:"nonzero"`
 		}{
 			B: []uint8{},
 		}},
 
 		// test array type accessing 'c'
-		{ErrEmpty, &struct {
+		{ErrMapEmpty, &struct {
 			C map[string]string `validate:"nonzero"`
 		}{}},
-		{ErrEmpty, &struct {
+		{ErrMapEmpty, &struct {
 			C map[string]string `validate:"nonzero"`
 		}{}},
 
 		// test array type accessing 'd' (pre-initialized)
-		{ErrEmpty, &struct {
+		{ErrMapEmpty, &struct {
 			D map[string]string `validate:"nonzero"`
 		}{
 			D: map[string]string{},
 		}},
-		{ErrEmpty, &struct {
+		{ErrMapEmpty, &struct {
 			D map[string]string `validate:"nonzero"`
 		}{
 			D: map[string]string{},

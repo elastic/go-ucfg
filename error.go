@@ -98,6 +98,10 @@ var (
 	ErrRequired = errors.New("missing required field")
 
 	ErrEmpty = errors.New("empty field")
+
+	ErrArrayEmpty = errors.New("empty array")
+
+	ErrMapEmpty = errors.New("empty map")
 )
 
 // Error Classes
