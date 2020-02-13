@@ -38,6 +38,7 @@ type options struct {
 	noParse      bool
 
 	configValueHandling configHandling
+	fieldValueHandling  map[string]configHandling
 
 	// temporary cache of parsed splice values for lifetime of call to
 	// Unpack/Pack/Get/...
@@ -159,6 +160,43 @@ var (
 func makeOptValueHandling(h configHandling) Option {
 	return func(o *options) {
 		o.configValueHandling = h
+	}
+}
+
+var (
+	// FieldDefaultValues option configures all merging and unpacking operations to
+	// use the default merging for the specified field. This overrides the any struct
+	// tags during unpack for the field. Nested field names can be defined using dot
+	// notation.
+	FieldDefaultValues = makeFieldOptValueHandling(cfgDefaultHandling)
+
+	// FieldReplaceValues option configures all merging and unpacking operations to
+	// replace old dictionaries and arrays while merging for the specified field. This
+	// overrides the any struct tags during unpack for the field. Nested field names
+	// can be defined using dot notation.
+	FieldReplaceValues = makeFieldOptValueHandling(cfgReplaceValue)
+
+	// FieldAppendValues option configures all merging and unpacking operations to
+	// merge dictionaries and append arrays to existing arrays while merging for the
+	// specified field. This overrides the any struct tags during unpack for the field.
+	// Nested field names can be defined using dot notation.
+	FieldAppendValues = makeFieldOptValueHandling(cfgArrAppend)
+
+	// FieldPrependValues option configures all merging and unpacking operations to
+	// merge dictionaries and prepend arrays to existing arrays while merging for the
+	// specified field. This overrides the any struct tags during unpack for the field.
+	// Nested field names can be defined using dot notation.
+	FieldPrependValues = makeFieldOptValueHandling(cfgArrPrepend)
+)
+
+func makeFieldOptValueHandling(h configHandling) func(string) Option {
+	return func(fieldName string) Option {
+		return func(o *options) {
+			if o.fieldValueHandling == nil {
+				o.fieldValueHandling = make(map[string]configHandling)
+			}
+			o.fieldValueHandling[fieldName] = h
+		}
 	}
 }
 

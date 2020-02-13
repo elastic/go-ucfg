@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"strings"
 	"time"
 	"unicode"
 	"unicode/utf8"
@@ -88,7 +89,7 @@ func mergeConfig(opts *options, to, from *Config) Error {
 	if err := mergeConfigDict(opts, to, from); err != nil {
 		return err
 	}
-	return mergeConfigArr(opts, to, from)
+	return mergeConfigArr(fieldOptsOverride(opts, "*"), to, from)
 }
 
 func mergeConfigDict(opts *options, to, from *Config) Error {
@@ -115,7 +116,7 @@ func mergeConfigDict(opts *options, to, from *Config) Error {
 		}
 
 		old, _ := to.fields.get(k)
-		merged, err := mergeValues(opts, old, v)
+		merged, err := mergeValues(fieldOptsOverride(opts, k), old, v)
 		if err != nil {
 			return err
 		}
@@ -514,4 +515,43 @@ func normalizeString(ctx context, opts *options, str string) (value, Error) {
 	}
 
 	return newSplice(ctx, opts.meta, varexp), nil
+}
+
+func fieldOptsOverride(opts *options, fieldName string) *options {
+	if opts.fieldValueHandling == nil {
+		return opts
+	}
+	cfgHandling, ok := opts.fieldValueHandling[fieldName]
+	if !ok {
+		if len(opts.fieldValueHandling) != 0 {
+			// need to remove a level of fields as a nested field could have a
+			// config handling modification
+			newOpts := new(options)
+			*newOpts = *opts
+			newOpts.fieldValueHandling = trimFieldConfigHandlingLevel(fieldName, newOpts.pathSep, newOpts.fieldValueHandling)
+			opts = newOpts
+		}
+		return opts
+	}
+	newOpts := new(options)
+	*newOpts = *opts
+	newOpts.configValueHandling = cfgHandling
+	newOpts.fieldValueHandling = trimFieldConfigHandlingLevel(fieldName, newOpts.pathSep, newOpts.fieldValueHandling)
+	return newOpts
+}
+
+func trimFieldConfigHandlingLevel(fieldName string, pathSep string, m map[string]configHandling) map[string]configHandling {
+	if pathSep == "" {
+		// no path separator, so nesting of fields is disabled
+		return nil
+	}
+
+	nested := make(map[string]configHandling)
+	for k, v := range m {
+		s := strings.SplitN(k, pathSep, 2)
+		if len(s) == 2 && s[0] == fieldName {
+			nested[s[1]] = v
+		}
+	}
+	return nested
 }

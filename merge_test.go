@@ -390,6 +390,49 @@ func TestMergeChildArray(t *testing.T) {
 	}
 }
 
+func TestMergeArrayOfMaps(t *testing.T) {
+	c := New()
+	err := c.Merge(map[string]interface{}{
+		"paths": []interface{}{
+			"removed_1.log",
+			"removed_2.log",
+			"removed_2.log",
+		},
+		"processors": []interface{}{
+			map[string]interface{}{
+				"add_locale": map[string]interface{}{},
+			},
+		},
+	})
+	assert.NoError(t, err)
+
+	err = c.Merge(map[string]interface{}{
+		"paths": []interface{}{
+			"container.log",
+		},
+		"processors": []interface{}{
+			map[string]interface{}{
+				"add_fields": map[string]interface{}{
+					"foo": "bar",
+				},
+			},
+		},
+	},
+		PathSep("."),
+		FieldReplaceValues("paths"), FieldDefaultValues("paths.*"),
+		FieldAppendValues("processors"), FieldDefaultValues("processors.*"))
+	assert.NoError(t, err)
+
+	unpacked := make(map[string]interface{})
+	assert.NoError(t, c.Unpack(unpacked))
+
+	paths, _ := unpacked["paths"]
+	assert.Len(t, paths, 1)
+
+	processors, _ := unpacked["processors"]
+	assert.Len(t, processors, 2)
+}
+
 func TestMergeSquash(t *testing.T) {
 	type SubType struct{ B bool }
 	type SubInterface struct{ B interface{} }
