@@ -523,6 +523,10 @@ func fieldOptsOverride(opts *options, fieldName string) *options {
 	}
 	cfgHandling, ok := opts.fieldValueHandling[fieldName]
 	if !ok {
+		// possible unknown depth defined
+		cfgHandling, ok = opts.fieldValueHandling[fmt.Sprintf("**.%s", fieldName)]
+	}
+	if !ok {
 		if len(opts.fieldValueHandling) != 0 {
 			// need to remove a level of fields as a nested field could have a
 			// config handling modification
@@ -549,8 +553,12 @@ func trimFieldConfigHandlingLevel(fieldName string, pathSep string, m map[string
 	nested := make(map[string]configHandling)
 	for k, v := range m {
 		s := strings.SplitN(k, pathSep, 2)
-		if len(s) == 2 && s[0] == fieldName {
-			nested[s[1]] = v
+		if len(s) == 2 {
+			if s[0] == fieldName {
+				nested[s[1]] = v
+			} else if s[0] == "**" {
+				nested[k] = v
+			}
 		}
 	}
 	return nested
