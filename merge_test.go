@@ -743,6 +743,60 @@ func TestMergeFieldHandling(t *testing.T) {
 				assert.Equal(t, []string{"add_locale", "add_fields"}, processorNames)
 			},
 		},
+		{
+			"replace paths and append processors using depth selector (but fields are at level0)",
+			[]interface{}{
+				map[string]interface{}{
+					"paths": []interface{}{
+						"removed_1.log",
+						"removed_2.log",
+						"removed_2.log",
+					},
+					"processors": []interface{}{
+						map[string]interface{}{
+							"add_locale": map[string]interface{}{},
+						},
+					},
+				},
+				map[string]interface{}{
+					"paths": []interface{}{
+						"container.log",
+					},
+					"processors": []interface{}{
+						map[string]interface{}{
+							"add_fields": map[string]interface{}{
+								"foo": "bar",
+							},
+						},
+					},
+				},
+			},
+			[]Option{
+				PathSep("."),
+				FieldReplaceValues("**.paths"),
+				FieldAppendValues("**.processors"),
+			},
+			func(t *testing.T, c *Config) {
+				unpacked := make(map[string]interface{})
+				assert.NoError(t, c.Unpack(unpacked))
+
+				paths, _ := unpacked["paths"]
+				assert.Len(t, paths, 1)
+				assert.Equal(t, []interface{}{"container.log"}, paths)
+
+				processors, _ := unpacked["processors"]
+				assert.Len(t, processors, 2)
+
+				processorNames := make([]string, 2)
+				procs := processors.([]interface{})
+				for i, proc := range procs {
+					for name := range proc.(map[string]interface{}) {
+						processorNames[i] = name
+					}
+				}
+				assert.Equal(t, []string{"add_locale", "add_fields"}, processorNames)
+			},
+		},
 	}
 
 	for _, test := range tests {
