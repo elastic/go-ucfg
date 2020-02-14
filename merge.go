@@ -89,7 +89,7 @@ func mergeConfig(opts *options, to, from *Config) Error {
 	if err := mergeConfigDict(opts, to, from); err != nil {
 		return err
 	}
-	return mergeConfigArr(fieldOptsOverride(opts, "*"), to, from)
+	return mergeConfigArr(opts, to, from)
 }
 
 func mergeConfigDict(opts *options, to, from *Config) Error {
@@ -131,18 +131,18 @@ func mergeConfigDict(opts *options, to, from *Config) Error {
 func mergeConfigArr(opts *options, to, from *Config) Error {
 	switch opts.configValueHandling {
 	case cfgReplaceValue:
-		return mergeConfigReplaceArr(opts, to, from)
+		return mergeConfigReplaceArr(fieldOptsOverride(opts, "*"), to, from)
 
 	case cfgArrPrepend:
-		return mergeConfigPrependArr(opts, to, from)
+		return mergeConfigPrependArr(fieldOptsOverride(opts, "*"), to, from)
 
 	case cfgArrAppend:
-		return mergeConfigAppendArr(opts, to, from)
+		return mergeConfigAppendArr(fieldOptsOverride(opts, "*"), to, from)
 
 	case cfgDefaultHandling, cfgMergeValues:
-		return mergeConfigMergeArr(opts, to, from)
+		return mergeConfigMergeArr(fieldOptsOverride(opts, "*"), to, from)
 	default:
-		return mergeConfigMergeArr(opts, to, from)
+		return mergeConfigMergeArr(fieldOptsOverride(opts, "*"), to, from)
 	}
 }
 
