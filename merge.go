@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
-	"strings"
 	"time"
 	"unicode"
 	"unicode/utf8"
@@ -116,7 +115,11 @@ func mergeConfigDict(opts *options, to, from *Config) Error {
 		}
 
 		old, _ := to.fields.get(k)
-		merged, err := mergeValues(fieldOptsOverride(opts, k), old, v)
+		opts, err := fieldOptsOverride(opts, k, -1)
+		if err != nil {
+			return err
+		}
+		merged, err := mergeValues(opts, old, v)
 		if err != nil {
 			return err
 		}
@@ -129,20 +132,25 @@ func mergeConfigDict(opts *options, to, from *Config) Error {
 }
 
 func mergeConfigArr(opts *options, to, from *Config) Error {
-	switch opts.configValueHandling {
+	currHandling := opts.configValueHandling
+	opts, err := fieldOptsOverride(opts, "*", -1)
+	if err != nil {
+		return err
+	}
+	switch currHandling {
 	case cfgReplaceValue:
-		return mergeConfigReplaceArr(fieldOptsOverride(opts, "*"), to, from)
+		return mergeConfigReplaceArr(opts, to, from)
 
 	case cfgArrPrepend:
-		return mergeConfigPrependArr(fieldOptsOverride(opts, "*"), to, from)
+		return mergeConfigPrependArr(opts, to, from)
 
 	case cfgArrAppend:
-		return mergeConfigAppendArr(fieldOptsOverride(opts, "*"), to, from)
+		return mergeConfigAppendArr(opts, to, from)
 
 	case cfgDefaultHandling, cfgMergeValues:
-		return mergeConfigMergeArr(fieldOptsOverride(opts, "*"), to, from)
+		return mergeConfigMergeArr(opts, to, from)
 	default:
-		return mergeConfigMergeArr(fieldOptsOverride(opts, "*"), to, from)
+		return mergeConfigMergeArr(opts, to, from)
 	}
 }
 
@@ -178,8 +186,18 @@ func mergeConfigMergeArr(opts *options, to, from *Config) Error {
 			field:  fmt.Sprintf("%v", i),
 		}
 
+		// possible for individual index to be replaced
+		idxOpts, err := fieldOptsOverride(opts, "", i)
+		if err != nil {
+			return err
+		}
+		if opts.configValueHandling == cfgReplaceValue {
+			to.fields.setAt(i, parent, arr[1])
+			continue
+		}
+
 		old := to.fields.array()[i]
-		merged, err := mergeValues(opts, old, arr[i])
+		merged, err := mergeValues(idxOpts, old, arr[i])
 		if err != nil {
 			return err
 		}
@@ -517,49 +535,72 @@ func normalizeString(ctx context, opts *options, str string) (value, Error) {
 	return newSplice(ctx, opts.meta, varexp), nil
 }
 
-func fieldOptsOverride(opts *options, fieldName string) *options {
-	if opts.fieldValueHandling == nil {
-		return opts
+func fieldOptsOverride(opts *options, fieldName string, idx int) (*options, Error) {
+	if opts.fieldValueHandlingConfig == nil {
+		return opts, nil
 	}
-	cfgHandling, ok := opts.fieldValueHandling[fieldName]
-	if !ok {
-		// possible unknown depth defined
-		cfgHandling, ok = opts.fieldValueHandling[fmt.Sprintf("**.%s", fieldName)]
+	cfg := opts.fieldValueHandlingConfig
+	cfgHandling, child, ok := getFieldValueHandlingConfig(cfg, fieldName, idx)
+	child, err := includeWildcard(child, cfg)
+	if err != nil {
+		return nil, err
 	}
 	if !ok {
-		if len(opts.fieldValueHandling) != 0 {
+		if child != nil {
 			// need to remove a level of fields as a nested field could have a
 			// config handling modification
-			newOpts := new(options)
-			*newOpts = *opts
-			newOpts.fieldValueHandling = trimFieldConfigHandlingLevel(fieldName, newOpts.pathSep, newOpts.fieldValueHandling)
-			opts = newOpts
+			newOpts := *opts
+			newOpts.fieldValueHandlingConfig = child
+			opts = &newOpts
 		}
-		return opts
+		return opts, nil
 	}
-	newOpts := new(options)
-	*newOpts = *opts
+	newOpts := *opts
 	newOpts.configValueHandling = cfgHandling
-	newOpts.fieldValueHandling = trimFieldConfigHandlingLevel(fieldName, newOpts.pathSep, newOpts.fieldValueHandling)
-	return newOpts
+	newOpts.fieldValueHandlingConfig = child
+	return &newOpts, nil
 }
 
-func trimFieldConfigHandlingLevel(fieldName string, pathSep string, m map[string]configHandling) map[string]configHandling {
-	if pathSep == "" {
-		// no path separator, so nesting of fields is disabled
-		return nil
-	}
-
-	nested := make(map[string]configHandling)
-	for k, v := range m {
-		s := strings.SplitN(k, pathSep, 2)
-		if len(s) == 2 {
-			if s[0] == fieldName {
-				nested[s[1]] = v
-			} else if s[0] == "**" {
-				nested[k] = v
-			}
+func getFieldValueHandlingConfig(cfg *Config, fieldName string, idx int) (configHandling, *Config, bool) {
+	child, err := cfg.Child(fieldName, idx)
+	if err == nil {
+		cfgHandling, err := child.Uint("*", -1)
+		if err == nil {
+			return configHandling(cfgHandling), child, true
 		}
 	}
-	return nested
+	// try wildcard match
+	wildcard, err := cfg.Child("**", -1)
+	if err != nil {
+		return cfgDefaultHandling, child, false
+	}
+	cfgHandling, cfg, ok := getFieldValueHandlingConfig(wildcard, fieldName, idx)
+	if ok {
+		return cfgHandling, cfg, ok
+	}
+	return cfgDefaultHandling, child, ok
+}
+
+func includeWildcard(child *Config, parent *Config) (*Config, Error) {
+	if parent == nil || !parent.IsDict() {
+		return child, nil
+	}
+	wildcard, err := parent.Child("**", -1)
+	if err != nil {
+		return child, nil
+	}
+	if child == nil && len(parent.fields.dict()) == 1 {
+		// parent is already config with just wildcard
+		return parent, nil
+	}
+	cfg := New()
+	if child != nil {
+		if err := cfg.Merge(child); err != nil {
+			return nil, err.(Error)
+		}
+	}
+	if err := cfg.SetChild("**", -1, wildcard); err != nil {
+		return nil, err.(Error)
+	}
+	return cfg, nil
 }

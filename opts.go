@@ -18,7 +18,9 @@
 package ucfg
 
 import (
+	"fmt"
 	"os"
+	"strings"
 
 	"github.com/elastic/go-ucfg/parse"
 )
@@ -37,8 +39,9 @@ type options struct {
 	varexp       bool
 	noParse      bool
 
-	configValueHandling configHandling
-	fieldValueHandling  map[string]configHandling
+	configValueHandling      configHandling
+	fieldValueHandling       map[string]configHandling
+	fieldValueHandlingConfig *Config
 
 	// temporary cache of parsed splice values for lifetime of call to
 	// Unpack/Pack/Get/...
@@ -164,11 +167,11 @@ func makeOptValueHandling(h configHandling) Option {
 }
 
 var (
-	// FieldDefaultValues option configures all merging and unpacking operations to
-	// use the default merging for the specified field. This overrides the any struct
+	// FieldMergeValues option configures all merging and unpacking operations to use
+	// the default merging behavior for the specified field. This overrides the any struct
 	// tags during unpack for the field. Nested field names can be defined using dot
 	// notation.
-	FieldDefaultValues = makeFieldOptValueHandling(cfgDefaultHandling)
+	FieldMergeValues = makeFieldOptValueHandling(cfgMergeValues)
 
 	// FieldReplaceValues option configures all merging and unpacking operations to
 	// replace old dictionaries and arrays while merging for the specified field. This
@@ -189,13 +192,20 @@ var (
 	FieldPrependValues = makeFieldOptValueHandling(cfgArrPrepend)
 )
 
-func makeFieldOptValueHandling(h configHandling) func(string) Option {
-	return func(fieldName string) Option {
+func makeFieldOptValueHandling(h configHandling) func(...string) Option {
+	return func(fieldName ...string) Option {
 		return func(o *options) {
 			if o.fieldValueHandling == nil {
 				o.fieldValueHandling = make(map[string]configHandling)
 			}
-			o.fieldValueHandling[fieldName] = h
+			for _, name := range fieldName {
+				// field value config options are rendered into a Config; the '*' represents the handling method
+				// for everything nested under this field.
+				if !strings.HasSuffix(name, ".*") {
+					name = fmt.Sprintf("%s.*", name)
+				}
+				o.fieldValueHandling[name] = h
+			}
 		}
 	}
 }
@@ -215,6 +225,10 @@ func makeOptions(opts []Option) *options {
 	}
 	for _, opt := range opts {
 		opt(&o)
+	}
+	if o.fieldValueHandling != nil {
+		o.fieldValueHandlingConfig = New()
+		o.fieldValueHandlingConfig.Merge(o.fieldValueHandling, PathSep(o.pathSep))
 	}
 	return &o
 }

@@ -797,6 +797,75 @@ func TestMergeFieldHandling(t *testing.T) {
 				assert.Equal(t, []string{"add_locale", "add_fields"}, processorNames)
 			},
 		},
+		{
+			"adjust merging based on indexes",
+			[]interface{}{
+				map[string]interface{}{
+					"processors": []interface{}{
+						map[string]interface{}{
+							"add_locale": map[string]interface{}{},
+						},
+						map[string]interface{}{
+							"add_fields": map[string]interface{}{
+								"foo": "bar",
+							},
+						},
+						map[string]interface{}{
+							"add_tags": map[string]interface{}{
+								"tags": []string{"merged"},
+							},
+						},
+					},
+				},
+				map[string]interface{}{
+					"processors": []interface{}{
+						map[string]interface{}{
+							"add_locale": map[string]interface{}{},
+						},
+						map[string]interface{}{
+							"add_fields": map[string]interface{}{
+								"replace": "no-bar",
+							},
+						},
+						map[string]interface{}{
+							"add_tags": map[string]interface{}{
+								"tags": []string{"together"},
+							},
+						},
+					},
+				},
+			},
+			[]Option{
+				PathSep("."),
+				FieldReplaceValues("processors.1"),
+				FieldAppendValues("processors.2.add_tags.tags"),
+			},
+			func(t *testing.T, c *Config) {
+				unpacked := make(map[string]interface{})
+				assert.NoError(t, c.Unpack(unpacked))
+
+				processors, _ := unpacked["processors"]
+				assert.Len(t, processors, 3)
+
+				processorsByAction := make(map[string]interface{})
+				procs := processors.([]interface{})
+				for _, proc := range procs {
+					for name, val := range proc.(map[string]interface{}) {
+						processorsByAction[name] = val
+					}
+				}
+
+				addFieldsAction, ok := processorsByAction["add_fields"]
+				assert.True(t, ok)
+				assert.Equal(t, map[string]interface{}{"replace": "no-bar"}, addFieldsAction)
+
+				addTagsAction, ok := processorsByAction["add_tags"]
+				assert.True(t, ok)
+				tags, ok := (addTagsAction.(map[string]interface{}))["tags"]
+				assert.True(t, ok)
+				assert.Equal(t, []interface{}{"merged", "together"}, tags)
+			},
+		},
 	}
 
 	for _, test := range tests {
