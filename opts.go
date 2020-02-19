@@ -39,9 +39,8 @@ type options struct {
 	varexp       bool
 	noParse      bool
 
-	configValueHandling      configHandling
-	fieldValueHandling       map[string]configHandling
-	fieldValueHandlingConfig *Config
+	configValueHandling configHandling
+	fieldHandlingTree   *fieldHandlingTree
 
 	// temporary cache of parsed splice values for lifetime of call to
 	// Unpack/Pack/Get/...
@@ -51,6 +50,9 @@ type options struct {
 }
 
 type valueCache map[string]spliceValue
+
+// specific API on top of Config to handle adjusting merging behavior per fields
+type fieldHandlingTree Config
 
 // id used to store intermediate parse results in current execution context.
 // As parsing results might differ between multiple calls due to:
@@ -194,18 +196,25 @@ var (
 
 func makeFieldOptValueHandling(h configHandling) func(...string) Option {
 	return func(fieldName ...string) Option {
+		if len(fieldName) == 0 {
+			return func(_ *options) {}
+		}
+
+		table := make(map[string]configHandling)
+		for _, name := range fieldName {
+			// field value config options are rendered into a Config; the '*' represents the handling method
+			// for everything nested under this field.
+			if !strings.HasSuffix(name, ".*") {
+				name = fmt.Sprintf("%s.*", name)
+			}
+			table[name] = h
+		}
+
 		return func(o *options) {
-			if o.fieldValueHandling == nil {
-				o.fieldValueHandling = make(map[string]configHandling)
+			if o.fieldHandlingTree == nil {
+				o.fieldHandlingTree = newFieldHandlingTree()
 			}
-			for _, name := range fieldName {
-				// field value config options are rendered into a Config; the '*' represents the handling method
-				// for everything nested under this field.
-				if !strings.HasSuffix(name, ".*") {
-					name = fmt.Sprintf("%s.*", name)
-				}
-				o.fieldValueHandling[name] = h
-			}
+			o.fieldHandlingTree.merge(table, PathSep(o.pathSep))
 		}
 	}
 }
@@ -225,10 +234,6 @@ func makeOptions(opts []Option) *options {
 	}
 	for _, opt := range opts {
 		opt(&o)
-	}
-	if o.fieldValueHandling != nil {
-		o.fieldValueHandlingConfig = New()
-		o.fieldValueHandlingConfig.Merge(o.fieldValueHandling, PathSep(o.pathSep))
 	}
 	return &o
 }
@@ -251,4 +256,60 @@ func (cache valueCache) cachedValue(
 		cache[string(id)] = spliceValue{err, v}
 	}
 	return v, err
+}
+
+func newFieldHandlingTree() *fieldHandlingTree {
+	return (*fieldHandlingTree)(New())
+}
+
+func (t *fieldHandlingTree) merge(other interface{}, opts ...Option) error {
+	cfg := (*Config)(t)
+	return cfg.Merge(other, opts...)
+}
+
+func (t *fieldHandlingTree) child(fieldName string, idx int) (*fieldHandlingTree, error) {
+	cfg := (*Config)(t)
+	child, err := cfg.Child(fieldName, idx)
+	if err != nil {
+		return nil, err
+	}
+	return (*fieldHandlingTree)(child), nil
+}
+
+func (t *fieldHandlingTree) configHandling(fieldName string, idx int) (configHandling, error) {
+	cfg := (*Config)(t)
+	handling, err := cfg.Uint(fieldName, idx)
+	if err != nil {
+		return cfgDefaultHandling, err
+	}
+	return configHandling(handling), nil
+}
+
+func (t *fieldHandlingTree) wildcard() (*fieldHandlingTree, error) {
+	return t.child("**", -1)
+}
+
+func (t *fieldHandlingTree) setWildcard(wildcard *fieldHandlingTree) error {
+	cfg := (*Config)(t)
+	return cfg.SetChild("**", -1, (*Config)(wildcard))
+}
+
+func (t *fieldHandlingTree) fieldHandling(fieldName string, idx int) (configHandling, *fieldHandlingTree, bool) {
+	child, err := t.child(fieldName, idx)
+	if err == nil {
+		cfgHandling, err := child.configHandling("*", -1)
+		if err == nil {
+			return cfgHandling, child, true
+		}
+	}
+	// try wildcard match
+	wildcard, err := t.wildcard()
+	if err != nil {
+		return cfgDefaultHandling, child, false
+	}
+	cfgHandling, cfg, ok := wildcard.fieldHandling(fieldName, idx)
+	if ok {
+		return cfgHandling, cfg, ok
+	}
+	return cfgDefaultHandling, child, ok
 }

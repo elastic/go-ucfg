@@ -531,12 +531,11 @@ func normalizeString(ctx context, opts *options, str string) (value, Error) {
 }
 
 func fieldOptsOverride(opts *options, fieldName string, idx int) (*options, Error) {
-	if opts.fieldValueHandlingConfig == nil {
+	if opts.fieldHandlingTree == nil {
 		return opts, nil
 	}
-	cfg := opts.fieldValueHandlingConfig
-	cfgHandling, child, ok := getFieldValueHandlingConfig(cfg, fieldName, idx)
-	child, err := includeWildcard(child, cfg)
+	cfgHandling, child, ok := opts.fieldHandlingTree.fieldHandling(fieldName, idx)
+	child, err := includeWildcard(child, opts.fieldHandlingTree)
 	if err != nil {
 		return nil, err
 	}
@@ -544,48 +543,28 @@ func fieldOptsOverride(opts *options, fieldName string, idx int) (*options, Erro
 		// Only return a new `options` when arriving at new nested child. This
 		// combined with optimizations in `includeWildcard` will ensure that only
 		// a new opts will be created and returned when absolutely required.
-		if child != nil && opts.fieldValueHandlingConfig != child {
+		if child != nil && opts.fieldHandlingTree != child {
 			newOpts := *opts
-			newOpts.fieldValueHandlingConfig = child
+			newOpts.fieldHandlingTree = child
 			opts = &newOpts
 		}
 		return opts, nil
 	}
 	// Only return a new `options` if absolutely required.
-	if opts.configValueHandling != cfgHandling || opts.fieldValueHandlingConfig != child {
+	if opts.configValueHandling != cfgHandling || opts.fieldHandlingTree != child {
 		newOpts := *opts
 		newOpts.configValueHandling = cfgHandling
-		newOpts.fieldValueHandlingConfig = child
+		newOpts.fieldHandlingTree = child
 		opts = &newOpts
 	}
 	return opts, nil
 }
 
-func getFieldValueHandlingConfig(cfg *Config, fieldName string, idx int) (configHandling, *Config, bool) {
-	child, err := cfg.Child(fieldName, idx)
-	if err == nil {
-		cfgHandling, err := child.Uint("*", -1)
-		if err == nil {
-			return configHandling(cfgHandling), child, true
-		}
-	}
-	// try wildcard match
-	wildcard, err := cfg.Child("**", -1)
-	if err != nil {
-		return cfgDefaultHandling, child, false
-	}
-	cfgHandling, cfg, ok := getFieldValueHandlingConfig(wildcard, fieldName, idx)
-	if ok {
-		return cfgHandling, cfg, ok
-	}
-	return cfgDefaultHandling, child, ok
-}
-
-func includeWildcard(child *Config, parent *Config) (*Config, Error) {
-	if parent == nil || !parent.IsDict() {
+func includeWildcard(child *fieldHandlingTree, parent *fieldHandlingTree) (*fieldHandlingTree, Error) {
+	if parent == nil {
 		return child, nil
 	}
-	wildcard, err := parent.Child("**", -1)
+	wildcard, err := parent.wildcard()
 	if err != nil {
 		return child, nil
 	}
@@ -593,14 +572,14 @@ func includeWildcard(child *Config, parent *Config) (*Config, Error) {
 		// parent is already config with just wildcard
 		return parent, nil
 	}
-	cfg := New()
+	sub := newFieldHandlingTree()
 	if child != nil {
-		if err := cfg.Merge(child); err != nil {
+		if err := sub.merge(child); err != nil {
 			return nil, err.(Error)
 		}
 	}
-	if err := cfg.SetChild("**", -1, wildcard); err != nil {
+	if err := sub.setWildcard(wildcard); err != nil {
 		return nil, err.(Error)
 	}
-	return cfg, nil
+	return sub, nil
 }
