@@ -191,11 +191,6 @@ func mergeConfigMergeArr(opts *options, to, from *Config) Error {
 		if err != nil {
 			return err
 		}
-		if opts.configValueHandling == cfgReplaceValue {
-			to.fields.setAt(i, parent, arr[1])
-			continue
-		}
-
 		old := to.fields.array()[i]
 		merged, err := mergeValues(idxOpts, old, arr[i])
 		if err != nil {
@@ -546,19 +541,24 @@ func fieldOptsOverride(opts *options, fieldName string, idx int) (*options, Erro
 		return nil, err
 	}
 	if !ok {
-		if child != nil {
-			// need to remove a level of fields as a nested field could have a
-			// config handling modification
+		// Only return a new `options` when arriving at new nested child. This
+		// combined with optimizations in `includeWildcard` will ensure that only
+		// a new opts will be created and returned when absolutely required.
+		if child != nil && opts.fieldValueHandlingConfig != child {
 			newOpts := *opts
 			newOpts.fieldValueHandlingConfig = child
 			opts = &newOpts
 		}
 		return opts, nil
 	}
-	newOpts := *opts
-	newOpts.configValueHandling = cfgHandling
-	newOpts.fieldValueHandlingConfig = child
-	return &newOpts, nil
+	// Only return a new `options` if absolutely required.
+	if opts.configValueHandling != cfgHandling || opts.fieldValueHandlingConfig != child {
+		newOpts := *opts
+		newOpts.configValueHandling = cfgHandling
+		newOpts.fieldValueHandlingConfig = child
+		opts = &newOpts
+	}
+	return opts, nil
 }
 
 func getFieldValueHandlingConfig(cfg *Config, fieldName string, idx int) (configHandling, *Config, bool) {
