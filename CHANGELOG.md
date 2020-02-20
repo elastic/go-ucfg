@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Added ability to adjust merging behavior based on field names in configuration. Using `ucfg.FieldMergeValues`, `ucfg.FieldReplaceValues`, `ucfg.FieldAppendValues`, and `ucfg.FieldPrependValues`. #151
 
 ### Changed
 
