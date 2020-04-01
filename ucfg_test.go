@@ -206,6 +206,9 @@ func TestCyclicReferenceShouldFallbackToOtherResolvers(t *testing.T) {
 	}
 
 	c, err := NewFrom(cfg, opts...)
+	if err != nil {
+		t.Fatalf("NewFrom: %v", err)
+	}
 	v, err := c.String("top.reference", -1, opts...)
 	if assert.NoError(t, err) {
 		assert.Equal(t, "reference-found", v)
