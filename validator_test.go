@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/stretchr/testify/assert"
 )
 
 type myNonzeroInt int
@@ -986,7 +985,10 @@ func TestValidationFailOnDefaults(t *testing.T) {
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("Test config (%v): %#v", i, test), func(t *testing.T) {
 			err := c.Unpack(test)
-			assert.True(t, err != nil)
+			if err == nil {
+				t.Fatalf("test:%v error:%v", spew.Sdump(test), err)
+			}
+
 		})
 	}
 }
