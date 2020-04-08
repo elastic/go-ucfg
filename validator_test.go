@@ -637,7 +637,11 @@ func TestValidateRequiredFailing(t *testing.T) {
 
 			t.Logf("Unpack returned error: %v", err)
 			err = err.(Error).Reason()
-			assert.Equal(t, test.err, err)
+			logTmpl := "expected:%q got:%q"
+			if test.err != err {
+				t.Fatalf(logTmpl, test.err, err)
+			}
+			t.Logf(logTmpl, test.err, err)
 		})
 	}
 }
