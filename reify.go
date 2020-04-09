@@ -343,7 +343,9 @@ func reifyGetField(
 		return err
 	}
 
-	to.Set(pointerize(to.Type(), v.Type(), v))
+	if v.IsValid() {
+		to.Set(pointerize(to.Type(), v.Type(), v))
+	}
 	return nil
 }
 
