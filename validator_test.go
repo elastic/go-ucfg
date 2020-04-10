@@ -64,6 +64,8 @@ var errZeroTest = errors.New("value must not be 0")
 var errEmptyTest = errors.New("value must not be empty")
 var errMoreTest = errors.New("value must have more than 1 element")
 
+var validateErrorTemplate = "config:%s test:%s error:%v"
+
 func (m myNonzeroInt) Validate() error {
 	return testZeroErr(int(m))
 }
@@ -311,7 +313,7 @@ func TestValidationPass(t *testing.T) {
 		t.Run(fmt.Sprintf("Test config (%v): %#v", i, test), func(t *testing.T) {
 			err := c.Unpack(test)
 			if err != nil {
-				t.Fatalf("test:%v error:%v", spew.Sdump(test), err)
+				t.Fatalf(validateErrorTemplate, spew.Sdump(c), spew.Sdump(test), err)
 			}
 		})
 	}
@@ -538,7 +540,7 @@ func TestValidationFail(t *testing.T) {
 		t.Run(fmt.Sprintf("Test config (%v): %#v", i, test), func(t *testing.T) {
 			err := c.Unpack(test)
 			if err == nil {
-				t.Fatalf("test:%v error:%v", spew.Sdump(test), err)
+				t.Fatalf(validateErrorTemplate, spew.Sdump(c), spew.Sdump(test), err)
 			}
 		})
 	}
@@ -986,7 +988,7 @@ func TestValidationFailOnDefaults(t *testing.T) {
 		t.Run(fmt.Sprintf("Test config (%v): %#v", i, test), func(t *testing.T) {
 			err := c.Unpack(test)
 			if err == nil {
-				t.Fatalf("test:%v error:%v", spew.Sdump(test), err)
+				t.Fatalf(validateErrorTemplate, spew.Sdump(c), spew.Sdump(test), err)
 			}
 
 		})
