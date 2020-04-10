@@ -114,24 +114,9 @@ func TestArray(t *testing.T) {
 	assert.Equal(t, verify[1]["c"], 4)
 }
 
-type hasVars struct {
-	Vars []variable
-}
-
-type variable struct {
-	Default interface{}
-}
-
-func TestStructEmptyArray(t *testing.T) {
+func TestEmptyArrayIntoInterface(t *testing.T) {
 	input := []byte(`
-vars:
-  - default: []
-  - default: null
-  - default: 3
-  - default:
-    - a
-    - b
-    - c
+a: []
 `)
 
 	c, err := NewConfig(input)
@@ -139,12 +124,10 @@ vars:
 		t.Fatalf("failed to parse input: %v", err)
 	}
 
-	var verify hasVars
+	verify := struct {
+		A interface{}
+	}{}
 	err = c.Unpack(&verify)
 	assert.Nil(t, err)
-
-	assert.Nil(t, verify.Vars[0].Default)
-	assert.Nil(t, verify.Vars[1].Default)
-	assert.Equal(t, uint64(3), verify.Vars[2].Default)
-	assert.Len(t, verify.Vars[3].Default.([]interface{}), 3)
+	assert.Nil(t, verify.A)
 }
