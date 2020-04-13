@@ -642,11 +642,9 @@ func TestValidateRequiredFailing(t *testing.T) {
 
 			t.Logf("Unpack returned error: %v", err)
 			err = err.(Error).Reason()
-			logTmpl := "expected:%q got:%q"
 			if test.err != err {
-				t.Fatalf(logTmpl, test.err, err)
+				t.Fatalf("expected:%q got:%q", test.err, err)
 			}
-			t.Logf(logTmpl, test.err, err)
 		})
 	}
 }
@@ -765,11 +763,9 @@ func TestValidateNonzeroFailing(t *testing.T) {
 
 			t.Logf("Unpack returned error: %v", err)
 			err = err.(Error).Reason()
-			logTmpl := "expected:%q got:%q"
 			if test.err != err {
-				t.Fatalf(logTmpl, test.err, err)
+				t.Fatalf("expected:%q got:%q", test.err, err)
 			}
-			t.Logf(logTmpl, test.err, err)
 		})
 	}
 }
