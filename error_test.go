@@ -230,6 +230,7 @@ func TestErrorMessages(t *testing.T) {
 // quotas and makes some test assertions failing.
 func adjustMessageFormat(message string) string {
 	adjusted := strings.Replace(message, "unknown unit \"", "unknown unit ", 1)
-	adjusted = strings.Replace(message, "\" in duration", " in duration", 1)
+	adjusted = strings.Replace(adjusted, "\" in duration \"", " in duration ", 1)
+	adjusted = strings.Replace(adjusted, "\" accessing", " accessing", 1)
 	return adjusted
 }
