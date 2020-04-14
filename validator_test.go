@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/davecgh/go-spew/spew"
 )
 
 type myNonzeroInt int
@@ -63,6 +63,18 @@ type nestedNestedPtrStructValidator struct {
 var errZeroTest = errors.New("value must not be 0")
 var errEmptyTest = errors.New("value must not be empty")
 var errMoreTest = errors.New("value must have more than 1 element")
+
+func mustFailUnpack(t *testing.T, cfg *Config, test interface{}) {
+	if err := cfg.Unpack(test); err == nil {
+		t.Fatalf("config:%s test:%s error:%v", spew.Sdump(cfg), spew.Sdump(test), err)
+	}
+}
+
+func mustUnpack(t *testing.T, cfg *Config, test interface{}) {
+	if err := cfg.Unpack(test); err != nil {
+		t.Fatalf("config:%s test:%s error:%v", spew.Sdump(cfg), spew.Sdump(test), err)
+	}
+}
 
 func (m myNonzeroInt) Validate() error {
 	return testZeroErr(int(m))
@@ -309,8 +321,7 @@ func TestValidationPass(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("Test config (%v): %#v", i, test), func(t *testing.T) {
-			err := c.Unpack(test)
-			assert.NoError(t, err)
+			mustUnpack(t, c, test)
 		})
 	}
 }
@@ -534,8 +545,7 @@ func TestValidationFail(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("Test config (%v): %#v", i, test), func(t *testing.T) {
-			err := c.Unpack(test)
-			assert.True(t, err != nil)
+			mustFailUnpack(t, c, test)
 		})
 	}
 }
@@ -632,7 +642,9 @@ func TestValidateRequiredFailing(t *testing.T) {
 
 			t.Logf("Unpack returned error: %v", err)
 			err = err.(Error).Reason()
-			assert.Equal(t, test.err, err)
+			if test.err != err {
+				t.Fatalf("expected:%q got:%q", test.err, err)
+			}
 		})
 	}
 }
@@ -751,7 +763,9 @@ func TestValidateNonzeroFailing(t *testing.T) {
 
 			t.Logf("Unpack returned error: %v", err)
 			err = err.(Error).Reason()
-			assert.Equal(t, test.err, err)
+			if test.err != err {
+				t.Fatalf("expected:%q got:%q", test.err, err)
+			}
 		})
 	}
 }
@@ -972,8 +986,7 @@ func TestValidationFailOnDefaults(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("Test config (%v): %#v", i, test), func(t *testing.T) {
-			err := c.Unpack(test)
-			assert.True(t, err != nil)
+			mustFailUnpack(t, c, test)
 		})
 	}
 }
