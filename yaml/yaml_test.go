@@ -131,3 +131,101 @@ a: []
 	assert.Nil(t, err)
 	assert.Nil(t, verify.A)
 }
+
+func TestEmptyArrayInStructIntoArrayOfInterfaces(t *testing.T) {
+	input := []byte(`
+a: []
+`)
+
+	c, err := NewConfig(input)
+	if err != nil {
+		t.Fatalf("failed to parse input: %v", err)
+	}
+
+	verify := struct {
+		A []interface{}
+	}{}
+	err = c.Unpack(&verify)
+	assert.Nil(t, err)
+	assert.Equal(t, []interface{}{}, verify.A)
+}
+
+func TestEmptyArrayIntoArrayOfInterfaces(t *testing.T) {
+	input := []byte(`[]`)
+
+	c, err := NewConfig(input)
+	if err != nil {
+		t.Fatalf("failed to parse input: %v", err)
+	}
+
+	var verify []interface{}
+	err = c.Unpack(&verify)
+	assert.Nil(t, err)
+	assert.Equal(t, []interface{}{}, verify)
+}
+
+func TestEmptyMapIntoInterface(t *testing.T) {
+	input := []byte(`{}`)
+
+	c, err := NewConfig(input)
+	if err != nil {
+		t.Fatalf("failed to parse input: %v", err)
+	}
+
+	verify := struct {
+		A interface{}
+	}{}
+	err = c.Unpack(&verify)
+	assert.Nil(t, err)
+	assert.Nil(t, verify.A)
+}
+
+func TestEmptyMapInStructIntoInterface(t *testing.T) {
+	input := []byte(`
+a: {}
+`)
+
+	c, err := NewConfig(input)
+	if err != nil {
+		t.Fatalf("failed to parse input: %v", err)
+	}
+
+	verify := struct {
+		A interface{}
+	}{}
+	err = c.Unpack(&verify)
+	assert.Nil(t, err)
+	assert.Nil(t, verify.A)
+}
+
+func TestEmptyMapInStructIntoMapOfInterfaces(t *testing.T) {
+	input := []byte(`
+a: {}
+`)
+
+	c, err := NewConfig(input)
+	if err != nil {
+		t.Fatalf("failed to parse input: %v", err)
+	}
+
+	verify := struct {
+		A map[string]interface{}
+	}{}
+	err = c.Unpack(&verify)
+	assert.Nil(t, err)
+	assert.Equal(t, map[string]interface{}{}, verify.A)
+}
+
+func TestEmptyMapIntoMapOfInterfaces(t *testing.T) {
+	input := []byte(`{}`)
+
+	c, err := NewConfig(input)
+	if err != nil {
+		t.Fatalf("failed to parse input: %v", err)
+	}
+
+	var verify map[string]interface{}
+	err = c.Unpack(&verify)
+	assert.Nil(t, err)
+	assert.Equal(t, map[string]interface{}{}, verify)
+}
