@@ -18,9 +18,10 @@
 package diff
 
 import (
+	"reflect"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/davecgh/go-spew/spew"
 
 	ucfg "github.com/elastic/go-ucfg"
 )
@@ -39,10 +40,14 @@ func TestDiff(t *testing.T) {
 	}
 
 	g1, err := ucfg.NewFrom(oneGraph, opts...)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	g2, err := ucfg.NewFrom(twoGraph, opts...)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	expected := Diff{
 		Keep:   []string{"n.a.b.c"},
@@ -51,7 +56,9 @@ func TestDiff(t *testing.T) {
 	}
 
 	result := CompareConfigs(g1, g2, opts...)
-	assert.Equal(t, expected, result)
+	if !reflect.DeepEqual(expected, result) {
+		t.Fatalf("expected:%v got:%v", spew.Sdump(expected), spew.Sdump(result))
+	}
 }
 
 func TestConfigurationWithAddedCompareConfigs(t *testing.T) {
@@ -65,14 +72,22 @@ func TestConfigurationWithAddedCompareConfigs(t *testing.T) {
 	}
 
 	g1, err := ucfg.NewFrom(oneGraph, opts...)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	g2, err := ucfg.NewFrom(twoGraph, opts...)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	d := CompareConfigs(g1, g2, opts...)
-	assert.True(t, d.HasChanged())
-	assert.True(t, d.HasKeyAdded())
+	if !d.HasChanged() {
+		t.Fatal("expected Diff.HashChanged() to be true")
+	}
+	if !d.HasKeyAdded() {
+		t.Fatal("expected Diff.HasKeyAdded() to be true")
+	}
 }
 
 func TestConfigurationWithRemovedKey(t *testing.T) {
@@ -86,14 +101,22 @@ func TestConfigurationWithRemovedKey(t *testing.T) {
 	}
 
 	g1, err := ucfg.NewFrom(oneGraph, opts...)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	g2, err := ucfg.NewFrom(twoGraph, opts...)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	d := CompareConfigs(g1, g2, opts...)
-	assert.True(t, d.HasChanged())
-	assert.True(t, d.HasKeyRemoved())
+	if !d.HasChanged() {
+		t.Fatal("expected Diff.HasChanged() to be true")
+	}
+	if !d.HasKeyRemoved() {
+		t.Fatal("expected Diff.HasKeyRemoved() to be true")
+	}
 }
 
 func TestConfigurationWithAddedAndRemovedKey(t *testing.T) {
@@ -108,13 +131,19 @@ func TestConfigurationWithAddedAndRemovedKey(t *testing.T) {
 	}
 
 	g1, err := ucfg.NewFrom(oneGraph, opts...)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	g2, err := ucfg.NewFrom(twoGraph, opts...)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	d := CompareConfigs(g1, g2, opts...)
-	assert.True(t, d.HasChanged())
+	if !d.HasChanged() {
+		t.Fatal("expected Diff.HasChanged() to be true")
+	}
 }
 
 func TestConfigurationHasNotChanged(t *testing.T) {
@@ -124,10 +153,15 @@ func TestConfigurationHasNotChanged(t *testing.T) {
 	}
 
 	g1, err := ucfg.NewFrom(oneGraph, opts...)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	d := CompareConfigs(g1, g1, opts...)
-	assert.False(t, d.HasChanged())
-	assert.False(t, d.HasKeyRemoved())
-	assert.False(t, d.HasKeyRemoved())
+	if d.HasChanged() {
+		t.Fatal("expected Diff.HasChanged() to be false")
+	}
+	if d.HasKeyRemoved() {
+		t.Fatal("expected Diff.HasKeyRemoved() to be false")
+	}
 }
