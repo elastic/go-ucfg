@@ -231,7 +231,7 @@ func TestErrorMessages(t *testing.T) {
 // quotas and makes some test assertions failing.
 func adjustMessageFormat(message string) string {
 	runtimeVersion := runtime.Version()
-	if strings.HasPrefix(runtimeVersion, "go1.14") || strings.HasPrefix(runtimeVersion, "devel") {
+	if strings.HasPrefix(runtimeVersion, "devel") {
 		adjusted := strings.Replace(message, "unknown unit \"", "unknown unit ", 1)
 		adjusted = strings.Replace(adjusted, "\" in duration \"", " in duration ", 1)
 		adjusted = strings.Replace(adjusted, "\" accessing", " accessing", 1)
