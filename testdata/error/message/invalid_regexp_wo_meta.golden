@@ -1,1 +1,1 @@
-Failed to compile regular expression with 'error parsing regexp: missing closing ]: `[`' accessing 'regex'
+Failed to compile regular expression with 'regexp-err' accessing 'regex'

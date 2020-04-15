@@ -24,11 +24,8 @@ import (
 	"io/ioutil"
 	"path"
 	"reflect"
-	"regexp"
 	"runtime"
-	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -51,8 +48,8 @@ func TestErrorMessages(t *testing.T) {
 	cNested.ctx = testNestedCtx
 	cNestedMeta.ctx = testNestedCtx
 
-	_, timeErr := time.ParseDuration("1 hour")
-	_, regexpErr := regexp.Compile(`[`)
+	timeErr := errors.New("time-err")
+	regexpErr := errors.New("regexp-err")
 
 	tests := map[string]Error{
 		"duplicate_wo_meta":        raiseDuplicateKey(c, "test"),
@@ -220,22 +217,7 @@ func TestErrorMessages(t *testing.T) {
 			}
 
 			golden := string(tmp)
-			message = adjustMessageFormat(message)
 			assert.Equal(t, golden, message, "Go runtime version: %s", runtime.Version())
 		})
 	}
-}
-
-// adjustMessageFormat method modifies the message to be backward compatible with previous Go releases.
-// The change introduced in https://github.com/golang/go/commit/201cb046b745f8bb00e3d382290190c74ba7b7e1 added
-// quotas and makes some test assertions failing.
-func adjustMessageFormat(message string) string {
-	runtimeVersion := runtime.Version()
-	if strings.HasPrefix(runtimeVersion, "devel") {
-		adjusted := strings.Replace(message, "unknown unit \"", "unknown unit ", 1)
-		adjusted = strings.Replace(adjusted, "\" in duration \"", " in duration ", 1)
-		adjusted = strings.Replace(adjusted, "\" accessing", " accessing", 1)
-		return adjusted
-	}
-	return message
 }
