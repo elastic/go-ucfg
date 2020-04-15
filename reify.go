@@ -147,12 +147,16 @@ func (c *Config) Unpack(to interface{}, options ...Option) error {
 	vTo := reflect.ValueOf(to)
 
 	k := vTo.Kind()
-	isValid := to != nil && (k == reflect.Ptr || k == reflect.Map)
+	isValid := k == reflect.Ptr || k == reflect.Map
 	if !isValid {
 		return raisePointerRequired(vTo)
 	}
 
 	return reifyInto(opts, vTo, c)
+}
+
+func (c *Config) UnpackWithoutOptions(to interface{}) error {
+	return c.Unpack(to)
 }
 
 func reifyInto(opts *options, to reflect.Value, from *Config) Error {

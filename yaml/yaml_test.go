@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/elastic/go-ucfg"
+	"github.com/elastic/go-ucfg/cfgtest"
 )
 
 func TestPrimitives(t *testing.T) {
@@ -220,7 +221,7 @@ func TestEmptyCollections(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			c := mustNewConfig(t, test.input)
-			mustUnpack(t, c, test.to)
+			cfgtest.MustUnpack(t, c, test.to)
 			assert.Equal(t, test.want, test.to)
 		})
 	}
@@ -232,11 +233,4 @@ func mustNewConfig(t *testing.T, input string) *ucfg.Config {
 		t.Fatalf("failed to parse input: %v", err)
 	}
 	return c
-}
-
-func mustUnpack(t *testing.T, c *ucfg.Config, to interface{}) {
-	err := c.Unpack(to)
-	if err != nil {
-		t.Fatalf("unpacking configuration failed: %v", err)
-	}
 }
