@@ -6,8 +6,13 @@ go:
   - '1.14'
   - 'tip'
 
-script:
-  - go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+jobs:
+  include:
+    - stage: "Check"
+      go: '1.13'
+      script: .ci/check.sh
+    - stage: "Test"
+      script: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
