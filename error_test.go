@@ -221,7 +221,7 @@ func TestErrorMessages(t *testing.T) {
 
 			golden := string(tmp)
 			message = adjustMessageFormat(message)
-			assert.Equal(t, golden, message)
+			assert.Equal(t, golden, message, "Go runtime version: %s", runtime.Version())
 		})
 	}
 }
