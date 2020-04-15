@@ -155,6 +155,7 @@ func (c *Config) Unpack(to interface{}, options ...Option) error {
 	return reifyInto(opts, vTo, c)
 }
 
+// UnpackWithoutOptions method calls the Unpack method without any options provided.
 func (c *Config) UnpackWithoutOptions(to interface{}) error {
 	return c.Unpack(to)
 }
