@@ -1,6 +1,12 @@
 language: go
 
 
+go:
+- '1.12'
+- '1.13'
+- '1.14'
+- 'tip'
+
 jobs:
   include:
     - stage: "Check"
@@ -8,11 +14,6 @@ jobs:
       before_script: ./.ci/goinstall.sh github.com/elastic/go-licenser@master
       script: .ci/check.sh
     - stage: "Test"
-      go:
-        - '1.12'
-        - '1.13'
-        - '1.14'
-        - 'tip'
       script: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
 
 stages:
