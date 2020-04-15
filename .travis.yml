@@ -9,7 +9,7 @@ go:
 jobs:
   include:
     - stage: "Check"
-      go: '1.13'
+      go: '1.14'
       script: .ci/check.sh
     - stage: "Test"
       script: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
