@@ -10,9 +10,14 @@ jobs:
   include:
     - stage: "Check"
       go: '1.14'
+      before_script: go get -u github.com/elastic/go-licenser
       script: .ci/check.sh
     - stage: "Test"
       script: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+
+stages:
+  - Check
+  - Test
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
