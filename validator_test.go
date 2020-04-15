@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
+	"github.com/elastic/go-ucfg/cfgtest"
 )
 
 type myNonzeroInt int
@@ -63,18 +63,6 @@ type nestedNestedPtrStructValidator struct {
 var errZeroTest = errors.New("value must not be 0")
 var errEmptyTest = errors.New("value must not be empty")
 var errMoreTest = errors.New("value must have more than 1 element")
-
-func mustFailUnpack(t *testing.T, cfg *Config, test interface{}) {
-	if err := cfg.Unpack(test); err == nil {
-		t.Fatalf("config:%s test:%s error:%v", spew.Sdump(cfg), spew.Sdump(test), err)
-	}
-}
-
-func mustUnpack(t *testing.T, cfg *Config, test interface{}) {
-	if err := cfg.Unpack(test); err != nil {
-		t.Fatalf("config:%s test:%s error:%v", spew.Sdump(cfg), spew.Sdump(test), err)
-	}
-}
 
 func (m myNonzeroInt) Validate() error {
 	return testZeroErr(int(m))
@@ -321,7 +309,7 @@ func TestValidationPass(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("Test config (%v): %#v", i, test), func(t *testing.T) {
-			mustUnpack(t, c, test)
+			cfgtest.MustUnpack(t, c, test)
 		})
 	}
 }
@@ -545,7 +533,7 @@ func TestValidationFail(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("Test config (%v): %#v", i, test), func(t *testing.T) {
-			mustFailUnpack(t, c, test)
+			cfgtest.MustFailUnpack(t, c, test)
 		})
 	}
 }
@@ -986,7 +974,7 @@ func TestValidationFailOnDefaults(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("Test config (%v): %#v", i, test), func(t *testing.T) {
-			mustFailUnpack(t, c, test)
+			cfgtest.MustFailUnpack(t, c, test)
 		})
 	}
 }

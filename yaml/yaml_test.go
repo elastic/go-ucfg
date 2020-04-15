@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/elastic/go-ucfg"
+	"github.com/elastic/go-ucfg/cfgtest"
 )
 
 func TestPrimitives(t *testing.T) {
@@ -105,11 +106,132 @@ func TestArray(t *testing.T) {
 		t.Fatalf("failed to parse input: %v", err)
 	}
 
-	verify := []map[string]int{}
+	var verify []map[string]int
 	err = c.Unpack(&verify)
 	assert.Nil(t, err)
 
 	assert.Equal(t, verify[0]["b"], 2)
 	assert.Equal(t, verify[0]["c"], 3)
 	assert.Equal(t, verify[1]["c"], 4)
+}
+
+func TestEmptyCollections(t *testing.T) {
+	tests := map[string]struct{
+		input string
+		to interface{}
+		want interface{}
+	}{
+		"struct with empty array into struct with array of interfaces": {
+			input: "a: []",
+			to: &struct {
+				A []interface{}
+			}{},
+			want: &struct {
+				A []interface{}
+			}{
+				A: []interface{}{},
+			},
+		},
+		"empty array into array of interfaces": {
+			input: `[]`,
+			to: &[]interface{}{},
+			want: &[]interface{}{},
+		},
+		"struct with empty map into struct with interface": {
+			input: "a: {}",
+			to: &struct {
+				A interface{}
+			}{},
+			want: &struct {
+				A interface{}
+			}{},
+		},
+		"struct with empty map into struct with map of interfaces": {
+			input: "a: {}",
+			to: &struct {
+				A map[string]interface{}
+			}{},
+			want: &struct {
+				A map[string]interface{}
+			}{
+				A: map[string]interface{}{},
+			},
+		},
+		"empty map into map of interfaces": {
+			input: "{}",
+			to: &map[string]interface{}{},
+			want: &map[string]interface{}{},
+		},
+		"empty map in array into array of maps of interfaces": {
+			input: "[{}]",
+			to: &[]map[string]interface{}{},
+			want: &[]map[string]interface{}{
+				{},
+			},
+		},
+		"struct with empty array into map of interfaces": {
+			input: `{"a": []}`,
+			to: &map[string]interface{}{},
+			want: &map[string]interface{}{},
+		},
+		"struct with empty array into map of interfaces with existing fields": {
+			input: `{"a": []}`,
+			to: &map[string]interface{}{
+				"a": nil,
+				"b": 3,
+			},
+			want: &map[string]interface{}{
+				"a": nil,
+				"b": 3,
+			},
+		},
+		"struct with empty array into map of arrays of interfaces": {
+			input: `{"a": []}`,
+			to: &map[string][]interface{}{},
+			want: &map[string][]interface{}{
+				"a": {},
+			},
+		},
+		"struct with empty array into map of arrays of interfaces with existing fields": {
+			input: `{"a": []}`,
+			to: &map[string][]interface{}{
+				"a": nil,
+				"b": {3},
+			},
+			want: &map[string][]interface{}{
+				"a": {},
+				"b": {3},
+			},
+		},
+		"empty array in array into array of interfaces": {
+			input: `[[]]`,
+			to: &[]interface{}{},
+			want: &[]interface{}{
+				nil,
+			},
+		},
+		"empty array in array into array of array of interfaces": {
+			input: `[[]]`,
+			to: &[][]interface{}{},
+			want: &[][]interface{}{
+				{},
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			c := mustNewConfig(t, test.input)
+			cfgtest.MustUnpack(t, c, test.to)
+			assert.Equal(t, test.want, test.to)
+		})
+	}
+}
+
+func mustNewConfig(t *testing.T, input string) *ucfg.Config {
+	c, err := NewConfig([]byte(input))
+	if err != nil {
+		t.Fatalf("failed to parse input: %v", err)
+	}
+	return c
 }

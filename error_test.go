@@ -24,9 +24,8 @@ import (
 	"io/ioutil"
 	"path"
 	"reflect"
-	"regexp"
+	"runtime"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -49,8 +48,8 @@ func TestErrorMessages(t *testing.T) {
 	cNested.ctx = testNestedCtx
 	cNestedMeta.ctx = testNestedCtx
 
-	_, timeErr := time.ParseDuration("1 hour")
-	_, regexpErr := regexp.Compile(`[`)
+	timeErr := errors.New("time-err")
+	regexpErr := errors.New("regexp-err")
 
 	tests := map[string]Error{
 		"duplicate_wo_meta":        raiseDuplicateKey(c, "test"),
@@ -218,7 +217,7 @@ func TestErrorMessages(t *testing.T) {
 			}
 
 			golden := string(tmp)
-			assert.Equal(t, golden, message)
+			assert.Equal(t, golden, message, "Go runtime version: %s", runtime.Version())
 		})
 	}
 }
