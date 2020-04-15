@@ -1,5 +1,8 @@
 language: go
 
+stages:
+  - check
+  - test
 
 go:
 - '1.12'
@@ -9,16 +12,13 @@ go:
 
 jobs:
   include:
-    - stage: "Check"
+    - stage: check
       go: '1.14'
       before_script: ./.ci/goinstall.sh github.com/elastic/go-licenser@master
       script: .ci/check.sh
-    - stage: "Test"
-      script: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
 
-stages:
-  - Check
-  - Test
+
+script: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
