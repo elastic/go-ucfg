@@ -25,6 +25,7 @@ import (
 	"path"
 	"reflect"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -229,8 +230,11 @@ func TestErrorMessages(t *testing.T) {
 // The change introduced in https://github.com/golang/go/commit/201cb046b745f8bb00e3d382290190c74ba7b7e1 added
 // quotas and makes some test assertions failing.
 func adjustMessageFormat(message string) string {
-	adjusted := strings.Replace(message, "unknown unit \"", "unknown unit ", 1)
-	adjusted = strings.Replace(adjusted, "\" in duration \"", " in duration ", 1)
-	adjusted = strings.Replace(adjusted, "\" accessing", " accessing", 1)
-	return adjusted
+	if strings.HasPrefix(runtime.Version(), "go1.14") {
+		adjusted := strings.Replace(message, "unknown unit \"", "unknown unit ", 1)
+		adjusted = strings.Replace(adjusted, "\" in duration \"", " in duration ", 1)
+		adjusted = strings.Replace(adjusted, "\" accessing", " accessing", 1)
+		return adjusted
+	}
+	return message
 }
