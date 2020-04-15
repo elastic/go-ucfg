@@ -594,7 +594,9 @@ func reifyDoArray(
 			if err != nil {
 				return reflect.Value{}, err
 			}
-			to.Index(idx).Set(v)
+			if v.IsValid() {
+				to.Index(idx).Set(v)
+			}
 		} else {
 			if err := tryRecursiveValidate(to.Index(idx), opts.opts, nil); err != nil {
 				return reflect.Value{}, raiseValidation(val.Context(), val.meta(), "", err)
