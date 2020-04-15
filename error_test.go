@@ -230,7 +230,8 @@ func TestErrorMessages(t *testing.T) {
 // The change introduced in https://github.com/golang/go/commit/201cb046b745f8bb00e3d382290190c74ba7b7e1 added
 // quotas and makes some test assertions failing.
 func adjustMessageFormat(message string) string {
-	if strings.HasPrefix(runtime.Version(), "go1.14") {
+	runtimeVersion := runtime.Version()
+	if strings.HasPrefix(runtimeVersion, "go1.14") || strings.HasPrefix(runtimeVersion, "devel") {
 		adjusted := strings.Replace(message, "unknown unit \"", "unknown unit ", 1)
 		adjusted = strings.Replace(adjusted, "\" in duration \"", " in duration ", 1)
 		adjusted = strings.Replace(adjusted, "\" accessing", " accessing", 1)
