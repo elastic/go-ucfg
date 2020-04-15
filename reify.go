@@ -226,7 +226,9 @@ func reifyMap(opts *options, to reflect.Value, from *Config, validators []valida
 		if err != nil {
 			return err
 		}
-		to.SetMapIndex(key, v)
+		if v.IsValid() {
+			to.SetMapIndex(key, v)
+		}
 	}
 
 	if err := runValidators(to.Interface(), validators); err != nil {

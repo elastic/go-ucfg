@@ -181,6 +181,7 @@ func TestEmptyCollections(t *testing.T) {
 				"b": 3,
 			},
 			want: &map[string]interface{}{
+				"a": nil,
 				"b": 3,
 			},
 		},
