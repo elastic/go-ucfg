@@ -1,13 +1,24 @@
 language: go
 
-go:
-  - '1.12'
-  - '1.13'
-  - '1.14'
-  - 'tip'
+stages:
+  - check
+  - test
 
-script:
-  - go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+go:
+- '1.12'
+- '1.13'
+- '1.14'
+- 'tip'
+
+jobs:
+  include:
+    - stage: check
+      go: '1.14'
+      before_script: ./.ci/goinstall.sh github.com/elastic/go-licenser@master
+      script: .ci/check.sh
+
+
+script: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)

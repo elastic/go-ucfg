@@ -116,10 +116,10 @@ func TestArray(t *testing.T) {
 }
 
 func TestEmptyCollections(t *testing.T) {
-	tests := map[string]struct{
+	tests := map[string]struct {
 		input string
-		to interface{}
-		want interface{}
+		to    interface{}
+		want  interface{}
 	}{
 		"struct with empty array into struct with array of interfaces": {
 			input: "a: []",
@@ -134,8 +134,8 @@ func TestEmptyCollections(t *testing.T) {
 		},
 		"empty array into array of interfaces": {
 			input: `[]`,
-			to: &[]interface{}{},
-			want: &[]interface{}{},
+			to:    &[]interface{}{},
+			want:  &[]interface{}{},
 		},
 		"struct with empty map into struct with interface": {
 			input: "a: {}",
@@ -159,20 +159,20 @@ func TestEmptyCollections(t *testing.T) {
 		},
 		"empty map into map of interfaces": {
 			input: "{}",
-			to: &map[string]interface{}{},
-			want: &map[string]interface{}{},
+			to:    &map[string]interface{}{},
+			want:  &map[string]interface{}{},
 		},
 		"empty map in array into array of maps of interfaces": {
 			input: "[{}]",
-			to: &[]map[string]interface{}{},
+			to:    &[]map[string]interface{}{},
 			want: &[]map[string]interface{}{
 				{},
 			},
 		},
 		"struct with empty array into map of interfaces": {
 			input: `{"a": []}`,
-			to: &map[string]interface{}{},
-			want: &map[string]interface{}{},
+			to:    &map[string]interface{}{},
+			want:  &map[string]interface{}{},
 		},
 		"struct with empty array into map of interfaces with existing fields": {
 			input: `{"a": []}`,
@@ -187,7 +187,7 @@ func TestEmptyCollections(t *testing.T) {
 		},
 		"struct with empty array into map of arrays of interfaces": {
 			input: `{"a": []}`,
-			to: &map[string][]interface{}{},
+			to:    &map[string][]interface{}{},
 			want: &map[string][]interface{}{
 				"a": {},
 			},
@@ -205,14 +205,14 @@ func TestEmptyCollections(t *testing.T) {
 		},
 		"empty array in array into array of interfaces": {
 			input: `[[]]`,
-			to: &[]interface{}{},
+			to:    &[]interface{}{},
 			want: &[]interface{}{
 				nil,
 			},
 		},
 		"empty array in array into array of array of interfaces": {
 			input: `[[]]`,
-			to: &[][]interface{}{},
+			to:    &[][]interface{}{},
 			want: &[][]interface{}{
 				{},
 			},
