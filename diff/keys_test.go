@@ -28,6 +28,14 @@ import (
 
 var opts = []ucfg.Option{ucfg.PathSep(".")}
 
+func mustNewFrom(t *testing.T, in map[string]interface{}, opts []ucfg.Option) *ucfg.Config {
+	c, err := ucfg.NewFrom(in, opts...)
+	if err != nil {
+		t.Fatalf("failed to create new config for:%v reason:%v", spew.Sdump(in), err)
+	}
+	return c
+}
+
 func TestDiff(t *testing.T) {
 	oneGraph := map[string]interface{}{
 		"n.a.b.c": "hello",
@@ -39,15 +47,8 @@ func TestDiff(t *testing.T) {
 		"o":       "new",
 	}
 
-	g1, err := ucfg.NewFrom(oneGraph, opts...)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	g2, err := ucfg.NewFrom(twoGraph, opts...)
-	if err != nil {
-		t.Fatal(err)
-	}
+	g1 := mustNewFrom(t, oneGraph, opts)
+	g2 := mustNewFrom(t, twoGraph, opts)
 
 	expected := Diff{
 		Keep:   []string{"n.a.b.c"},
@@ -71,19 +72,12 @@ func TestConfigurationWithAddedCompareConfigs(t *testing.T) {
 		"o":       "new",
 	}
 
-	g1, err := ucfg.NewFrom(oneGraph, opts...)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	g2, err := ucfg.NewFrom(twoGraph, opts...)
-	if err != nil {
-		t.Fatal(err)
-	}
+	g1 := mustNewFrom(t, oneGraph, opts)
+	g2 := mustNewFrom(t, twoGraph, opts)
 
 	d := CompareConfigs(g1, g2, opts...)
 	if !d.HasChanged() {
-		t.Fatal("expected Diff.HashChanged() to be true")
+		t.Fatal("expected Diff.HasChanged() to be true")
 	}
 	if !d.HasKeyAdded() {
 		t.Fatal("expected Diff.HasKeyAdded() to be true")
@@ -100,15 +94,8 @@ func TestConfigurationWithRemovedKey(t *testing.T) {
 		"o": "new",
 	}
 
-	g1, err := ucfg.NewFrom(oneGraph, opts...)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	g2, err := ucfg.NewFrom(twoGraph, opts...)
-	if err != nil {
-		t.Fatal(err)
-	}
+	g1 := mustNewFrom(t, oneGraph, opts)
+	g2 := mustNewFrom(t, twoGraph, opts)
 
 	d := CompareConfigs(g1, g2, opts...)
 	if !d.HasChanged() {
@@ -130,15 +117,8 @@ func TestConfigurationWithAddedAndRemovedKey(t *testing.T) {
 		"l": "new-new",
 	}
 
-	g1, err := ucfg.NewFrom(oneGraph, opts...)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	g2, err := ucfg.NewFrom(twoGraph, opts...)
-	if err != nil {
-		t.Fatal(err)
-	}
+	g1 := mustNewFrom(t, oneGraph, opts)
+	g2 := mustNewFrom(t, twoGraph, opts)
 
 	d := CompareConfigs(g1, g2, opts...)
 	if !d.HasChanged() {
@@ -152,10 +132,7 @@ func TestConfigurationHasNotChanged(t *testing.T) {
 		"n.a.d":   "world",
 	}
 
-	g1, err := ucfg.NewFrom(oneGraph, opts...)
-	if err != nil {
-		t.Fatal(err)
-	}
+	g1 := mustNewFrom(t, oneGraph, opts)
 
 	d := CompareConfigs(g1, g1, opts...)
 	if d.HasChanged() {
