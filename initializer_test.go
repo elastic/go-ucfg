@@ -72,6 +72,15 @@ func (n *ptrNestedStructInitializer) InitDefaults() {
 	n.O = 20
 }
 
+type structWithArrayInitializer struct {
+	O int
+	A []structInitializer
+}
+
+func (s *structWithArrayInitializer) InitDefaults() {
+	s.O = 10
+}
+
 func TestInitDefaultsPrimitive(t *testing.T) {
 	c, _ := NewFrom(map[string]interface{}{})
 
@@ -232,4 +241,24 @@ func TestInitDefaultsPtrNestedEmpty(t *testing.T) {
 	assert.Nil(t, r.S.N)
 	assert.Nil(t, r.S.P)
 	assert.Equal(t, 20, r.S.O)
+}
+
+func TestInitDefaultsStructWithArray(t *testing.T) {
+	c, _ := NewFrom(map[string]interface{}{
+		"a": []map[string]interface{}{
+			{
+				"i": 5,
+			},
+		},
+	})
+
+	r := structWithArrayInitializer{}
+	err := c.Unpack(&r)
+	assert.NoError(t, err)
+	assert.Equal(t, 10, r.O)
+	assert.Len(t, r.A, 1)
+	for _, e := range r.A {
+		assert.Equal(t, 5, e.I)
+		assert.Equal(t, 10, e.J)
+	}
 }
