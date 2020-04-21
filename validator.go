@@ -287,7 +287,7 @@ func validateMin(v interface{}, param string) error {
 		}
 
 		if min > d {
-			return fmt.Errorf("requires duration < %v", param)
+			return fmt.Errorf("requires duration >= %v", param)
 		}
 		return nil
 	}
@@ -322,7 +322,7 @@ func validateMin(v interface{}, param string) error {
 		return nil
 	}
 
-	return fmt.Errorf("requires value < %v", param)
+	return fmt.Errorf("requires value >= %v", param)
 }
 
 func validateMax(v interface{}, param string) error {
@@ -337,7 +337,7 @@ func validateMax(v interface{}, param string) error {
 		}
 
 		if max < d {
-			return fmt.Errorf("requires duration > %v", param)
+			return fmt.Errorf("requires duration <= %v", param)
 		}
 		return nil
 	}
@@ -372,7 +372,7 @@ func validateMax(v interface{}, param string) error {
 		return nil
 	}
 
-	return fmt.Errorf("requires value > %v", param)
+	return fmt.Errorf("requires value <= %v", param)
 }
 
 // validateRequired implements the `required` validation tag.
