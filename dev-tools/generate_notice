@@ -1,3 +1,5 @@
+#!/bin/sh
+
 go list -m -json all | go run go.elastic.co/go-licence-detector \
     -noticeTemplate dev-tools/NOTICE.txt.tmpl \
     -noticeOut NOTICE.txt \
