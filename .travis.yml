@@ -14,7 +14,9 @@ jobs:
   include:
     - stage: check
       go: '1.14'
-      before_script: ./.ci/goinstall.sh github.com/elastic/go-licenser@master
+      before_script:
+        - ./.ci/goinstall.sh github.com/elastic/go-licenser@master
+        - ./.ci/goinstall.sh go.elastic.co/go-licence-detector
       script: .ci/check.sh
 
 

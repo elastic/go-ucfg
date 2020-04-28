@@ -1,6 +1,12 @@
 #!/bin/sh
 
-go list -m -json all | go run go.elastic.co/go-licence-detector \
+detector=$(which go-licence-detector)
+if [ -z "$detector" ]; then
+	detector="go run go.elastic.co/go-licence-detector"
+fi
+
+go list -m -json all | ${detector} \
+    -includeIndirect \
     -noticeTemplate dev-tools/NOTICE.txt.tmpl \
     -noticeOut NOTICE.txt \
     -depsOut ""
