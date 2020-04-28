@@ -6,6 +6,7 @@ if [ -z "$detector" ]; then
 fi
 
 go list -m -json all | ${detector} \
+    -includeIndirect \
     -noticeTemplate dev-tools/NOTICE.txt.tmpl \
     -noticeOut NOTICE.txt \
     -depsOut ""
