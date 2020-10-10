@@ -112,7 +112,7 @@ func TestArray(t *testing.T) {
 		t.Fatalf("failed to parse input: %v", err)
 	}
 
-	verify := []map[string]int{}
+	var verify []map[string]int
 	err = c.Unpack(&verify)
 	assert.Nil(t, err)
 
