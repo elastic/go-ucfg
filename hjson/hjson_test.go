@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/elastic/go-ucfg"
 )
@@ -35,9 +36,7 @@ s: string
 `)
 
 	c, err := NewConfig(input)
-	if err != nil {
-		t.Fatalf("failed to parse input: %v", err)
-	}
+	require.NoError(t, err, "failed to parse input")
 
 	verify := struct {
 		B bool
@@ -47,7 +46,7 @@ s: string
 		S string
 	}{}
 	err = c.Unpack(&verify)
-	assert.Nil(t, err)
+	require.NoError(t, err, "failed to unpack config")
 
 	assert.Equal(t, true, verify.B)
 	assert.Equal(t, 42, verify.I)
@@ -64,15 +63,13 @@ c: {
 `)
 
 	c, err := NewConfig(input)
-	if err != nil {
-		t.Fatalf("failed to parse input: %v", err)
-	}
+	require.NoError(t, err, "failed to parse input")
 
 	var verify struct {
 		C struct{ B bool }
 	}
 	err = c.Unpack(&verify)
-	assert.NoError(t, err)
+	require.NoError(t, err, "failed to unpack config")
 	assert.True(t, verify.C.B)
 }
 
@@ -82,15 +79,13 @@ c.b: true
 `)
 
 	c, err := NewConfig(input, ucfg.PathSep("."))
-	if err != nil {
-		t.Fatalf("failed to parse input: %v", err)
-	}
+	require.NoError(t, err, "failed to parse input")
 
 	var verify struct {
 		C struct{ B bool }
 	}
 	err = c.Unpack(&verify)
-	assert.NoError(t, err)
+	require.NoError(t, err, "failed to unpack config")
 	assert.True(t, verify.C.B)
 }
 
@@ -108,13 +103,12 @@ func TestArray(t *testing.T) {
 `)
 
 	c, err := NewConfig(input)
-	if err != nil {
-		t.Fatalf("failed to parse input: %v", err)
-	}
+	require.NoError(t, err, "failed to parse input")
 
 	var verify []map[string]int
 	err = c.Unpack(&verify)
-	assert.Nil(t, err)
+	require.NoError(t, err, "failed to unpack config")
+	require.Len(t, verify, 2)
 
 	assert.Equal(t, verify[0]["b"], 2)
 	assert.Equal(t, verify[0]["c"], 3)
