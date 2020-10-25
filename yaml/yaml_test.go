@@ -21,25 +21,21 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/elastic/go-ucfg"
 	"github.com/elastic/go-ucfg/cfgtest"
 )
 
 func TestPrimitives(t *testing.T) {
-	input := []byte(`
+	input := `
     b: true
     i: 42
     u: 23
     f: 3.14
     s: string
-  `)
-
-	c, err := NewConfig(input)
-	if err != nil {
-		t.Fatalf("failed to parse input: %v", err)
-	}
-
+  `
+	c := mustNewConfig(t, input)
 	verify := struct {
 		B bool
 		I int
@@ -47,10 +43,10 @@ func TestPrimitives(t *testing.T) {
 		F float64
 		S string
 	}{}
-	err = c.Unpack(&verify)
-	assert.Nil(t, err)
+	err := c.Unpack(&verify)
+	require.NoError(t, err, "failed to unpack config")
 
-	assert.Equal(t, true, verify.B)
+	assert.True(t, verify.B)
 	assert.Equal(t, 42, verify.I)
 	assert.Equal(t, uint(23), verify.U)
 	assert.Equal(t, 3.14, verify.F)
@@ -58,58 +54,44 @@ func TestPrimitives(t *testing.T) {
 }
 
 func TestNested(t *testing.T) {
-	input := []byte(`
+	input := `
     c:
       b: true
-  `)
-
-	c, err := NewConfig(input)
-	if err != nil {
-		t.Fatalf("failed to parse input: %v", err)
-	}
-
+  `
+	c := mustNewConfig(t, input)
 	var verify struct {
 		C struct{ B bool }
 	}
-	err = c.Unpack(&verify)
-	assert.NoError(t, err)
+	err := c.Unpack(&verify)
+	require.NoError(t, err, "failed to unpack config")
 	assert.True(t, verify.C.B)
 }
 
 func TestNestedPath(t *testing.T) {
-	input := []byte(`
+	input := `
     c.b: true
-  `)
-
-	c, err := NewConfig(input, ucfg.PathSep("."))
-	if err != nil {
-		t.Fatalf("failed to parse input: %v", err)
-	}
-
+  `
+	c := mustNewConfig(t, input, ucfg.PathSep("."))
 	var verify struct {
 		C struct{ B bool }
 	}
-	err = c.Unpack(&verify)
-	assert.NoError(t, err)
+	err := c.Unpack(&verify)
+	require.NoError(t, err, "failed to unpack config")
 	assert.True(t, verify.C.B)
 }
 
 func TestArray(t *testing.T) {
-	input := []byte(`
+	input := `
 - b: 2
   c: 3
 - c: 4
-`)
-
-	c, err := NewConfig(input)
-	if err != nil {
-		t.Fatalf("failed to parse input: %v", err)
-	}
-
+`
+	c := mustNewConfig(t, input)
 	var verify []map[string]int
-	err = c.Unpack(&verify)
-	assert.Nil(t, err)
+	err := c.Unpack(&verify)
+	require.NoError(t, err, "failed to unpack config")
 
+	require.Len(t, verify, 2)
 	assert.Equal(t, verify[0]["b"], 2)
 	assert.Equal(t, verify[0]["c"], 3)
 	assert.Equal(t, verify[1]["c"], 4)
@@ -228,10 +210,8 @@ func TestEmptyCollections(t *testing.T) {
 	}
 }
 
-func mustNewConfig(t *testing.T, input string) *ucfg.Config {
-	c, err := NewConfig([]byte(input))
-	if err != nil {
-		t.Fatalf("failed to parse input: %v", err)
-	}
+func mustNewConfig(t *testing.T, input string, opts ...ucfg.Option) *ucfg.Config {
+	c, err := NewConfig([]byte(input), opts...)
+	require.NoError(t, err, "failed to parse input")
 	return c
 }
