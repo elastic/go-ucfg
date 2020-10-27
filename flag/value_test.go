@@ -23,67 +23,66 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/elastic/go-ucfg"
 )
 
 func TestFlagValuePrimitives(t *testing.T) {
 	config, err := parseTestFlags("-D b=true -D b2 -D i=42 -D f=3.14 -D s=string")
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	require.NotNil(t, config)
 
-	//validate
+	// validate
 	checkFields(t, config)
 }
 
 func TestFlagValueLast(t *testing.T) {
 	config, err := parseTestFlags("-D b2=false -D i=23 -D s=test -D b=true -D b2 -D i=42 -D f=3.14 -D s=string")
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	require.NotNil(t, config)
 
-	//validate
+	// validate
 	checkFields(t, config)
-
 }
 
 func TestFlagValueMissing(t *testing.T) {
 	config, err := parseTestFlags("-D b=true -D -D s=")
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	require.NotNil(t, config)
 
 	b, err := config.Bool("b", -1, ucfg.PathSep("."))
 	assert.NoError(t, err)
-	assert.Equal(t, true, b)
+	assert.True(t, b)
 
 	s, err := config.String("s", -1, ucfg.PathSep("."))
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Equal(t, "missing field accessing 's'", err.Error())
-	assert.Equal(t, "", s)
+	assert.Empty(t, s)
 }
 
 func TestFlagValueNested(t *testing.T) {
 	config, err := parseTestFlags("-D c.b=true -D c.b2 -D c.i=42 -D c.f=3.14 -D c.s=string")
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	require.NotNil(t, config)
 
 	// validate
 	sub, err := config.Child("c", -1)
-	assert.NoError(t, err)
-	assert.NotNil(t, sub)
-
-	if sub != nil {
-		checkFields(t, sub)
-	}
+	require.NoError(t, err)
+	require.NotNil(t, sub)
+	checkFields(t, sub)
 }
 
 func TestFlagValueList(t *testing.T) {
 	config, err := parseTestFlags("-D c.0.b=true -D c.0.b2 -D c.0.i=42 -D c.0.f=3.14 -D c.0.s=string")
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	require.NotNil(t, config)
 
 	// validate
 	sub, err := config.Child("c", 0)
-	assert.NoError(t, err)
-	assert.NotNil(t, sub)
-
-	if sub != nil {
-		checkFields(t, sub)
-	}
+	require.NoError(t, err)
+	require.NotNil(t, sub)
+	checkFields(t, sub)
 }
 
 func TestMergeFlagValueNewList(t *testing.T) {
@@ -96,25 +95,22 @@ func TestMergeFlagValueNewList(t *testing.T) {
 	}, ucfg.PathSep("."))
 
 	cliConfig, err := parseTestFlags("-D c.0.s=string -D c.0.f=3.14 -D c.1.b=true")
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	require.NotNil(t, cliConfig)
 
 	err = config.Merge(cliConfig, ucfg.PathSep("."))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// validate
 	sub, err := config.Child("c", 0)
 	assert.NoError(t, err)
-	assert.NotNil(t, sub)
-	if sub != nil {
+	if assert.NotNil(t, sub) {
 		checkFields(t, sub)
 	}
 
 	sub, err = config.Child("c", 1)
-	assert.NoError(t, err)
-	assert.NotNil(t, sub)
-	if sub == nil {
-		return
-	}
+	require.NoError(t, err)
+	require.NotNil(t, sub)
 
 	b, err := sub.Bool("b", -1)
 	assert.NoError(t, err)
@@ -131,11 +127,11 @@ func parseTestFlags(args string) (*ucfg.Config, error) {
 func checkFields(t *testing.T, config *ucfg.Config) {
 	b, err := config.Bool("b", -1, ucfg.PathSep("."))
 	assert.NoError(t, err)
-	assert.Equal(t, true, b)
+	assert.True(t, b)
 
 	b, err = config.Bool("b2", -1, ucfg.PathSep("."))
 	assert.NoError(t, err)
-	assert.Equal(t, true, b)
+	assert.True(t, b)
 
 	i, err := config.Int("i", -1, ucfg.PathSep("."))
 	assert.NoError(t, err)

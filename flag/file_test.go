@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/elastic/go-ucfg"
 )
@@ -43,7 +44,8 @@ func TestFlagFileParsePrimitives(t *testing.T) {
 		},
 	)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	require.NotNil(t, config)
 	checkFields(t, config)
 }
 
@@ -65,7 +67,8 @@ func TestFlagFileParseOverwrites(t *testing.T) {
 		},
 	)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	require.NotNil(t, config)
 	checkFields(t, config)
 }
 
