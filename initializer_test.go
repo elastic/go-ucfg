@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type myIntInitializer int
@@ -43,7 +44,7 @@ func (s *structInitializer) InitDefaults() {
 	s.J = 10
 }
 
-type structNoInitalizer struct {
+type structNoInitializer struct {
 	I myIntInitializer
 }
 
@@ -51,7 +52,7 @@ type nestedStructInitializer struct {
 	M myMapInitializer
 	N structInitializer
 	O int
-	P structNoInitalizer
+	P structNoInitializer
 }
 
 func (n *nestedStructInitializer) InitDefaults() {
@@ -65,7 +66,7 @@ type ptrNestedStructInitializer struct {
 	M *myMapInitializer
 	N *structInitializer
 	O int
-	P *structNoInitalizer
+	P *structNoInitializer
 }
 
 func (n *ptrNestedStructInitializer) InitDefaults() {
@@ -90,7 +91,7 @@ func TestInitDefaultsPrimitive(t *testing.T) {
 	}{}
 
 	err := c.Unpack(r)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, myIntInitializer(3), r.I)
 }
 
@@ -105,7 +106,7 @@ func TestInitDefaultsPrimitiveSet(t *testing.T) {
 	}{}
 
 	err := c.Unpack(r)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, myIntInitializer(25), r.I)
 }
 
@@ -118,7 +119,7 @@ func TestInitDefaultsMap(t *testing.T) {
 	}{}
 
 	err := c.Unpack(r)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, myMapInitializer{
 		"init": "defaults",
 	}, r.M)
@@ -137,7 +138,7 @@ func TestInitDefaultsMapUpdate(t *testing.T) {
 	}{}
 
 	err := c.Unpack(r)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, myMapInitializer{
 		"init":  "defaults",
 		"other": "config",
@@ -158,7 +159,7 @@ func TestInitDefaultsMapReplace(t *testing.T) {
 	}{}
 
 	err := c.Unpack(r)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, myMapInitializer{
 		"init":  "replace",
 		"other": "config",
@@ -178,7 +179,7 @@ func TestInitDefaultsSingle(t *testing.T) {
 	}{}
 
 	err := c.Unpack(r)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, 5, r.S.I)
 	assert.Equal(t, 10, r.S.J)
 }
@@ -198,7 +199,7 @@ func TestInitDefaultsNested(t *testing.T) {
 	}{}
 
 	err := c.Unpack(r)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, myMapInitializer{
 		"init": "defaults",
 	}, r.S.M)
@@ -217,7 +218,7 @@ func TestInitDefaultsNestedEmpty(t *testing.T) {
 	}{}
 
 	err := c.Unpack(r)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, myMapInitializer{
 		"init": "defaults",
 	}, r.S.M)
@@ -236,7 +237,7 @@ func TestInitDefaultsPtrNestedEmpty(t *testing.T) {
 	}{}
 
 	err := c.Unpack(r)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Nil(t, r.S.M)
 	assert.Nil(t, r.S.N)
 	assert.Nil(t, r.S.P)
@@ -254,7 +255,7 @@ func TestInitDefaultsStructWithArray(t *testing.T) {
 
 	r := structWithArrayInitializer{}
 	err := c.Unpack(&r)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, 10, r.O)
 	assert.Len(t, r.A, 1)
 	for _, e := range r.A {
