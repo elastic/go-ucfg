@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	ucfg "github.com/elastic/go-ucfg"
 )
@@ -39,10 +40,10 @@ func TestDiff(t *testing.T) {
 	}
 
 	g1, err := ucfg.NewFrom(oneGraph, opts...)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	g2, err := ucfg.NewFrom(twoGraph, opts...)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	expected := Diff{
 		Keep:   []string{"n.a.b.c"},
@@ -65,10 +66,10 @@ func TestConfigurationWithAddedCompareConfigs(t *testing.T) {
 	}
 
 	g1, err := ucfg.NewFrom(oneGraph, opts...)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	g2, err := ucfg.NewFrom(twoGraph, opts...)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	d := CompareConfigs(g1, g2, opts...)
 	assert.True(t, d.HasChanged())
@@ -86,10 +87,10 @@ func TestConfigurationWithRemovedKey(t *testing.T) {
 	}
 
 	g1, err := ucfg.NewFrom(oneGraph, opts...)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	g2, err := ucfg.NewFrom(twoGraph, opts...)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	d := CompareConfigs(g1, g2, opts...)
 	assert.True(t, d.HasChanged())
@@ -108,10 +109,10 @@ func TestConfigurationWithAddedAndRemovedKey(t *testing.T) {
 	}
 
 	g1, err := ucfg.NewFrom(oneGraph, opts...)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	g2, err := ucfg.NewFrom(twoGraph, opts...)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	d := CompareConfigs(g1, g2, opts...)
 	assert.True(t, d.HasChanged())
@@ -124,7 +125,7 @@ func TestConfigurationHasNotChanged(t *testing.T) {
 	}
 
 	g1, err := ucfg.NewFrom(oneGraph, opts...)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	d := CompareConfigs(g1, g1, opts...)
 	assert.False(t, d.HasChanged())
