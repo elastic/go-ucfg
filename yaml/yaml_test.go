@@ -43,8 +43,7 @@ func TestPrimitives(t *testing.T) {
 		F float64
 		S string
 	}{}
-	err := c.Unpack(&verify)
-	require.NoError(t, err, "failed to unpack config")
+	mustUnpack(t, c, &verify)
 
 	assert.True(t, verify.B)
 	assert.Equal(t, 42, verify.I)
@@ -62,8 +61,7 @@ func TestNested(t *testing.T) {
 	var verify struct {
 		C struct{ B bool }
 	}
-	err := c.Unpack(&verify)
-	require.NoError(t, err, "failed to unpack config")
+	mustUnpack(t, c, &verify)
 	assert.True(t, verify.C.B)
 }
 
@@ -75,8 +73,7 @@ func TestNestedPath(t *testing.T) {
 	var verify struct {
 		C struct{ B bool }
 	}
-	err := c.Unpack(&verify)
-	require.NoError(t, err, "failed to unpack config")
+	mustUnpack(t, c, &verify)
 	assert.True(t, verify.C.B)
 }
 
@@ -88,8 +85,7 @@ func TestArray(t *testing.T) {
 `
 	c := mustNewConfig(t, input)
 	var verify []map[string]int
-	err := c.Unpack(&verify)
-	require.NoError(t, err, "failed to unpack config")
+	mustUnpack(t, c, &verify)
 
 	require.Len(t, verify, 2)
 	assert.Equal(t, verify[0]["b"], 2)
@@ -214,4 +210,9 @@ func mustNewConfig(t *testing.T, input string, opts ...ucfg.Option) *ucfg.Config
 	c, err := NewConfig([]byte(input), opts...)
 	require.NoError(t, err, "failed to parse input")
 	return c
+}
+
+func mustUnpack(t *testing.T, c *ucfg.Config, v interface{}) {
+	err := c.Unpack(v)
+	require.NoError(t, err, "failed to unpack config")
 }
