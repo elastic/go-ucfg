@@ -27,18 +27,16 @@ import (
 )
 
 func TestPrimitives(t *testing.T) {
-	input := []byte(`
+	input := `
   {
     "b": true,
     "i": 42,
     "u": 23,
     "f": 3.14,
     "s": "string"
-  }`)
+  }`
 
-	c, err := NewConfig(input)
-	require.NoError(t, err, "failed to parse input")
-
+	c := mustNewConfig(t, input)
 	verify := struct {
 		B bool
 		I int
@@ -46,8 +44,7 @@ func TestPrimitives(t *testing.T) {
 		F float64
 		S string
 	}{}
-	err = c.Unpack(&verify)
-	require.NoError(t, err, "failed to unpack config")
+	mustUnpack(t, c, &verify)
 
 	assert.True(t, verify.B)
 	assert.Equal(t, 42, verify.I)
@@ -57,43 +54,37 @@ func TestPrimitives(t *testing.T) {
 }
 
 func TestNested(t *testing.T) {
-	input := []byte(`
+	input := `
   {
     "c": {
       "b": true
     }
-  }`)
+  }`
 
-	c, err := NewConfig(input)
-	require.NoError(t, err, "failed to parse input")
-
+	c := mustNewConfig(t, input)
 	var verify struct {
 		C struct{ B bool }
 	}
-	err = c.Unpack(&verify)
-	require.NoError(t, err, "failed to unpack config")
+	mustUnpack(t, c, &verify)
 	assert.True(t, verify.C.B)
 }
 
 func TestNestedPath(t *testing.T) {
-	input := []byte(`
+	input := `
   {
     "c.b": true
-  }`)
+  }`
 
-	c, err := NewConfig(input, ucfg.PathSep("."))
-	require.NoError(t, err, "failed to parse input")
-
+	c := mustNewConfig(t, input, ucfg.PathSep("."))
 	var verify struct {
 		C struct{ B bool }
 	}
-	err = c.Unpack(&verify)
-	require.NoError(t, err, "failed to unpack config")
+	mustUnpack(t, c, &verify)
 	assert.True(t, verify.C.B)
 }
 
 func TestArray(t *testing.T) {
-	input := []byte(`
+	input := `
 [
   {
     "b": 2,
@@ -103,17 +94,28 @@ func TestArray(t *testing.T) {
     "c": 4
   }
 ]
-`)
-
-	c, err := NewConfig(input)
-	require.NoError(t, err, "failed to parse input")
-
+`
+	c := mustNewConfig(t, input)
 	var verify []map[string]int
-	err = c.Unpack(&verify)
-	require.NoError(t, err, "failed to unpack config")
+	mustUnpack(t, c, &verify)
 	require.Len(t, verify, 2)
 
 	assert.Equal(t, verify[0]["b"], 2)
 	assert.Equal(t, verify[0]["c"], 3)
 	assert.Equal(t, verify[1]["c"], 4)
+}
+
+// mustNewConfig asserts that a new configuration object creation from the given JSON
+// string with or without options was successful and returned no error (i.e. `nil`).
+func mustNewConfig(t *testing.T, input string, opts ...ucfg.Option) *ucfg.Config {
+	c, err := NewConfig([]byte(input), opts...)
+	require.NoError(t, err, "failed to parse input")
+	return c
+}
+
+// mustUnpack asserts that unpacking the given configuration into
+// the target type was successful and returned no error (i.e. `nil`).
+func mustUnpack(t *testing.T, c *ucfg.Config, v interface{}) {
+	err := c.Unpack(v)
+	require.NoError(t, err, "failed to unpack config")
 }
