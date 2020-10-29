@@ -30,7 +30,7 @@ import (
 // can be booleans, integers, float point numbers and strings.
 //
 // Config provides a low level interface for setting and getting settings
-// via SetBool, SetInt, SetUing, SetFloat, SetString, SetChild, Bool, Int, Uint,
+// via SetBool, SetInt, SetUint, SetFloat, SetString, SetChild, Bool, Int, Uint,
 // Float, String, and Child.
 //
 // A more user-friendly high level interface is provided via Unpack and Merge.
