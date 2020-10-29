@@ -168,7 +168,7 @@ func TestFlagValueParsingWithNoObj(t *testing.T) {
 		{`-42`, int64(-42)},
 
 		// floating point
-		{`3.14`, float64(3.14)},
+		{`3.14`, 3.14},
 
 		// strings
 		{`'single quoted'`, `single quoted`},
@@ -262,7 +262,7 @@ func TestFlagValueParsingWithNoArrayObj(t *testing.T) {
 		{`-42`, int64(-42)},
 
 		// floating point
-		{`3.14`, float64(3.14)},
+		{`3.14`, 3.14},
 
 		// strings
 		{`'single quoted'`, `single quoted`},
@@ -362,7 +362,7 @@ func TestFlagValueParsingWithNoStringDQuote(t *testing.T) {
 		{`-42`, int64(-42)},
 
 		// floating point
-		{`3.14`, float64(3.14)},
+		{`3.14`, 3.14},
 
 		// strings
 		{`'single quoted'`, `single quoted`},
@@ -477,7 +477,7 @@ func TestFlagValueParsingWithNoStringSQuote(t *testing.T) {
 		{`-42`, int64(-42)},
 
 		// floating point
-		{`3.14`, float64(3.14)},
+		{`3.14`, 3.14},
 
 		// strings
 		{`'single quoted'`, `'single quoted'`},
@@ -592,7 +592,7 @@ func TestFlagValueParsingWithNoStringDQuoteOrSQuote(t *testing.T) {
 		{`-42`, int64(-42)},
 
 		// floating point
-		{`3.14`, float64(3.14)},
+		{`3.14`, 3.14},
 
 		// strings
 		{`'single quoted'`, `'single quoted'`},
@@ -707,7 +707,7 @@ func TestFlagValueParsingWithNoop(t *testing.T) {
 		{`-42`, int64(-42)},
 
 		// floating point
-		{`3.14`, float64(3.14)},
+		{`3.14`, 3.14},
 
 		// strings
 		{`'single quoted'`, `'single quoted'`},
