@@ -1,8 +1,8 @@
 ---
 - job:
     name: Library/go-ucfg-mbp
-    display-name: Universal Configuration
-    description: Jenkins pipeline for the Universal Configuration project
+    display-name: Go Ucfg
+    description: Jenkins pipeline for the Go Ucfg project
     view: Beats
     project-type: multibranch
     script-path: .ci/Jenkinsfile
