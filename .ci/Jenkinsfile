@@ -36,8 +36,8 @@ pipeline {
         withGithubNotify(context: 'Check') {
           cleanup()
           withMageEnv(version: '1.14'){
-            sh(label: 'go-licenser', script: './.ci/goinstall.sh github.com/elastic/go-licenser@master')
-            sh(label: 'go-licence-detector', script: './.ci/goinstall.sh go.elastic.co/go-licence-detector')
+            sh(label: 'go-licenser', script: '.ci/goinstall.sh github.com/elastic/go-licenser@master')
+            sh(label: 'go-licence-detector', script: '.ci/goinstall.sh go.elastic.co/go-licence-detector')
             sh(label: '.ci/check.sh', script: '.ci/check.sh')
           }
         }
