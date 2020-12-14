@@ -63,9 +63,14 @@ pipeline {
                 cleanup()
                 withGoEnv(version: "${GO_VERSION}"){
                   dir("${BASE_DIR}"){
-                    sh(label: 'test', script: 'go test -race -coverprofile=coverage.txt -covermode=atomic ./...')
+                    sh(label: 'test', script: '.ci/test.sh')
                   }
                 }
+              }
+            }
+            post {
+              always {
+                junit(allowEmptyResults: true, keepLongStdio: true, testResults: "${BASE_DIR}/build/junit-*.xml")
               }
             }
           }
