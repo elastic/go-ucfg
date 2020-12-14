@@ -31,22 +31,41 @@ pipeline {
         stash allowEmpty: true, name: 'source', useDefaultExcludes: false
       }
     }
-    stage('Local') {
+    stage('Check') {
       steps {
-        cleanup()
-        withGoEnv(){
-          dir("${BASE_DIR}"){
-            sh(label: 'local',script: 'make local')
+        withGithubNotify(context: 'Check') {
+          cleanup()
+          withMageEnv(version: '1.14'){
+            sh(label: 'go-licenser', script: './.ci/goinstall.sh github.com/elastic/go-licenser@master')
+            sh(label: 'go-licence-detector', script: './.ci/goinstall.sh go.elastic.co/go-licence-detector')
+            sh(label: '.ci/check.sh', script: '.ci/check.sh')
           }
         }
       }
     }
     stage('Test') {
-      steps {
-        cleanup()
-        withGoEnv(){
-          dir("${BASE_DIR}"){
-            sh(label: 'test', script: 'make test')
+      failFast false
+      matrix {
+        agent { label 'ubuntu-18 && immutable' }
+        options { skipDefaultCheckout() }
+        axes {
+          axis {
+            name 'GO_VERSION'
+            values '1.13', '1.14', '1.15'
+          }
+        }
+        stages {
+          stage('Test') {
+            steps {
+              withGithubNotify(context: "Test-${GO_VERSION}") {
+                cleanup()
+                withGoEnv(version: "${GO_VERSION}"){
+                  dir("${BASE_DIR}"){
+                    sh(label: 'test', script: 'go test -race -coverprofile=coverage.txt -covermode=atomic ./...')
+                  }
+                }
+              }
+            }
           }
         }
       }
