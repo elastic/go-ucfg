@@ -11,8 +11,4 @@ status=$?
 go get -v -u github.com/jstemmer/go-junit-report
 go-junit-report > "build/junit-${GO_VERSION}.xml" < ${OUT_FILE}
 
-# For debugging purposes only
-ls -l build
-pwd
-
 exit ${status}
