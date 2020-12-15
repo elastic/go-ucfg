@@ -70,8 +70,8 @@ pipeline {
             }
             post {
               always {
-                archive "${BASE_DIR}/build"
-                junit(allowEmptyResults: true, keepLongStdio: true, testResults: "${BASE_DIR}/build/*.xml")
+                archive "${BASE_DIR}/build/**"
+                junit(allowEmptyResults: true, keepLongStdio: true, testResults: "${BASE_DIR}/build/*xml")
               }
             }
           }
