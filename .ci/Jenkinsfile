@@ -37,7 +37,7 @@ pipeline {
         withGithubNotify(context: 'Check') {
           deleteDir()
           unstash 'source'
-          withGoEnv(version: '1.14', pkgs: ['github.com/elastic/go-licenser@master', 'go.elastic.co/go-licence-detector']){
+          withGoEnv(version: '1.14', pkgs: ['github.com/elastic/go-licenser', 'go.elastic.co/go-licence-detector']){
             dir("${BASE_DIR}"){
               sh(label: '.ci/check.sh', script: '.ci/check.sh')
             }
