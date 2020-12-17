@@ -1,5 +1,4 @@
-[![Build
-Status](https://travis-ci.org/elastic/go-ucfg.svg?branch=master)](https://travis-ci.org/elastic/go-ucfg)
+[![Build Status](https://beats-ci.elastic.co/job/Library/job/go-ucfg-mbp/job/master/badge/icon)](https://beats-ci.elastic.co/job/Library/job/go-ucfg-mbp/job/master/)
 [![Go Report
 Card](https://goreportcard.com/badge/github.com/elastic/go-ucfg)](https://goreportcard.com/report/github.com/elastic/go-ucfg)
 [![codecov](https://codecov.io/gh/elastic/go-ucfg/branch/master/graph/badge.svg)](https://codecov.io/gh/elastic/go-ucfg)
