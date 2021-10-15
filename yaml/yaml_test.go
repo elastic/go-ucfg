@@ -115,12 +115,12 @@ func TestEmptyCollections(t *testing.T) {
 			to:    &[]interface{}{},
 			want:  &[]interface{}{},
 		},
-		"empty array into array of string" : {
+		"empty array into array of string": {
 			input: `a: []`,
 			to: &struct {
 				A []string
 			}{},
-			want: &struct{A []string}{A:[]string{}},
+			want: &struct{ A []string }{A: []string{}},
 		},
 		"struct with empty map into struct with interface": {
 			input: "a: {}",
@@ -157,7 +157,7 @@ func TestEmptyCollections(t *testing.T) {
 		"struct with empty array into map of interfaces": {
 			input: `{"a": []}`,
 			to:    &map[string]interface{}{},
-			want:  &map[string]interface{}{
+			want: &map[string]interface{}{
 				"a": []interface{}{},
 			},
 		},
