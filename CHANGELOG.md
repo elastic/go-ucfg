@@ -14,6 +14,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 - Fixed panic on zero Value while processing a collection of interfaces. #159
+- Preserve empty arrays when reifying #188
 
 ## [0.8.3]
 
