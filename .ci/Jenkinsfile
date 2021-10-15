@@ -37,7 +37,7 @@ pipeline {
         withGithubNotify(context: 'Check') {
           deleteDir()
           unstash 'source'
-          withGoEnv(version: '1.14', pkgs: ['github.com/elastic/go-licenser', 'go.elastic.co/go-licence-detector']){
+          withGoEnv(version: '1.17', pkgs: ['github.com/elastic/go-licenser', 'go.elastic.co/go-licence-detector']){
             dir("${BASE_DIR}"){
               sh(label: '.ci/check.sh', script: '.ci/check.sh')
             }
@@ -53,7 +53,7 @@ pipeline {
         axes {
           axis {
             name 'GO_VERSION'
-            values '1.13', '1.14', '1.15'
+            values '1.13', '1.14', '1.15', '1.16', '1.17'
           }
         }
         stages {
