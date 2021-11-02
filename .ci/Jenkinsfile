@@ -53,7 +53,7 @@ pipeline {
         axes {
           axis {
             name 'GO_VERSION'
-            values '1.13', '1.14', '1.15', '1.16', '1.17'
+            values '1.16', '1.17'
           }
         }
         stages {
