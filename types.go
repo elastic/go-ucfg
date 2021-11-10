@@ -372,6 +372,9 @@ func (c cfgSub) reify(opts *options) (interface{}, error) {
 	arr := c.c.fields.array()
 
 	switch {
+	case len(fields) == 0 && len(arr) == 0 && arr != nil:
+		// preserve empty arrays
+		return []interface{}{}, nil
 	case len(fields) == 0 && len(arr) == 0:
 		return nil, nil
 	case len(fields) > 0 && len(arr) == 0:
