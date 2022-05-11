@@ -5,16 +5,22 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Added
-- Added new parse.Config flag to disable using commas to imply arrays. #192
 
 ### Changed
-- The parse.NoopConfig disables using commas to imply arrays by default. #192
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+
+## [0.8.5]
+
+### Added
+- Added new parse.Config flag to disable using commas to imply arrays. #192
+
+### Changed
+- The parse.NoopConfig disables using commas to imply arrays by default. #192
 
 ## [0.8.4]
 
