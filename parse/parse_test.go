@@ -722,60 +722,36 @@ func TestFlagValueParsingWithNoop(t *testing.T) {
 		{`[]`, `[]`},
 		{
 			`a,b,c`,
-			[]interface{}{"a", "b", "c"},
+			`a,b,c`,
 		},
 		{
 			`C:\Windows\Path1,C:\Windows\Path2`,
-			[]interface{}{
-				`C:\Windows\Path1`,
-				`C:\Windows\Path2`,
-			},
+			`C:\Windows\Path1,C:\Windows\Path2`,
 		},
 		{
 			`[array, 1, true, "abc"]`,
-			[]interface{}{"[array", uint64(1), true, `"abc"]`},
+			`[array, 1, true, "abc"]`,
 		},
 		{
 			`[test, [1,2,3], on]`,
-			[]interface{}{
-				"[test",
-				"[1",
-				uint64(2),
-				"3]",
-				"on]",
-			},
+			`[test, [1,2,3], on]`,
 		},
 		{
 			`[host1:1234, host2:1234]`,
-			[]interface{}{
-				"[host1:1234",
-				"host2:1234]",
-			},
+			`[host1:1234, host2:1234]`,
 		},
 
 		// test dictionaries:
 		{`{}`, `{}`},
-		{`{'key1': true,
-       "key2": 1,
-       key 3: ['test', "test2", off],
-	   nested key: {"a" : 2}}`,
-			[]interface{}{
-				`{'key1': true`,
-				`"key2": 1`,
-				`key 3: ['test'`,
-				`"test2"`,
-				`off]`,
-				`nested key: {"a" : 2}}`,
-			},
+		{
+			`{'key1': true, "key2": 1, key 3: ['test', "test2", off], nested key: {"a" : 2}}`,
+			`{'key1': true, "key2": 1, key 3: ['test', "test2", off], nested key: {"a" : 2}}`,
 		},
 
 		// array of top-level dictionaries
 		{
 			`{key: 1},{key: 2}`,
-			[]interface{}{
-				"{key: 1}",
-				"{key: 2}",
-			},
+			`{key: 1},{key: 2}`,
 		},
 	}
 

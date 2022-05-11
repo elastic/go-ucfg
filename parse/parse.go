@@ -27,10 +27,17 @@ import (
 
 // Config allows enabling and disabling parser features.
 type Config struct {
-	Array        bool
-	Object       bool
+	// Enables parsing arrays from values enclosed in [].
+	Array bool
+	// Enables parsing objects enclosed in {}.
+	Object bool
+	// Enables parsing double quoted strings, where values are escaped.
 	StringDQuote bool
+	// Enables parsing single quotes strings, where no values are escaped.
 	StringSQuote bool
+	// Enables ignoring commas as a shortcut for building arrays: a,b parses to [a,b].
+	// The comma array syntax is enabled by default for backwards compatibility.
+	IgnoreCommas bool
 }
 
 // DefaultConfig is the default config with all parser features enabled.
@@ -55,6 +62,7 @@ var NoopConfig = Config{
 	Object:       false,
 	StringDQuote: false,
 	StringSQuote: false,
+	IgnoreCommas: true,
 }
 
 type flagParser struct {
@@ -125,7 +133,13 @@ func (p *flagParser) parse() (interface{}, error) {
 	var values []interface{}
 
 	for {
-		v, err := p.parseValue(toplevelStopSet)
+		// Enable building arrays when commas separate top level elements by default.
+		stopSet := toplevelStopSet
+		if p.cfg.IgnoreCommas {
+			stopSet = ""
+		}
+
+		v, err := p.parseValue(stopSet)
 		if err != nil {
 			return nil, err
 		}
