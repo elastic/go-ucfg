@@ -14,6 +14,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.8.6]
+
+### Added
+- Added new ReplaceArrValues Option to replace arrays and merge maps. #193
+
 ## [0.8.5]
 
 ### Added
