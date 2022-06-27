@@ -138,7 +138,7 @@ func mergeConfigArr(opts *options, to, from *Config) Error {
 		return err
 	}
 	switch currHandling {
-	case cfgReplaceValue:
+	case cfgReplaceValue, cfgArrReplaceValue:
 		return mergeConfigReplaceArr(opts, to, from)
 
 	case cfgArrPrepend:
