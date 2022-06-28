@@ -151,6 +151,11 @@ var (
 	// overwritten in unpack by using struct tags.
 	ReplaceValues = makeOptValueHandling(cfgReplaceValue)
 
+	// ReplaceArrValues option configures merging and unpacking operations to
+	// replace old arrays while merging. Value merging can be overwritten in unpack
+	// by using struct tags.
+	ReplaceArrValues = makeOptValueHandling(cfgArrReplaceValue)
+
 	// AppendValues option configures all merging and unpacking operations to
 	// merge dictionaries and append arrays to existing arrays while merging.
 	// Value merging can be overwritten in unpack by using struct tags.

@@ -1498,6 +1498,54 @@ func TestMergeGlobalArrConfig(t *testing.T) {
 			},
 		},
 
+		"replace array shorter values": testCase{
+			options: []Option{ReplaceValues},
+			in: []interface{}{
+				map[string]interface{}{
+					"a": []interface{}{
+						map[string]interface{}{"c": 2},
+						map[string]interface{}{"d": 3},
+					},
+				},
+				map[string]interface{}{
+					"a": []interface{}{
+						map[string]interface{}{"b": 1},
+					},
+				},
+			},
+			expected: map[string]interface{}{
+				"a": []interface{}{
+					map[string]interface{}{"b": uint64(1)},
+				},
+			},
+		},
+
+		"replace array values and merge maps": testCase{
+			options: []Option{ReplaceArrValues},
+			in: []interface{}{
+				map[string]interface{}{
+					"a": []interface{}{
+						map[string]interface{}{"c": 2},
+						map[string]interface{}{"d": 3},
+					},
+					"b": 1,
+				},
+				map[string]interface{}{
+					"a": []interface{}{
+						map[string]interface{}{"b": 1},
+					},
+					"c": 1,
+				},
+			},
+			expected: map[string]interface{}{
+				"a": []interface{}{
+					map[string]interface{}{"b": uint64(1)},
+				},
+				"b": uint64(1),
+				"c": uint64(1),
+			},
+		},
+
 		"append array values": testCase{
 			options: []Option{AppendValues},
 			in: []interface{}{

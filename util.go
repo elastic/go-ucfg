@@ -40,6 +40,7 @@ const (
 	cfgReplaceValue
 	cfgArrAppend
 	cfgArrPrepend
+	cfgArrReplaceValue
 )
 
 var noTagOpts = tagOptions{}
