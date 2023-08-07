@@ -39,13 +39,13 @@
             cache: true
             cache-dependency-path: '**/go.sum'
 
-        - name: Check
-          run: .ci/check.sh
-
         - name: Test
           run: .ci/test.sh
           env:
             GO_VERSION: ${{ matrix.go-version }}
+
+        - name: Check
+          run: .ci/check.sh
 
         - name: Store test results
           if: success() || failure()

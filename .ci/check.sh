@@ -17,6 +17,7 @@ echo "Check format"
 checkformat go fmt ./...
 
 echo "Check for license headers"
+go install github.com/elastic/go-licenser@latest
 checkformat go-licenser -license ASL2
 
 echo "Check notice file"
