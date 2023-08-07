@@ -21,4 +21,5 @@ go install github.com/elastic/go-licenser@latest
 checkformat go-licenser -license ASL2
 
 echo "Check notice file"
+go install go.elastic.co/go-licence-detector@latest
 checkformat dev-tools/generate_notice
