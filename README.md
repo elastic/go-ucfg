@@ -1,4 +1,4 @@
-[![Build Status](https://beats-ci.elastic.co/job/Library/job/go-ucfg-mbp/job/main/badge/icon)](https://beats-ci.elastic.co/job/Library/job/go-ucfg-mbp/job/main/)
+[![ci](https://github.com/elastic/go-ucfg/actions/workflows/ci.yml/badge.svg)](https://github.com/elastic/go-ucfg/actions/workflows/ci.yml)
 [![Go Report
 Card](https://goreportcard.com/badge/github.com/elastic/go-ucfg)](https://goreportcard.com/report/github.com/elastic/go-ucfg)
 [![codecov](https://codecov.io/gh/elastic/go-ucfg/branch/main/graph/badge.svg)](https://codecov.io/gh/elastic/go-ucfg)
