@@ -22,7 +22,45 @@ import (
 
 	"github.com/elastic/go-ucfg/parse"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+var exampleInputWithExpVarAndComma = map[string]interface{}{
+	"condition": "startsWith('${host.name}','motmot')",
+	"data_stream": map[string]interface{}{
+		"dataset": "docker.container_logs",
+	},
+}
+
+func TestValueVarExpIgnoreCommas(t *testing.T) {
+	extendedCfg, err := NewFrom(exampleInputWithExpVarAndComma, VarExp)
+	require.NoError(t, err)
+
+	var test map[string]interface{}
+	err = extendedCfg.Unpack(&test, ResolveNOOP, IgnoreCommas) // IgnoreCommmas is what makes this not fail
+	require.NoError(t, err)
+	require.Equal(t, "startsWith('${host.name}','motmot')", test["condition"])
+}
+
+func TestValueUnpackVarExpFail(t *testing.T) {
+	extendedCfg, err := NewFrom(exampleInputWithExpVarAndComma, VarExp)
+	require.NoError(t, err)
+
+	var test map[string]interface{}
+	err = extendedCfg.Unpack(&test, ResolveNOOP) // will fail without IgnoreCommas
+	require.Error(t, err)
+}
+
+func TestValueUnpackNoExpVar(t *testing.T) {
+	extendedCfg, err := NewFrom(exampleInputWithExpVarAndComma) // will not fail, since no VarExp
+	require.NoError(t, err)
+
+	var test map[string]interface{}
+	err = extendedCfg.Unpack(&test, ResolveNOOP)
+	require.NoError(t, err)
+
+	require.Equal(t, "startsWith('${host.name}','motmot')", test["condition"])
+}
 
 func TestUnpackPrimitiveValues(t *testing.T) {
 	tests := []interface{}{
