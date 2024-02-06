@@ -561,7 +561,11 @@ func parseValue(p *cfgPrimitive, opts *options, str string, parseCfg parse.Confi
 		return nil, raiseNoParse(p.ctx, p.meta())
 	}
 
-	parseCfg.IgnoreCommas = opts.ignoreCommas
+	// only set IgnoreCommas if the default has been changed.
+	if opts.ignoreCommas {
+		parseCfg.IgnoreCommas = opts.ignoreCommas
+	}
+
 	ifc, err := parse.ValueWithConfig(str, parseCfg)
 	if err != nil {
 		return nil, err
