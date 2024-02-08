@@ -489,3 +489,93 @@ func TestRemove(t *testing.T) {
 		})
 	}
 }
+
+func TestNewFromWithMaxIdxAndEnableNumKeys(t *testing.T) {
+	baseOptions := []Option{
+		PathSep("."),
+		ResolveEnv,
+		VarExp,
+	}
+
+	tests := []struct {
+		name     string
+		opts     []Option
+		in, want map[string]interface{}
+	}{
+		{
+			name: "original",
+			in: map[string]interface{}{
+				"a": map[string]interface{}{"4": map[string]interface{}{"foo": "bar"}},
+			},
+			want: map[string]interface{}{"a": []interface{}{nil, nil, nil, nil, map[string]interface{}{"foo": "bar"}}}, // original behavour
+		},
+		{
+			name: "original with num keys",
+			opts: []Option{EnableNumKeys(true)},
+			in: map[string]interface{}{
+				"a": map[string]interface{}{"4": map[string]interface{}{"foo": "bar"}},
+			},
+			want: map[string]interface{}{
+				"a": map[string]interface{}{"4": map[string]interface{}{"foo": "bar"}},
+			},
+		},
+		{
+			name: "max idx",
+			opts: []Option{MaxIdx(3)}, // This should preserve numeric key since the max smaller that
+			in: map[string]interface{}{
+				"a": map[string]interface{}{"4": map[string]interface{}{"foo": "bar"}},
+			},
+			want: map[string]interface{}{
+				"a": map[string]interface{}{"4": map[string]interface{}{"foo": "bar"}},
+			},
+		},
+		{
+			name: "max idx with num keys",
+			opts: []Option{MaxIdx(3), EnableNumKeys(true)},
+			in: map[string]interface{}{
+				"a": map[string]interface{}{"4": map[string]interface{}{"foo": "bar"}},
+			},
+			want: map[string]interface{}{
+				"a": map[string]interface{}{"4": map[string]interface{}{"foo": "bar"}},
+			},
+		},
+		{
+			name: "max idx equals",
+			opts: []Option{MaxIdx(4)}, // This should fallback on the old behavour
+			in: map[string]interface{}{
+				"a": map[string]interface{}{"4": map[string]interface{}{"foo": "bar"}},
+			},
+			want: map[string]interface{}{"a": []interface{}{nil, nil, nil, nil, map[string]interface{}{"foo": "bar"}}},
+		},
+		{
+			name: "max idx equals with num keys",
+			opts: []Option{MaxIdx(4), EnableNumKeys(true)}, // This should fallback on the old behavour
+			in: map[string]interface{}{
+				"a": map[string]interface{}{"4": map[string]interface{}{"foo": "bar"}},
+			},
+			want: map[string]interface{}{
+				"a": map[string]interface{}{"4": map[string]interface{}{"foo": "bar"}},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		// Combine base opts with test opts
+		opts := append(baseOptions, tc.opts...)
+
+		// Create config from test map
+		cfg, err := NewFrom(tc.in, opts...)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Unpack config into map
+		var m map[string]interface{}
+		err = cfg.Unpack(&m, opts...)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		assert.Equal(t, tc.want, m)
+	}
+}

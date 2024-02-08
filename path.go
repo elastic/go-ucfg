@@ -43,15 +43,15 @@ type idxField struct {
 	i int
 }
 
-func parsePathIdx(in, sep string, idx int) cfgPath {
+func parsePathIdx(in string, idx int, opts *options) cfgPath {
 	if in == "" {
 		return cfgPath{
-			sep:    sep,
+			sep:    opts.pathSep,
 			fields: []field{idxField{idx}},
 		}
 	}
 
-	p := parsePath(in, sep)
+	p := parsePathWithOpts(in, opts)
 	if idx >= 0 {
 		p.fields = append(p.fields, idxField{idx})
 	}
@@ -59,25 +59,42 @@ func parsePathIdx(in, sep string, idx int) cfgPath {
 	return p
 }
 
-func parsePath(in, sep string) cfgPath {
+func parsePath(in, sep string, maxIdx int64, enableNumKeys bool) cfgPath {
 	if sep == "" {
 		return cfgPath{
 			sep:    sep,
-			fields: []field{parseField(in)},
+			fields: []field{parseField(in, maxIdx, enableNumKeys)},
 		}
 	}
 
 	elems := strings.Split(in, sep)
 	fields := make([]field, 0, len(elems))
+	// If property is the name with separators, for example "inputs.0.i"
+	// fall back to original implementation
+	if len(elems) > 1 {
+		enableNumKeys = false
+	}
 	for _, elem := range elems {
-		fields = append(fields, parseField(elem))
+		fields = append(fields, parseField(elem, maxIdx, enableNumKeys))
 	}
 	return cfgPath{fields: fields, sep: sep}
 }
 
-func parseField(in string) field {
-	if idx, err := strconv.ParseInt(in, 0, 64); err == nil {
-		return idxField{int(idx)}
+func parsePathWithOpts(in string, opts *options) cfgPath {
+	return parsePath(in, opts.pathSep, opts.maxIdx, opts.enableNumKeys)
+}
+
+func parseField(in string, maxIdx int64, enableNumKeys bool) field {
+	// If numeric keys are not enabled, fallback to the original implementation
+	if !enableNumKeys {
+		idx, err := strconv.ParseInt(in, 0, 64)
+		// Limit index value to the configurable max.
+		// If the idx > opts.maxIdx treat it as a regular named field.
+		// This preserves the current behavour for small index fields values (<= opts.maxIdx)
+		// and prevents large memory allocations or OOM if the string is large numeric value
+		if err == nil && idx <= int64(maxIdx) {
+			return idxField{int(idx)}
+		}
 	}
 	return namedField{in}
 }

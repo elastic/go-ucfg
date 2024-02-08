@@ -132,7 +132,7 @@ func (c *Config) GetFields() []string {
 // value is found in the middle of the traversal.
 func (c *Config) Has(name string, idx int, options ...Option) (bool, error) {
 	opts := makeOptions(options)
-	p := parsePathIdx(name, opts.pathSep, idx)
+	p := parsePathIdx(name, idx, opts)
 	return p.Has(c, opts)
 }
 
@@ -167,7 +167,7 @@ func (c *Config) Remove(name string, idx int, options ...Option) (bool, error) {
 	opts.resolvers = nil
 	opts.noParse = true
 
-	p := parsePathIdx(name, opts.pathSep, idx)
+	p := parsePathIdx(name, idx, opts)
 	return p.Remove(c, opts)
 }
 

@@ -33,55 +33,55 @@ import (
 // value implements the Unpacker interface. Otherwise, Unpack tries to convert
 // the internal value into the target type:
 //
-//  # Primitive types
+//	# Primitive types
 //
-//  bool: requires setting of type bool or string which parses into a
-//     boolean value (true, false, on, off)
-//  int(8, 16, 32, 64): requires any number type convertible to int or a string
-//      parsing to int. Fails if the target value would overflow.
-//  uint(8, 16, 32, 64): requires any number type convertible to int or a string
-//       parsing to int. Fails if the target value is negative or would overflow.
-//  float(32, 64): requires any number type convertible to float or a string
-//       parsing to float. Fails if the target value is negative or would overflow.
-//  string: requires any primitive value which is serialized into a string.
+//	bool: requires setting of type bool or string which parses into a
+//	   boolean value (true, false, on, off)
+//	int(8, 16, 32, 64): requires any number type convertible to int or a string
+//	    parsing to int. Fails if the target value would overflow.
+//	uint(8, 16, 32, 64): requires any number type convertible to int or a string
+//	     parsing to int. Fails if the target value is negative or would overflow.
+//	float(32, 64): requires any number type convertible to float or a string
+//	     parsing to float. Fails if the target value is negative or would overflow.
+//	string: requires any primitive value which is serialized into a string.
 //
-//  # Special types:
+//	# Special types:
 //
-//  time.Duration: requires a number setting converted to seconds or a string
-//       parsed into time.Duration via time.ParseDuration.
-//  *regexp.Regexp: requires a string being compiled into a regular expression
-//       using regexp.Compile.
-//  *Config: requires a Config object to be stored by pointer into the target
-//       value. Can be used to capture a sub-Config without interpreting
-//       the settings yet.
+//	time.Duration: requires a number setting converted to seconds or a string
+//	     parsed into time.Duration via time.ParseDuration.
+//	*regexp.Regexp: requires a string being compiled into a regular expression
+//	     using regexp.Compile.
+//	*Config: requires a Config object to be stored by pointer into the target
+//	     value. Can be used to capture a sub-Config without interpreting
+//	     the settings yet.
 //
-//   # Arrays/Slices:
+//	 # Arrays/Slices:
 //
-//  Requires a Config object with indexed entries. Named entries will not be
-//  unpacked into the Array/Slice. Primitive values will be handled like arrays
-//  of length 1.
+//	Requires a Config object with indexed entries. Named entries will not be
+//	unpacked into the Array/Slice. Primitive values will be handled like arrays
+//	of length 1.
 //
-//  # Map
+//	# Map
 //
-//  Requires a Config object with all named top-level entries being unpacked into
-//  the map.
+//	Requires a Config object with all named top-level entries being unpacked into
+//	the map.
 //
-//  # Struct
+//	# Struct
 //
-//  Requires a Config object. All named values in the Config object will be unpacked
-//  into the struct its fields, if the name is available in the struct.
-//  A field its name is set using the `config` struct tag (configured by StructTag)
-//  If tag is missing or no field name is configured in the tag, the field name
-//  itself will be used.
-//  If the tag sets the `,ignore` flag, the field will not be overwritten.
-//  If the tag sets the `,inline` or `,squash` flag, Unpack will apply the current
-//  configuration namespace to the fields.
-//  If the tag option `replace` is configured, arrays and *ucfg.Config
-//  convertible fields are replaced by the new values.
-//  If the tag options `append` or `prepend` is used, arrays will be merged by
-//  appending/prepending the new array contents.
-//  The struct tag options `replace`, `append`, and `prepend` overwrites the
-//  global value merging strategy (e.g. ReplaceValues, AppendValues, ...) for all sub-fields.
+//	Requires a Config object. All named values in the Config object will be unpacked
+//	into the struct its fields, if the name is available in the struct.
+//	A field its name is set using the `config` struct tag (configured by StructTag)
+//	If tag is missing or no field name is configured in the tag, the field name
+//	itself will be used.
+//	If the tag sets the `,ignore` flag, the field will not be overwritten.
+//	If the tag sets the `,inline` or `,squash` flag, Unpack will apply the current
+//	configuration namespace to the fields.
+//	If the tag option `replace` is configured, arrays and *ucfg.Config
+//	convertible fields are replaced by the new values.
+//	If the tag options `append` or `prepend` is used, arrays will be merged by
+//	appending/prepending the new array contents.
+//	The struct tag options `replace`, `append`, and `prepend` overwrites the
+//	global value merging strategy (e.g. ReplaceValues, AppendValues, ...) for all sub-fields.
 //
 // When unpacking into a map, primitive, or struct Unpack will call InitDefaults if
 // the type implements the Initializer interface. The Initializer interface is not supported
@@ -109,13 +109,13 @@ import (
 // Struct field validators are set using the `validate` tag (configurable by
 // ValidatorTag). Default validators options are:
 //
-//  required: check value is set and not empty
-//  nonzero: check numeric value != 0 or string/slice not being empty
-//  positive: check numeric value >= 0
-//  min=<value>: check numeric value >= <value>. If target type is time.Duration,
-//       <value> can be a duration.
-//  max=<value>: check numeric value <= <value>. If target type is time.Duration,
-//     <value> can be a duration.
+//	required: check value is set and not empty
+//	nonzero: check numeric value != 0 or string/slice not being empty
+//	positive: check numeric value >= 0
+//	min=<value>: check numeric value >= <value>. If target type is time.Duration,
+//	     <value> can be a duration.
+//	max=<value>: check numeric value <= <value>. If target type is time.Duration,
+//	   <value> can be a duration.
 //
 // If a config value is not the convertible to the target type, or overflows the
 // target type, Unpack will abort immediately and return the appropriate error.
@@ -126,14 +126,14 @@ import (
 // When unpacking into an interface{} value, Unpack will store a value of one of
 // these types in the value:
 //
-//   bool for boolean values
-//   int64 for signed integer values
-//   uint64 for unsigned integer values
-//   float64 for floating point values
-//   string for string values
-//   []interface{} for list-only Config objects
-//   map[string]interface{} for Config objects
-//   nil for pointers if key has a nil value
+//	bool for boolean values
+//	int64 for signed integer values
+//	uint64 for unsigned integer values
+//	float64 for floating point values
+//	string for string values
+//	[]interface{} for list-only Config objects
+//	map[string]interface{} for Config objects
+//	nil for pointers if key has a nil value
 func (c *Config) Unpack(to interface{}, options ...Option) error {
 	opts := makeOptions(options)
 
@@ -311,7 +311,7 @@ func reifyGetField(
 	to reflect.Value,
 	fieldType reflect.Type,
 ) Error {
-	p := parsePath(name, opts.opts.pathSep)
+	p := parsePathWithOpts(name, opts.opts)
 	value, err := p.GetValue(cfg, opts.opts)
 	if err != nil {
 		if err.Reason() != ErrMissing {
