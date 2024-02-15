@@ -54,6 +54,8 @@ type options struct {
 	parsed valueCache
 
 	activeFields *fieldSet
+
+	ignoreCommas bool
 }
 
 type valueCache map[string]spliceValue
@@ -80,6 +82,12 @@ func StructTag(tag string) Option {
 	return func(o *options) {
 		o.tag = tag
 	}
+}
+
+var IgnoreCommas = doIgnoreCommas
+
+func doIgnoreCommas(o *options) {
+	o.ignoreCommas = true
 }
 
 // ValidatorTag option sets the struct tag name used to set validators
