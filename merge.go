@@ -34,34 +34,33 @@ import (
 // Merge supports the options: PathSep, MetaData, StructTag, VarExp, ReplaceValues, AppendValues, PrependValues
 //
 // Merge uses the type-dependent default encodings:
-//  - Boolean values are encoded as booleans.
-//  - Integer are encoded as int64 values, unsigned integer values as uint64 and
-//    floats as float64 values.
-//  - Strings are copied into string values.
-//    If the VarExp is set, string fields will be parsed into
-//    variable expansion expressions. The expression can reference any
-//    other setting by absolute name.
-//  - Array and slices are copied into new Config objects with index accessors only.
-//  - Struct values and maps with key type string are encoded as Config objects with
-//    named field accessors.
-//  - Config objects will be copied and added to the current hierarchy.
+//   - Boolean values are encoded as booleans.
+//   - Integer are encoded as int64 values, unsigned integer values as uint64 and
+//     floats as float64 values.
+//   - Strings are copied into string values.
+//     If the VarExp is set, string fields will be parsed into
+//     variable expansion expressions. The expression can reference any
+//     other setting by absolute name.
+//   - Array and slices are copied into new Config objects with index accessors only.
+//   - Struct values and maps with key type string are encoded as Config objects with
+//     named field accessors.
+//   - Config objects will be copied and added to the current hierarchy.
 //
 // The `config` struct tag (configurable via StructTag option) can be used to
 // set the field name and enable additional merging settings per field:
 //
-//  // field appears in Config as key "myName"
-//  Field int `config:"myName"`
+//	// field appears in Config as key "myName"
+//	Field int `config:"myName"`
 //
-//  // field appears in sub-Config "mySub" as key "myName" (requires PathSep("."))
-//  Field int `config:"mySub.myName"`
+//	// field appears in sub-Config "mySub" as key "myName" (requires PathSep("."))
+//	Field int `config:"mySub.myName"`
 //
-//  // field is processed as if keys are part of outer struct (type can be a
-//  // struct, a slice, an array, a map or of type *Config)
-//  Field map[string]interface{} `config:",inline"`
+//	// field is processed as if keys are part of outer struct (type can be a
+//	// struct, a slice, an array, a map or of type *Config)
+//	Field map[string]interface{} `config:",inline"`
 //
-//  // field is ignored by Merge
-//  Field string `config:",ignore"`
-//
+//	// field is ignored by Merge
+//	Field string `config:",ignore"`
 //
 // Returns an error if merging fails to normalize and validate the from value.
 // If duplicate setting names are detected in the input, merging fails as well.
@@ -379,7 +378,7 @@ func normalizeSetField(
 		return err
 	}
 
-	p := parsePath(name, opts.pathSep)
+	p := parsePathWithOpts(name, opts)
 	old, err := p.GetValue(cfg, opts)
 	if err != nil {
 		if err.Reason() != ErrMissing {
@@ -515,7 +514,7 @@ func normalizeString(ctx context, opts *options, str string) (value, Error) {
 		return newString(ctx, opts.meta, str), nil
 	}
 
-	varexp, err := parseSplice(str, opts.pathSep)
+	varexp, err := parseSplice(str, opts.pathSep, opts.maxIdx, opts.enableNumKeys)
 	if err != nil {
 		return nil, raiseParseSplice(ctx, opts.meta, err)
 	}
