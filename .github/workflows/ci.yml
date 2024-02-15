@@ -1,58 +1,58 @@
 ---
-  name: ci
+name: ci
 
-  on:
-    workflow_dispatch:
-    push:
-      branches:
-        - main
-    pull_request: ~
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request: ~
 
-  permissions:
-    contents: read
+permissions:
+  contents: read
 
-  ## Concurrency only allowed in the main branch.
-  ## So old builds running for old commits within the same Pull Request are cancelled
-  concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+## Concurrency only allowed in the main branch.
+## So old builds running for old commits within the same Pull Request are cancelled
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
-  jobs:
-    check:
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v3
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
 
-        - uses: actions/setup-go@v4
-          with:
-            go-version: '1.17'
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.17'
 
-        - name: Check
-          run: .ci/check.sh
+      - name: Check
+        run: .ci/check.sh
 
-    test:
-      strategy:
-        fail-fast: false
-        matrix:
-          go-version: ['1.17', '1.18']
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v3
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: ['1.17', '1.18']
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
 
-        - uses: actions/setup-go@v4
-          with:
-            go-version: ${{ matrix.go-version }}
-            cache: true
-            cache-dependency-path: '**/go.sum'
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+          cache-dependency-path: '**/go.sum'
 
-        - name: Test
-          run: .ci/test.sh
-          env:
-            GO_VERSION: ${{ matrix.go-version }}
+      - name: Test
+        run: .ci/test.sh
+        env:
+          GO_VERSION: ${{ matrix.go-version }}
 
-        - name: Store test results
-          if: success() || failure()
-          uses: actions/upload-artifact@v3
-          with:
-            name: test-results
-            path: build/junit*.xml
+      - name: Store test results
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: build/junit*.xml
