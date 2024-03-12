@@ -8,6 +8,9 @@
         - test-reporter
       types: [completed]
 
+permissions:
+  contents: read
+
   jobs:
     otel-export-trace:
       runs-on: ubuntu-latest
