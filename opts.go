@@ -84,7 +84,7 @@ func StructTag(tag string) Option {
 	}
 }
 
-var IgnoreCommas = doIgnoreCommas
+var IgnoreCommas Option = doIgnoreCommas
 
 func doIgnoreCommas(o *options) {
 	o.ignoreCommas = true
