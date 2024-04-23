@@ -128,6 +128,16 @@ func tryTConfig(value reflect.Value) (reflect.Value, bool) {
 	return v.Elem(), true
 }
 
+// pointerize tries to convert the `reflect.Value` (`v`) of `reflect.Type` (`base`),
+// to the destination `reflect.Type` (`t`). For example: `<string Value>` to `<*string Value>`.
+// It is supposed to handle conversion to a pointer of the same type (as many times as needed).
+// E.g. `string` to `*string`, or even `string` to `**string`.
+// It also handles the conversion between type aliases / custom types whenever possible.
+//
+//	var sourceVar string = "foo"
+//	var destinationVar *string
+//	val := pointerize(reflect.TypeOf(destinationVar), reflect.TypeOf(sourceVar), reflect.ValueOf(sourceVar))
+//	//This will return a new `<*string Value>` that contains `"foo"`.
 func pointerize(t, base reflect.Type, v reflect.Value) reflect.Value {
 	if t == base {
 		return v
@@ -138,9 +148,10 @@ func pointerize(t, base reflect.Type, v reflect.Value) reflect.Value {
 	}
 
 	for t != v.Type() {
-		// if kinds are the same and the type not,
+		// if kinds are the same and the type is not,
 		// then we might have custom type / type alias,
 		// so we can check if we can convert.
+		// for example `string` and `type CustomString string` have the same kind but not type.
 		if t.Kind() == v.Kind() && v.CanConvert(t) {
 			v = v.Convert(t)
 		} else if !v.CanAddr() {
