@@ -138,7 +138,12 @@ func pointerize(t, base reflect.Type, v reflect.Value) reflect.Value {
 	}
 
 	for t != v.Type() {
-		if !v.CanAddr() {
+		// if kinds are the same and the type not,
+		// then we might have custom type / type alias,
+		// so we can check if we can convert.
+		if t.Kind() == v.Kind() && v.CanConvert(t) {
+			v = v.Convert(t)
+		} else if !v.CanAddr() {
 			tmp := reflect.New(v.Type())
 			tmp.Elem().Set(v)
 			v = tmp
