@@ -241,7 +241,7 @@ func (e *expansionDefault) eval(cfg *Config, opts *options) (string, error) {
 	if err != nil || path == "" {
 		return e.right.eval(cfg, opts)
 	}
-	ref := newReference(parsePath(path, e.pathSep, opts.maxIdx, opts.enableNumKeys))
+	ref := newReference(parsePath(path, e.pathSep, opts.maxIdx, opts.enableNumKeys, opts.escapePath))
 	v, err := ref.eval(cfg, opts)
 	if err != nil || v == "" {
 		return e.right.eval(cfg, opts)
@@ -255,7 +255,7 @@ func (e *expansionAlt) eval(cfg *Config, opts *options) (string, error) {
 		return "", nil
 	}
 
-	ref := newReference(parsePath(path, e.pathSep, opts.maxIdx, opts.enableNumKeys))
+	ref := newReference(parsePath(path, e.pathSep, opts.maxIdx, opts.enableNumKeys, opts.escapePath))
 	tmp, err := ref.resolve(cfg, opts)
 	if err != nil || tmp == nil {
 		return "", nil
@@ -267,7 +267,7 @@ func (e *expansionAlt) eval(cfg *Config, opts *options) (string, error) {
 func (e *expansionErr) eval(cfg *Config, opts *options) (string, error) {
 	path, err := e.left.eval(cfg, opts)
 	if err == nil && path != "" {
-		ref := newReference(parsePath(path, e.pathSep, opts.maxIdx, opts.enableNumKeys))
+		ref := newReference(parsePath(path, e.pathSep, opts.maxIdx, opts.enableNumKeys, opts.escapePath))
 		str, err := ref.eval(cfg, opts)
 		if err == nil && str != "" {
 			return str, nil
@@ -281,7 +281,7 @@ func (e *expansionErr) eval(cfg *Config, opts *options) (string, error) {
 	return "", errors.New(errStr)
 }
 
-func (st parseState) finalize(pathSep string, maxIdx int64, enableNumKeys bool) (varEvaler, error) {
+func (st parseState) finalize(pathSep string, maxIdx int64, enableNumKeys, allowEscapePath bool) (varEvaler, error) {
 	if !st.isvar {
 		return nil, errors.New("fatal: processing non-variable state")
 	}
@@ -298,7 +298,7 @@ func (st parseState) finalize(pathSep string, maxIdx int64, enableNumKeys bool) 
 
 		if len(pieces) == 1 {
 			if str, ok := pieces[0].(constExp); ok {
-				return newReference(parsePath(string(str), pathSep, maxIdx, enableNumKeys)), nil
+				return newReference(parsePath(string(str), pathSep, maxIdx, enableNumKeys, allowEscapePath)), nil
 			}
 		}
 
@@ -334,7 +334,7 @@ func makeOpExpansion(l, r varEvaler, op, pathSep string) varEvaler {
 	panic(fmt.Sprintf("Unknown operator: %v", op))
 }
 
-func parseSplice(in, pathSep string, maxIdx int64, enableNumKeys bool) (varEvaler, error) {
+func parseSplice(in, pathSep string, maxIdx int64, enableNumKeys, allowEscapePath bool) (varEvaler, error) {
 	lex, errs := lexer(in)
 	drainLex := func() {
 		for range lex {
@@ -344,7 +344,7 @@ func parseSplice(in, pathSep string, maxIdx int64, enableNumKeys bool) (varEvale
 	// drain lexer on return so go-routine won't leak
 	defer drainLex()
 
-	pieces, perr := parseVarExp(lex, pathSep, maxIdx, enableNumKeys)
+	pieces, perr := parseVarExp(lex, pathSep, maxIdx, enableNumKeys, allowEscapePath)
 	if perr != nil {
 		return nil, perr
 	}
@@ -448,7 +448,7 @@ func lexer(in string) (<-chan token, <-chan error) {
 	return lex, errors
 }
 
-func parseVarExp(lex <-chan token, pathSep string, maxIdx int64, enableNumKeys bool) (varEvaler, error) {
+func parseVarExp(lex <-chan token, pathSep string, maxIdx int64, enableNumKeys, allowEscapePath bool) (varEvaler, error) {
 	stack := []parseState{{st: stLeft}}
 
 	// parser loop
@@ -458,7 +458,7 @@ func parseVarExp(lex <-chan token, pathSep string, maxIdx int64, enableNumKeys b
 			stack = append(stack, parseState{st: stLeft, isvar: true})
 		case tokClose:
 			// finalize and pop state
-			piece, err := stack[len(stack)-1].finalize(pathSep, maxIdx, enableNumKeys)
+			piece, err := stack[len(stack)-1].finalize(pathSep, maxIdx, enableNumKeys, allowEscapePath)
 			stack = stack[:len(stack)-1]
 			if err != nil {
 				return nil, err

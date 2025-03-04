@@ -19,6 +19,7 @@ package ucfg
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -59,8 +60,14 @@ func parsePathIdx(in string, idx int, opts *options) cfgPath {
 	return p
 }
 
-func parsePath(in, sep string, maxIdx int64, enableNumKeys bool) cfgPath {
-	if sep == "" {
+const (
+	escapePathRegExp = `^\[.*\]$`
+)
+
+var escapePathReg = regexp.MustCompile(escapePathRegExp)
+
+func parsePath(in, sep string, maxIdx int64, enableNumKeys, allowEscapePath bool) cfgPath {
+	if sep == "" || (allowEscapePath && escapePathReg.MatchString(in)) {
 		return cfgPath{
 			sep:    sep,
 			fields: []field{parseField(in, maxIdx, enableNumKeys)},
@@ -81,7 +88,7 @@ func parsePath(in, sep string, maxIdx int64, enableNumKeys bool) cfgPath {
 }
 
 func parsePathWithOpts(in string, opts *options) cfgPath {
-	return parsePath(in, opts.pathSep, opts.maxIdx, opts.enableNumKeys)
+	return parsePath(in, opts.pathSep, opts.maxIdx, opts.enableNumKeys, opts.escapePath)
 }
 
 func parseField(in string, maxIdx int64, enableNumKeys bool) field {

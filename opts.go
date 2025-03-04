@@ -37,6 +37,7 @@ type options struct {
 	tag          string
 	validatorTag string
 	pathSep      string
+	escapePath   bool
 	meta         *Meta
 	env          []*Config
 	resolvers    []func(name string) (string, parse.Config, error)
@@ -104,6 +105,13 @@ func ValidatorTag(tag string) Option {
 func PathSep(sep string) Option {
 	return func(o *options) {
 		o.pathSep = sep
+	}
+}
+
+// EscapePath when set allows the user to escape the path using brackets.
+func EscapePath() Option {
+	return func(o *options) {
+		o.escapePath = true
 	}
 }
 
