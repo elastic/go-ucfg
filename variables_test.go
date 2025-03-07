@@ -26,7 +26,7 @@ import (
 
 func TestVarExpParserSuccess(t *testing.T) {
 	str := func(s string) varEvaler { return constExp(s) }
-	ref := func(s string) *reference { return newReference(parsePath(s, ".", defaultMaxIdx, false)) }
+	ref := func(s string) *reference { return newReference(parsePath(s, ".", defaultMaxIdx, false, false)) }
 	cat := func(e ...varEvaler) *splice { return &splice{e} }
 	nested := func(n ...varEvaler) varEvaler {
 		return &expansionSingle{&splice{n}, "."}
@@ -73,7 +73,7 @@ func TestVarExpParserSuccess(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%s %s", test.title, test.exp), func(t *testing.T) {
-			actual, err := parseSplice(test.exp, ".", defaultMaxIdx, false)
+			actual, err := parseSplice(test.exp, ".", defaultMaxIdx, false, false)
 			if assert.NoError(t, err) {
 				assert.Equal(t, test.expected, actual)
 			}
@@ -89,7 +89,7 @@ func TestVarExpParseErrors(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("test %v: %v", test.title, test.exp), func(t *testing.T) {
-			res, err := parseSplice(test.exp, ".", defaultMaxIdx, false)
+			res, err := parseSplice(test.exp, ".", defaultMaxIdx, false, false)
 			assert.True(t, err != nil)
 			assert.Error(t, err, fmt.Sprintf("result: %v, error: %v", res, err))
 		})

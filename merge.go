@@ -514,7 +514,7 @@ func normalizeString(ctx context, opts *options, str string) (value, Error) {
 		return newString(ctx, opts.meta, str), nil
 	}
 
-	varexp, err := parseSplice(str, opts.pathSep, opts.maxIdx, opts.enableNumKeys)
+	varexp, err := parseSplice(str, opts.pathSep, opts.maxIdx, opts.enableNumKeys, opts.escapePath)
 	if err != nil {
 		return nil, raiseParseSplice(ctx, opts.meta, err)
 	}
