@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type stUnpackable struct {
@@ -236,4 +237,77 @@ func TestReifyUnpackersPtr(t *testing.T) {
 	}
 	assertSubConfig(to.C.c)
 	assertSubConfig(to.R.c)
+}
+
+func TestUnpack(t *testing.T) {
+	type CustomString string
+	type StructWithCustomString struct {
+		Foo CustomString `config:"foo"`
+	}
+	type StructWithCustomStringPtr struct {
+		Foo *CustomString `config:"foo"`
+	}
+
+	type StructWithString struct {
+		Foo string `config:"foo"`
+	}
+	type StructWithStringPtr struct {
+		Foo *string `config:"foo"`
+	}
+
+	strPtr := func(s string) *string { return &s }
+	customStrPtr := func(s CustomString) *CustomString { return &s }
+
+	tests := map[string]struct {
+		config   func() *Config
+		unpackTo interface{}
+		expect   interface{}
+	}{
+		"string to string": {
+			config: func() *Config {
+				return MustNewFrom(map[string]interface{}{
+					"foo": "bar",
+				})
+			},
+			unpackTo: &StructWithString{},
+			expect:   &StructWithString{Foo: "bar"},
+		},
+		"string to *string": {
+			config: func() *Config {
+				return MustNewFrom(map[string]interface{}{
+					"foo": "bar",
+				})
+			},
+			unpackTo: &StructWithStringPtr{},
+			expect:   &StructWithStringPtr{Foo: strPtr("bar")},
+		},
+		"string to CustomString": {
+			config: func() *Config {
+				return MustNewFrom(map[string]interface{}{
+					"foo": "bar",
+				})
+			},
+			unpackTo: &StructWithCustomString{},
+			expect:   &StructWithCustomString{Foo: "bar"},
+		},
+		"string to *CustomString": {
+			config: func() *Config {
+				return MustNewFrom(map[string]interface{}{
+					"foo": "bar",
+				})
+			},
+			unpackTo: &StructWithCustomStringPtr{},
+			expect:   &StructWithCustomStringPtr{Foo: customStrPtr("bar")},
+		},
+	}
+
+	for name, tc := range tests {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			config := tc.config()
+			err := config.Unpack(tc.unpackTo)
+			require.NoError(t, err)
+			require.Equal(t, tc.expect, tc.unpackTo)
+		})
+	}
 }
