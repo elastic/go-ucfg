@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Add ability to skip validation with new `NoValidate` option. #213
 
 ### Changed
 
