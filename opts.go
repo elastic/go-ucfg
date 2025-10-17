@@ -36,6 +36,7 @@ type Option func(*options)
 type options struct {
 	tag          string
 	validatorTag string
+	noValidate   bool
 	pathSep      string
 	escapePath   bool
 	meta         *Meta
@@ -97,6 +98,13 @@ func doIgnoreCommas(o *options) {
 func ValidatorTag(tag string) Option {
 	return func(o *options) {
 		o.validatorTag = tag
+	}
+}
+
+// NoValidate disables validation when unpacking.
+func NoValidate() Option {
+	return func(o *options) {
+		o.noValidate = true
 	}
 }
 

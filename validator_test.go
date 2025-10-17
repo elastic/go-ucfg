@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/elastic/go-ucfg/cfgtest"
 )
 
@@ -531,11 +532,23 @@ func TestValidationFail(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
-		t.Run(fmt.Sprintf("Test config (%v): %#v", i, test), func(t *testing.T) {
-			cfgtest.MustFailUnpack(t, c, test)
-		})
-	}
+	t.Run("validate", func(t *testing.T) {
+		for i, test := range tests {
+			t.Run(fmt.Sprintf("Test config (%v): %#v", i, test), func(t *testing.T) {
+				cfgtest.MustFailUnpack(t, c, test)
+			})
+		}
+	})
+	t.Run("noValidate", func(t *testing.T) {
+		for i, test := range tests {
+			t.Run(fmt.Sprintf("Test config (%v): %#v", i, test), func(t *testing.T) {
+				err := c.Unpack(test, NoValidate())
+				if err != nil {
+					t.Fatalf("config:%s test:%s error:%v", spew.Sdump(c), spew.Sdump(test), err)
+				}
+			})
+		}
+	})
 }
 
 func TestValidateRequiredFailing(t *testing.T) {

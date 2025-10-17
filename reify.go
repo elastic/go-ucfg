@@ -203,8 +203,10 @@ func reifyMap(opts *options, to reflect.Value, from *Config, validators []valida
 
 	fields := from.fields.dict()
 	if len(fields) == 0 {
-		if err := tryRecursiveValidate(to, opts, validators); err != nil {
-			return raiseValidation(from.ctx, from.metadata, "", err)
+		if !opts.noValidate {
+			if err := tryRecursiveValidate(to, opts, validators); err != nil {
+				return raiseValidation(from.ctx, from.metadata, "", err)
+			}
 		}
 		return nil
 	}
@@ -231,11 +233,13 @@ func reifyMap(opts *options, to reflect.Value, from *Config, validators []valida
 		}
 	}
 
-	if err := runValidators(to.Interface(), validators); err != nil {
-		return raiseValidation(from.ctx, from.metadata, "", err)
-	}
-	if err := tryValidate(to); err != nil {
-		return raiseValidation(from.ctx, from.metadata, "", err)
+	if !opts.noValidate {
+		if err := runValidators(to.Interface(), validators); err != nil {
+			return raiseValidation(from.ctx, from.metadata, "", err)
+		}
+		if err := tryValidate(to); err != nil {
+			return raiseValidation(from.ctx, from.metadata, "", err)
+		}
 	}
 
 	return nil
@@ -296,8 +300,10 @@ func reifyStruct(opts *options, orig reflect.Value, cfg *Config) Error {
 		}
 	}
 
-	if err := tryValidate(to); err != nil {
-		return raiseValidation(cfg.ctx, cfg.metadata, "", err)
+	if !opts.noValidate {
+		if err := tryValidate(to); err != nil {
+			return raiseValidation(cfg.ctx, cfg.metadata, "", err)
+		}
 	}
 
 	orig.Set(pointerize(orig.Type(), to.Type(), to))
@@ -324,16 +330,20 @@ func reifyGetField(
 		// When fieldType is a pointer and the value is nil, return nil as the
 		// underlying type should not be allocated.
 		if fieldType.Kind() == reflect.Ptr {
-			if err := tryRecursiveValidate(to, opts.opts, opts.validators); err != nil {
-				return raiseValidation(cfg.ctx, cfg.metadata, name, err)
+			if !opts.opts.noValidate {
+				if err := tryRecursiveValidate(to, opts.opts, opts.validators); err != nil {
+					return raiseValidation(cfg.ctx, cfg.metadata, name, err)
+				}
 			}
 			return nil
 		}
 
 		// Primitive types return early when it doesn't implement the Initializer interface.
 		if fieldType.Kind() != reflect.Struct && !hasInitDefaults(fieldType) {
-			if err := tryRecursiveValidate(to, opts.opts, opts.validators); err != nil {
-				return raiseValidation(cfg.ctx, cfg.metadata, name, err)
+			if !opts.opts.noValidate {
+				if err := tryRecursiveValidate(to, opts.opts, opts.validators); err != nil {
+					return raiseValidation(cfg.ctx, cfg.metadata, name, err)
+				}
 			}
 			return nil
 		}
@@ -604,21 +614,23 @@ func reifyDoArray(
 			if v.IsValid() {
 				to.Index(idx).Set(v)
 			}
-		} else {
+		} else if !opts.opts.noValidate {
 			if err := tryRecursiveValidate(to.Index(idx), opts.opts, nil); err != nil {
 				return reflect.Value{}, raiseValidation(val.Context(), val.meta(), "", err)
 			}
 		}
 	}
 
-	if err := runValidators(to.Interface(), opts.validators); err != nil {
-		ctx := val.Context()
-		return reflect.Value{}, raiseValidation(ctx, val.meta(), "", err)
-	}
+	if !opts.opts.noValidate {
+		if err := runValidators(to.Interface(), opts.validators); err != nil {
+			ctx := val.Context()
+			return reflect.Value{}, raiseValidation(ctx, val.meta(), "", err)
+		}
 
-	if err := tryValidate(to); err != nil {
-		ctx := val.Context()
-		return reflect.Value{}, raiseValidation(ctx, val.meta(), "", err)
+		if err := tryValidate(to); err != nil {
+			ctx := val.Context()
+			return reflect.Value{}, raiseValidation(ctx, val.meta(), "", err)
+		}
 	}
 
 	return to, nil
@@ -679,12 +691,14 @@ func reifyPrimitive(
 		}
 	}
 
-	if err := runValidators(v.Interface(), opts.validators); err != nil {
-		return reflect.Value{}, raiseValidation(val.Context(), val.meta(), "", err)
-	}
+	if !opts.opts.noValidate {
+		if err := runValidators(v.Interface(), opts.validators); err != nil {
+			return reflect.Value{}, raiseValidation(val.Context(), val.meta(), "", err)
+		}
 
-	if err := tryValidate(v); err != nil {
-		return reflect.Value{}, raiseValidation(val.Context(), val.meta(), "", err)
+		if err := tryValidate(v); err != nil {
+			return reflect.Value{}, raiseValidation(val.Context(), val.meta(), "", err)
+		}
 	}
 
 	return pointerize(t, baseType, chaseValuePointers(v)), nil
