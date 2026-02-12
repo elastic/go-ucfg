@@ -115,11 +115,12 @@ var (
 	ErrUnknown        = errors.New("Unspecified")
 )
 
-func (e baseError) Error() string { return e.Message() }
-func (e baseError) Reason() error { return e.reason }
-func (e baseError) Class() error  { return e.class }
-func (e baseError) Trace() string { return "" }
-func (e baseError) Path() string  { return e.path }
+func (e baseError) Error() string  { return e.Message() }
+func (e baseError) Reason() error  { return e.reason }
+func (e baseError) Class() error   { return e.class }
+func (e baseError) Trace() string  { return "" }
+func (e baseError) Path() string   { return e.path }
+func (e baseError) Unwrap() error  { return e.reason }
 
 func (e baseError) Message() string {
 	if e.message == "" {
