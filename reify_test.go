@@ -925,6 +925,21 @@ func TestUnpackStructWithArrConfig(t *testing.T) {
 	}
 }
 
+func TestUnpackCustomStringType(t *testing.T) {
+	type CustomString string
+	type testStruct struct {
+		S CustomString
+	}
+
+	c, err := NewFrom(node{"s": "hello"})
+	require.NoError(t, err)
+
+	var out testStruct
+	err = c.Unpack(&out)
+	require.NoError(t, err)
+	assert.Equal(t, CustomString("hello"), out.S)
+}
+
 func assertConfig(t *testing.T, config *Config, expected interface{}) {
 	var actual interface{}
 

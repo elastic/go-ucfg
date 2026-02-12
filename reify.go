@@ -739,7 +739,7 @@ func doReifyPrimitive(
 		if err != nil {
 			return reflect.Value{}, raiseConversion(opts.opts, val, err, "string")
 		}
-		return reflect.ValueOf(s), nil
+		return reflect.ValueOf(s).Convert(baseType), nil
 
 	case extras[baseType] != nil:
 		v, err := extras[baseType](opts, val, baseType)
