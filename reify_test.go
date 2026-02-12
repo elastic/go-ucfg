@@ -517,6 +517,72 @@ func TestUnpackInline(t *testing.T) {
 	}
 }
 
+func TestUnpackInlineMapExcludesNamedFields(t *testing.T) {
+	type InlineExtra struct {
+		Extra map[string]string `config:",inline"`
+	}
+
+	tests := []interface{}{
+		// named field + inline map: named key excluded from map
+		&struct {
+			Name  string            `config:"name"`
+			Extra map[string]string `config:",inline"`
+		}{"alice", map[string]string{"color": "blue", "count": "30"}},
+
+		// inline map declared before named field (order independence)
+		&struct {
+			Extra map[string]string `config:",inline"`
+			Name  string            `config:"name"`
+		}{map[string]string{"color": "blue", "count": "30"}, "alice"},
+
+		// multiple named fields excluded from inline map
+		&struct {
+			Name  string            `config:"name"`
+			Count int               `config:"count"`
+			Extra map[string]string `config:",inline"`
+		}{"alice", 30, map[string]string{"color": "blue"}},
+
+		// inline map with interface{} values
+		&struct {
+			Name  string                 `config:"name"`
+			Extra map[string]interface{} `config:",inline"`
+		}{"alice", map[string]interface{}{"color": "blue", "count": 30}},
+
+		// nested inline struct with inline map excludes outer named fields
+		&struct {
+			Name        string `config:"name"`
+			InlineExtra `config:",inline"`
+		}{"alice", InlineExtra{map[string]string{"color": "blue", "count": "30"}}},
+	}
+
+	c, _ := NewFrom(map[string]interface{}{
+		"name":  "alice",
+		"count": 30,
+		"color": "blue",
+	})
+
+	for i, out := range tests {
+		t.Logf("test (%v): %v", i, out)
+		err := c.Unpack(out)
+		if err != nil {
+			t.Fatalf("failed to unpack(%v): %v", i, err)
+		}
+
+		c2, err := NewFrom(out)
+		if err != nil {
+			t.Fatalf("failed to merge back(%v): %v", i, err)
+		}
+
+		name, err := c2.String("name", -1)
+		assert.NoError(t, err)
+		assert.Equal(t, "alice", name)
+
+		color, err := c2.String("color", -1)
+		assert.NoError(t, err)
+		assert.Equal(t, "blue", color)
+	}
+}
+
 func TestUnpackUnknown(t *testing.T) {
 	c := New()
 
