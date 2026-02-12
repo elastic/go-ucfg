@@ -925,18 +925,74 @@ func TestUnpackStructWithArrConfig(t *testing.T) {
 	}
 }
 
-func TestUnpackCustomStringType(t *testing.T) {
+func TestUnpackCustomPrimitiveTypes(t *testing.T) {
+	type CustomBool bool
+	type CustomInt int
+	type CustomInt8 int8
+	type CustomInt16 int16
+	type CustomInt32 int32
+	type CustomInt64 int64
+	type CustomUint uint
+	type CustomUint8 uint8
+	type CustomUint16 uint16
+	type CustomUint32 uint32
+	type CustomUint64 uint64
+	type CustomFloat32 float32
+	type CustomFloat64 float64
 	type CustomString string
+
 	type testStruct struct {
-		S CustomString
+		B   CustomBool
+		I   CustomInt
+		I8  CustomInt8
+		I16 CustomInt16
+		I32 CustomInt32
+		I64 CustomInt64
+		U   CustomUint
+		U8  CustomUint8
+		U16 CustomUint16
+		U32 CustomUint32
+		U64 CustomUint64
+		F32 CustomFloat32
+		F64 CustomFloat64
+		S   CustomString
 	}
 
-	c, err := NewFrom(node{"s": "hello"})
+	c, err := NewFrom(node{
+		"b":   true,
+		"i":   42,
+		"i8":  8,
+		"i16": 16,
+		"i32": 32,
+		"i64": 64,
+		"u":   1,
+		"u8":  8,
+		"u16": 16,
+		"u32": 32,
+		"u64": 64,
+		"f32": 3.14,
+		"f64": 6.28,
+		"s":   "hello",
+	})
 	require.NoError(t, err)
 
 	var out testStruct
 	err = c.Unpack(&out)
 	require.NoError(t, err)
+
+	assert.Equal(t, CustomBool(true), out.B)
+	assert.Equal(t, CustomInt(42), out.I)
+	assert.Equal(t, CustomInt8(8), out.I8)
+	assert.Equal(t, CustomInt16(16), out.I16)
+	assert.Equal(t, CustomInt32(32), out.I32)
+	assert.Equal(t, CustomInt64(64), out.I64)
+	assert.Equal(t, CustomUint(1), out.U)
+	assert.Equal(t, CustomUint8(8), out.U8)
+	assert.Equal(t, CustomUint16(16), out.U16)
+	assert.Equal(t, CustomUint32(32), out.U32)
+	assert.Equal(t, CustomUint64(64), out.U64)
+	assert.Equal(t, CustomFloat32(3.14), out.F32)
+	assert.Equal(t, CustomFloat64(6.28), out.F64)
 	assert.Equal(t, CustomString("hello"), out.S)
 }
 
