@@ -1,0 +1,15 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directories:
+      - '**/*'
+    schedule:
+      interval: 'weekly'
+      day: 'sunday'
+      time: '22:00'
+    labels:
+      - 'changelog:dependencies'
+    groups:
+      github-actions:
+        patterns:
+          - '*'
