@@ -32,6 +32,41 @@ import (
 
 var updateFlag = flag.Bool("update", false, "Update the golden files.")
 
+func TestErrorUnwrap(t *testing.T) {
+	tests := map[string]struct {
+		err    Error
+		target error
+	}{
+		"baseError with ErrMissing": {
+			err:    raiseErr(ErrMissing, "test"),
+			target: ErrMissing,
+		},
+		"baseError with ErrTypeMismatch": {
+			err:    raiseErr(ErrTypeMismatch, "test"),
+			target: ErrTypeMismatch,
+		},
+		"criticalError with ErrNilConfig": {
+			err:    raiseNil(ErrNilConfig),
+			target: ErrNilConfig,
+		},
+		"criticalError with ErrPointerRequired": {
+			err:    raiseCritical(ErrPointerRequired, "test"),
+			target: ErrPointerRequired,
+		},
+		"pathError with ErrDuplicateKey": {
+			err:    raisePathErr(ErrDuplicateKey, nil, "test", "a.b"),
+			target: ErrDuplicateKey,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			assert.True(t, errors.Is(tc.err, tc.target),
+				"errors.Is(%v, %v) = false, want true", tc.err, tc.target)
+		})
+	}
+}
+
 func TestErrorMessages(t *testing.T) {
 	goldenPath := path.Join("testdata", "error", "message")
 

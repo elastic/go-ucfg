@@ -55,7 +55,8 @@ type options struct {
 	// Unpack/Pack/Get/...
 	parsed valueCache
 
-	activeFields *fieldSet
+	activeFields     *fieldSet
+	configuredFields *fieldSet
 
 	ignoreCommas bool
 }
