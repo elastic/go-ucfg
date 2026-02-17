@@ -212,6 +212,9 @@ func reifyMap(opts *options, to reflect.Value, from *Config, validators []valida
 	}
 
 	for k, value := range fields {
+		if opts.configuredFields != nil && opts.configuredFields.Has(k) {
+			continue
+		}
 		opts.activeFields = newFieldSet(parentFields)
 		key := reflect.ValueOf(k)
 
@@ -264,6 +267,26 @@ func reifyStruct(opts *options, orig reflect.Value, cfg *Config) Error {
 	} else {
 		tryInitDefaults(to)
 		numField := to.NumField()
+
+		// Pre-scan struct fields to collect names of all non-inline fields.
+		// These names are excluded from inline maps so that keys already
+		// handled by a named field are not duplicated into an inline map.
+		parentConfigured := opts.configuredFields
+		configured := newFieldSet(parentConfigured)
+		for i := 0; i < numField; i++ {
+			stField := to.Type().Field(i)
+			if !stField.IsExported() {
+				continue
+			}
+			name, tagOpts := parseTags(stField.Tag.Get(opts.tag))
+			if tagOpts.ignore || tagOpts.squash {
+				continue
+			}
+			configured.Add(fieldName(name, stField.Name))
+		}
+		opts.configuredFields = configured
+		defer func() { opts.configuredFields = parentConfigured }()
+
 		for i := 0; i < numField; i++ {
 			fInfo, skip, err := accessField(to, i, opts)
 			if err != nil {
