@@ -85,10 +85,10 @@ const (
 // allowing for arrays and objects having a trailing comma. In addition 3
 // string types are supported:
 //
-// 1. single quoted string (no unescaping of any characters)
-// 2. double quoted strings (characters are escaped)
-// 3. strings without quotes. String parsing stops at
-//   special characters like '[]{},:'
+//  1. single quoted string (no unescaping of any characters)
+//  2. double quoted strings (characters are escaped)
+//  3. strings without quotes. String parsing stops at
+//     special characters like '[]{},:'
 //
 // In addition, top-level values can be separated by ',' to build arrays
 // without having to use [].
@@ -103,10 +103,10 @@ func Value(content string) (interface{}, error) {
 // allowing for arrays and objects having a trailing comma. In addition 3
 // string types are supported:
 //
-// 1. single quoted string (no unescaping of any characters)
-// 2. double quoted strings (characters are escaped)
-// 3. strings without quotes. String parsing stops at
-//   special characters like '[]{},:'
+//  1. single quoted string (no unescaping of any characters)
+//  2. double quoted strings (characters are escaped)
+//  3. strings without quotes. String parsing stops at
+//     special characters like '[]{},:'
 //
 // In addition, top-level values can be separated by ',' to build arrays
 // without having to use [].
