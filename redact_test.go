@@ -167,7 +167,7 @@ func TestRedactNilConfig(t *testing.T) {
 	redacted, err := cfg.Redact()
 	assert.Nil(t, redacted)
 	assert.Error(t, err)
-	
+
 	// Check if it's an Error type with Reason
 	if ucfgErr, ok := err.(Error); ok {
 		assert.Equal(t, ErrNilConfig, ucfgErr.Reason())

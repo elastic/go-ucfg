@@ -290,7 +290,7 @@ func redactConfig(from *Config, ctx context) (*Config, Error) {
 
 func redactValue(v value, ctx context) (value, Error) {
 	meta := v.meta()
-	
+
 	// If the value is marked as redacted, replace it with "[REDACTED]"
 	if meta != nil && meta.Redacted {
 		return newString(ctx, meta, "[REDACTED]"), nil
