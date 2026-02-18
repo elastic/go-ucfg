@@ -210,3 +210,72 @@ func TestRedactMixedTypes(t *testing.T) {
 	assert.Equal(t, "[REDACTED]", result["float_val"])
 	assert.Equal(t, "public", result["normal_val"])
 }
+
+func TestRedactWithInline(t *testing.T) {
+	type inline struct {
+		Key    string `config:"key"`
+		Secret string `config:"secret,redact"`
+	}
+
+	type testConfig struct {
+		Name   string `config:"name"`
+		Inline inline `config:",inline"`
+	}
+
+	input := testConfig{
+		Name: "test",
+		Inline: inline{
+			Key:    "public-key",
+			Secret: "private-secret",
+		},
+	}
+
+	cfg, err := NewFrom(input)
+	require.NoError(t, err)
+
+	redacted, err := cfg.Redact()
+	require.NoError(t, err)
+	require.NotNil(t, redacted)
+
+	// Unpack to verify
+	result := make(map[string]interface{})
+	err = redacted.Unpack(&result)
+	require.NoError(t, err)
+
+	assert.Equal(t, "test", result["name"])
+	assert.Equal(t, "public-key", result["key"])
+	assert.Equal(t, "[REDACTED]", result["secret"])
+}
+
+func TestRedactIdempotent(t *testing.T) {
+	type testConfig struct {
+		Public string `config:"public"`
+		Secret string `config:"secret,redact"`
+	}
+
+	input := testConfig{
+		Public: "visible",
+		Secret: "hidden",
+	}
+
+	cfg, err := NewFrom(input)
+	require.NoError(t, err)
+
+	// Redact once
+	redacted1, err := cfg.Redact()
+	require.NoError(t, err)
+
+	// Redact again
+	redacted2, err := redacted1.Redact()
+	require.NoError(t, err)
+
+	// Both should have the same result
+	var result1, result2 map[string]interface{}
+	require.NoError(t, redacted1.Unpack(&result1))
+	require.NoError(t, redacted2.Unpack(&result2))
+
+	assert.Equal(t, "visible", result1["public"])
+	assert.Equal(t, "[REDACTED]", result1["secret"])
+	assert.Equal(t, "visible", result2["public"])
+	assert.Equal(t, "[REDACTED]", result2["secret"])
+}
