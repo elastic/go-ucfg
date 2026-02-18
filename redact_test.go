@@ -176,11 +176,11 @@ func TestRedactNilConfig(t *testing.T) {
 
 func TestRedactMixedTypes(t *testing.T) {
 	type testConfig struct {
-		StringVal  string  `config:"string_val,redact"`
-		IntVal     int     `config:"int_val,redact"`
-		BoolVal    bool    `config:"bool_val,redact"`
-		FloatVal   float64 `config:"float_val,redact"`
-		NormalVal  string  `config:"normal_val"`
+		StringVal string  `config:"string_val,redact"`
+		IntVal    int     `config:"int_val,redact"`
+		BoolVal   bool    `config:"bool_val,redact"`
+		FloatVal  float64 `config:"float_val,redact"`
+		NormalVal string  `config:"normal_val"`
 	}
 
 	input := testConfig{
