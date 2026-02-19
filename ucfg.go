@@ -78,6 +78,8 @@ var (
 	tRegexp   = reflect.TypeOf(regexp.Regexp{})
 )
 
+const sREDACT = "[REDACTED]"
+
 // New creates a new empty Config object.
 func New() *Config {
 	return &Config{
@@ -293,7 +295,7 @@ func redactValue(v value, ctx context) (value, Error) {
 
 	// If the value is marked as redacted, replace it with "[REDACTED]"
 	if meta != nil && meta.Redacted {
-		return newString(ctx, meta, "[REDACTED]"), nil
+		return newString(ctx, meta, sREDACT), nil
 	}
 
 	// For nested Config objects, recursively redact

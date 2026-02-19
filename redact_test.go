@@ -52,8 +52,8 @@ func TestRedactBasic(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "admin", result["username"])
-	assert.Equal(t, "[REDACTED]", result["password"])
-	assert.Equal(t, "[REDACTED]", result["api_key"])
+	assert.Equal(t, sREDACT, result["password"])
+	assert.Equal(t, sREDACT, result["api_key"])
 	assert.Equal(t, "localhost", result["host"])
 }
 
@@ -92,8 +92,8 @@ func TestRedactNested(t *testing.T) {
 
 	assert.Equal(t, "myapp", result.AppName)
 	assert.Equal(t, "db.example.com", result.Database.Host)
-	assert.Equal(t, "[REDACTED]", result.Database.Password)
-	assert.Equal(t, "[REDACTED]", result.APIToken)
+	assert.Equal(t, sREDACT, result.Database.Password)
+	assert.Equal(t, sREDACT, result.APIToken)
 }
 
 func TestRedactArray(t *testing.T) {
@@ -130,9 +130,9 @@ func TestRedactArray(t *testing.T) {
 	assert.Equal(t, "test", result.Name)
 	require.Len(t, result.Creds, 2)
 	assert.Equal(t, "user1", result.Creds[0].Username)
-	assert.Equal(t, "[REDACTED]", result.Creds[0].Password)
+	assert.Equal(t, sREDACT, result.Creds[0].Password)
 	assert.Equal(t, "user2", result.Creds[1].Username)
-	assert.Equal(t, "[REDACTED]", result.Creds[1].Password)
+	assert.Equal(t, sREDACT, result.Creds[1].Password)
 }
 
 func TestRedactNoRedactedFields(t *testing.T) {
@@ -204,10 +204,10 @@ func TestRedactMixedTypes(t *testing.T) {
 	require.NoError(t, err)
 
 	// All redacted fields should be "[REDACTED]" regardless of original type
-	assert.Equal(t, "[REDACTED]", result["string_val"])
-	assert.Equal(t, "[REDACTED]", result["int_val"])
-	assert.Equal(t, "[REDACTED]", result["bool_val"])
-	assert.Equal(t, "[REDACTED]", result["float_val"])
+	assert.Equal(t, sREDACT, result["string_val"])
+	assert.Equal(t, sREDACT, result["int_val"])
+	assert.Equal(t, sREDACT, result["bool_val"])
+	assert.Equal(t, sREDACT, result["float_val"])
 	assert.Equal(t, "public", result["normal_val"])
 }
 
@@ -244,7 +244,7 @@ func TestRedactWithInline(t *testing.T) {
 
 	assert.Equal(t, "test", result["name"])
 	assert.Equal(t, "public-key", result["key"])
-	assert.Equal(t, "[REDACTED]", result["secret"])
+	assert.Equal(t, sREDACT, result["secret"])
 }
 
 func TestRedactIdempotent(t *testing.T) {
@@ -275,7 +275,7 @@ func TestRedactIdempotent(t *testing.T) {
 	require.NoError(t, redacted2.Unpack(&result2))
 
 	assert.Equal(t, "visible", result1["public"])
-	assert.Equal(t, "[REDACTED]", result1["secret"])
+	assert.Equal(t, sREDACT, result1["secret"])
 	assert.Equal(t, "visible", result2["public"])
-	assert.Equal(t, "[REDACTED]", result2["secret"])
+	assert.Equal(t, sREDACT, result2["secret"])
 }
