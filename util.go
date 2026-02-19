@@ -28,6 +28,7 @@ type tagOptions struct {
 	squash      bool
 	ignore      bool
 	cfgHandling configHandling
+	redact      bool
 }
 
 // configHandling configures the operation to execute if we merge into a struct
@@ -62,6 +63,8 @@ func parseTags(tag string) (string, tagOptions) {
 			opts.cfgHandling = cfgArrAppend
 		case "prepend":
 			opts.cfgHandling = cfgArrPrepend
+		case "redact":
+			opts.redact = true
 		}
 	}
 	return s[0], opts

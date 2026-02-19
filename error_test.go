@@ -75,7 +75,7 @@ func TestErrorMessages(t *testing.T) {
 	cNested := New()
 	cNestedMeta := New()
 
-	testMeta := &Meta{"test.source"}
+	testMeta := &Meta{Source: "test.source"}
 	cMeta.metadata = testMeta
 	cNestedMeta.metadata = testMeta
 

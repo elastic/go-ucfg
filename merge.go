@@ -460,32 +460,45 @@ func normalizeValue(
 ) (value, Error) {
 	v = chaseValue(v)
 
+	// Create metadata with redact flag if needed
+	meta := opts.meta
+	if tagOpts.redact {
+		if meta == nil {
+			meta = &Meta{Redacted: true}
+		} else {
+			// Create a copy to avoid modifying shared metadata
+			metaCopy := *meta
+			metaCopy.Redacted = true
+			meta = &metaCopy
+		}
+	}
+
 	switch v.Type() {
 	case tDuration:
 		d := v.Interface().(time.Duration)
-		return newString(ctx, opts.meta, d.String()), nil
+		return newString(ctx, meta, d.String()), nil
 	case tRegexp:
 		r := v.Addr().Interface().(*regexp.Regexp)
-		return newString(ctx, opts.meta, r.String()), nil
+		return newString(ctx, meta, r.String()), nil
 	}
 
 	// handle primitives
 	switch v.Kind() {
 	case reflect.Bool:
-		return newBool(ctx, opts.meta, v.Bool()), nil
+		return newBool(ctx, meta, v.Bool()), nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		i := v.Int()
 		if i > 0 {
-			return newUint(ctx, opts.meta, uint64(i)), nil
+			return newUint(ctx, meta, uint64(i)), nil
 		}
-		return newInt(ctx, opts.meta, i), nil
+		return newInt(ctx, meta, i), nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return newUint(ctx, opts.meta, v.Uint()), nil
+		return newUint(ctx, meta, v.Uint()), nil
 	case reflect.Float32, reflect.Float64:
 		f := v.Float()
-		return newFloat(ctx, opts.meta, f), nil
+		return newFloat(ctx, meta, f), nil
 	case reflect.String:
-		return normalizeString(ctx, opts, v.String())
+		return normalizeString(ctx, opts, meta, v.String())
 	case reflect.Array, reflect.Slice:
 		return normalizeArray(opts, tagOpts, ctx, v)
 	case reflect.Map:
@@ -503,30 +516,30 @@ func normalizeValue(
 		return normalizeStructValue(opts, ctx, v)
 	default:
 		if v.IsNil() {
-			return &cfgNil{cfgPrimitive{ctx, opts.meta}}, nil
+			return &cfgNil{cfgPrimitive{ctx, meta}}, nil
 		}
-		return nil, raiseUnsupportedInputType(ctx, opts.meta, v)
+		return nil, raiseUnsupportedInputType(ctx, meta, v)
 	}
 }
 
-func normalizeString(ctx context, opts *options, str string) (value, Error) {
+func normalizeString(ctx context, opts *options, meta *Meta, str string) (value, Error) {
 	if !opts.varexp {
-		return newString(ctx, opts.meta, str), nil
+		return newString(ctx, meta, str), nil
 	}
 
 	varexp, err := parseSplice(str, opts.pathSep, opts.maxIdx, opts.enableNumKeys, opts.escapePath)
 	if err != nil {
-		return nil, raiseParseSplice(ctx, opts.meta, err)
+		return nil, raiseParseSplice(ctx, meta, err)
 	}
 
 	switch p := varexp.(type) {
 	case constExp:
-		return newString(ctx, opts.meta, string(p)), nil
+		return newString(ctx, meta, string(p)), nil
 	case *reference:
-		return newRef(ctx, opts.meta, p), nil
+		return newRef(ctx, meta, p), nil
 	}
 
-	return newSplice(ctx, opts.meta, varexp), nil
+	return newSplice(ctx, meta, varexp), nil
 }
 
 func fieldOptsOverride(opts *options, fieldName string, idx int) (*options, Error) {

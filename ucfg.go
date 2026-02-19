@@ -53,7 +53,8 @@ type fields struct {
 
 // Meta holds additional meta data per config value.
 type Meta struct {
-	Source string
+	Source   string
+	Redacted bool
 }
 
 var (
@@ -76,6 +77,8 @@ var (
 	tDuration = reflect.TypeOf(time.Duration(0))
 	tRegexp   = reflect.TypeOf(regexp.Regexp{})
 )
+
+const sREDACT = "[REDACTED]"
 
 // New creates a new empty Config object.
 func New() *Config {
@@ -240,6 +243,72 @@ func (c *Config) FlattenedKeys(opts ...Option) []string {
 
 	sort.Strings(keys)
 	return keys
+}
+
+// Redact returns a copy of the Config with all fields marked with the `redact` tag
+// replaced with the string "[REDACTED]".
+func (c *Config) Redact() (*Config, error) {
+	if c == nil {
+		return nil, raiseNil(ErrNilConfig)
+	}
+	return redactConfig(c, context{})
+}
+
+func redactConfig(from *Config, ctx context) (*Config, Error) {
+	to := &Config{
+		ctx:      ctx,
+		metadata: from.metadata,
+		fields:   &fields{},
+	}
+
+	// Redact dictionary fields
+	dict := from.fields.dict()
+	if dict != nil {
+		for name, val := range dict {
+			fieldCtx := context{parent: cfgSub{to}, field: name}
+			newVal, err := redactValue(val, fieldCtx)
+			if err != nil {
+				return nil, err
+			}
+			to.fields.set(name, newVal)
+		}
+	}
+
+	// Redact array fields
+	arr := from.fields.array()
+	if arr != nil {
+		for i, val := range arr {
+			fieldCtx := context{parent: cfgSub{to}, field: fmt.Sprintf("%d", i)}
+			newVal, err := redactValue(val, fieldCtx)
+			if err != nil {
+				return nil, err
+			}
+			to.fields.add(newVal)
+		}
+	}
+
+	return to, nil
+}
+
+func redactValue(v value, ctx context) (value, Error) {
+	meta := v.meta()
+
+	// If the value is marked as redacted, replace it with "[REDACTED]"
+	if meta != nil && meta.Redacted {
+		return newString(ctx, meta, sREDACT), nil
+	}
+
+	// For nested Config objects, recursively redact
+	if sub, ok := v.(cfgSub); ok {
+		redactedCfg, err := redactConfig(sub.c, ctx)
+		if err != nil {
+			return nil, err
+		}
+		return cfgSub{redactedCfg}, nil
+	}
+
+	// For other values, copy with new context
+	return v.cpy(ctx), nil
 }
 
 func (f *fields) get(name string) (value, bool) {
