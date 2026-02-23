@@ -31,7 +31,7 @@ import (
 // Merge traverses the value from recursively copying all values into a hierarchy
 // of Config objects plus primitives into c.
 //
-// Merge supports the options: PathSep, MetaData, StructTag, VarExp, ReplaceValues, AppendValues, PrependValues
+// Merge supports the options: PathSep, MetaData, StructTag, VarExp, ReplaceValues, AppendValues, PrependValues, ShowRedacted
 //
 // Merge uses the type-dependent default encodings:
 //   - Boolean values are encoded as booleans.
@@ -61,6 +61,9 @@ import (
 //
 //	// field is ignored by Merge
 //	Field string `config:",ignore"`
+//
+//	// field is automatically replaced with "[REDACTED]" (use ShowRedacted option to preserve original value)
+//	Field string `config:",redact"`
 //
 // Returns an error if merging fails to normalize and validate the from value.
 // If duplicate setting names are detected in the input, merging fails as well.

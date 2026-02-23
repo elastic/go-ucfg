@@ -90,7 +90,7 @@ func New() *Config {
 // MustNewFrom creates a new config object normalizing and copying from into the new
 // Config object. MustNewFrom uses Merge to copy from.
 //
-// MustNewFrom supports the options: PathSep, MetaData, StructTag, VarExp
+// MustNewFrom supports the options: PathSep, MetaData, StructTag, VarExp, ShowRedacted
 func MustNewFrom(from interface{}, opts ...Option) *Config {
 	c := New()
 	if err := c.Merge(from, opts...); err != nil {
@@ -102,7 +102,7 @@ func MustNewFrom(from interface{}, opts ...Option) *Config {
 // NewFrom creates a new config object normalizing and copying from into the new
 // Config object. NewFrom uses Merge to copy from.
 //
-// NewFrom supports the options: PathSep, MetaData, StructTag, VarExp
+// NewFrom supports the options: PathSep, MetaData, StructTag, VarExp, ShowRedacted
 func NewFrom(from interface{}, opts ...Option) (*Config, error) {
 	c := New()
 	if err := c.Merge(from, opts...); err != nil {
