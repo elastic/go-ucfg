@@ -460,21 +460,31 @@ func normalizeValue(
 ) (value, Error) {
 	v = chaseValue(v)
 
-	// Create metadata with redact flag if needed
+	// Handle redaction based on tag and option
 	meta := opts.meta
 	if tagOpts.redact {
-		if meta == nil {
-			meta = &Meta{Redacted: true}
-		} else {
-			// Create a copy to avoid modifying shared metadata
-			metaCopy := *meta
-			metaCopy.Redacted = true
-			meta = &metaCopy
-		}
-
-		// If showRedacted option is not set, replace value with redaction string
 		if !opts.showRedacted {
-			return newString(ctx, meta, sREDACT), nil
+			// Default behavior: replace with redaction string
+			// Keep metadata with redacted flag for the Redact() method
+			redactedMeta := opts.meta
+			if redactedMeta == nil {
+				redactedMeta = &Meta{Redacted: true}
+			} else {
+				metaCopy := *redactedMeta
+				metaCopy.Redacted = true
+				redactedMeta = &metaCopy
+			}
+			return newString(ctx, redactedMeta, sREDACT), nil
+		} else {
+			// ShowRedacted option: preserve original value but mark metadata
+			if meta == nil {
+				meta = &Meta{Redacted: true}
+			} else {
+				// Create a copy to avoid modifying shared metadata
+				metaCopy := *meta
+				metaCopy.Redacted = true
+				meta = &metaCopy
+			}
 		}
 	}
 

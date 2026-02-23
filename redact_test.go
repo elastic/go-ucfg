@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRedactDefaultBehavior(t *testing.T) {
+func TestAutoRedactOnNewFrom(t *testing.T) {
 	type testConfig struct {
 		Username string `config:"username"`
 		Password string `config:"password,redact"`
@@ -355,11 +355,11 @@ func TestRedactIdempotent(t *testing.T) {
 		Secret: "hidden",
 	}
 
-	// Create config with default behavior (already redacted)
+	// Create config with default behavior (values already redacted during NewFrom)
 	cfg, err := NewFrom(input)
 	require.NoError(t, err)
 
-	// Redact again (should be idempotent)
+	// Call Redact() again - should be idempotent since values are already "[REDACTED]"
 	redacted, err := cfg.Redact()
 	require.NoError(t, err)
 
