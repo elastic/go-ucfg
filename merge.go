@@ -464,11 +464,12 @@ func normalizeValue(
 	v = chaseValue(v)
 
 	// Handle redaction based on tag and option
+	// Redaction only applies to string and []byte types
 	meta := opts.meta
-	if tagOpts.redact {
+	if tagOpts.redact && (v.Kind() == reflect.String || (v.Kind() == reflect.Slice && v.Type().Elem().Kind() == reflect.Uint8)) {
 		if !opts.showRedacted {
 			// Default behavior: replace with redaction string
-			// Keep metadata with redacted flag for the Redact() method
+			// Keep metadata with redacted flag
 			redactedMeta := opts.meta
 			if redactedMeta == nil {
 				redactedMeta = &Meta{Redacted: true}

@@ -207,22 +207,18 @@ func TestRedactNoRedactedFields(t *testing.T) {
 
 func TestRedactMixedTypes(t *testing.T) {
 	type testConfig struct {
-		StringVal string  `config:"string_val,redact"`
-		IntVal    int     `config:"int_val,redact"`
-		BoolVal   bool    `config:"bool_val,redact"`
-		FloatVal  float64 `config:"float_val,redact"`
-		NormalVal string  `config:"normal_val"`
+		StringVal1 string `config:"string_val1,redact"`
+		StringVal2 string `config:"string_val2,redact"`
+		NormalVal  string `config:"normal_val"`
 	}
 
 	input := testConfig{
-		StringVal: "secret",
-		IntVal:    12345,
-		BoolVal:   true,
-		FloatVal:  3.14,
-		NormalVal: "public",
+		StringVal1: "secret1",
+		StringVal2: "secret2",
+		NormalVal:  "public",
 	}
 
-	// Test default behavior (all redacted)
+	// Test default behavior (strings redacted)
 	cfg, err := NewFrom(input)
 	require.NoError(t, err)
 
@@ -230,11 +226,9 @@ func TestRedactMixedTypes(t *testing.T) {
 	err = cfg.Unpack(&result)
 	require.NoError(t, err)
 
-	// All redacted fields should be "[REDACTED]" regardless of original type
-	assert.Equal(t, sREDACT, result["string_val"])
-	assert.Equal(t, sREDACT, result["int_val"])
-	assert.Equal(t, sREDACT, result["bool_val"])
-	assert.Equal(t, sREDACT, result["float_val"])
+	// Redacted string fields should be "[REDACTED]"
+	assert.Equal(t, sREDACT, result["string_val1"])
+	assert.Equal(t, sREDACT, result["string_val2"])
 	assert.Equal(t, "public", result["normal_val"])
 
 	// Test with ShowRedacted option
@@ -246,11 +240,80 @@ func TestRedactMixedTypes(t *testing.T) {
 	require.NoError(t, err)
 
 	// Original values should be preserved
-	assert.Equal(t, "secret", resultUnredacted["string_val"])
-	assert.Equal(t, uint64(12345), resultUnredacted["int_val"])
-	assert.Equal(t, true, resultUnredacted["bool_val"])
-	assert.Equal(t, 3.14, resultUnredacted["float_val"])
+	assert.Equal(t, "secret1", resultUnredacted["string_val1"])
+	assert.Equal(t, "secret2", resultUnredacted["string_val2"])
 	assert.Equal(t, "public", resultUnredacted["normal_val"])
+}
+
+func TestRedactOnlyStringsAndBytes(t *testing.T) {
+	type testConfig struct {
+		StringVal string  `config:"string_val,redact"`
+		IntVal    int     `config:"int_val,redact"`
+		BoolVal   bool    `config:"bool_val,redact"`
+		FloatVal  float64 `config:"float_val,redact"`
+	}
+
+	input := testConfig{
+		StringVal: "secret",
+		IntVal:    12345,
+		BoolVal:   true,
+		FloatVal:  3.14,
+	}
+
+	// Test default behavior - only string should be redacted
+	cfg, err := NewFrom(input)
+	require.NoError(t, err)
+
+	result := make(map[string]interface{})
+	err = cfg.Unpack(&result)
+	require.NoError(t, err)
+
+	// Only string field should be redacted
+	assert.Equal(t, sREDACT, result["string_val"])
+	// Non-string types should keep their original values (redact tag ignored)
+	assert.Equal(t, uint64(12345), result["int_val"])
+	assert.Equal(t, true, result["bool_val"])
+	assert.Equal(t, 3.14, result["float_val"])
+}
+
+func TestRedactByteSlice(t *testing.T) {
+	type testConfig struct {
+		StringVal string `config:"string_val,redact"`
+		BytesVal  []byte `config:"bytes_val,redact"`
+		NormalVal string `config:"normal_val"`
+	}
+
+	input := testConfig{
+		StringVal: "secret-string",
+		BytesVal:  []byte("secret-bytes"),
+		NormalVal: "public",
+	}
+
+	// Test default behavior (string and []byte redacted)
+	cfg, err := NewFrom(input)
+	require.NoError(t, err)
+
+	result := make(map[string]interface{})
+	err = cfg.Unpack(&result)
+	require.NoError(t, err)
+
+	// Both string and []byte should be redacted to string "[REDACTED]"
+	assert.Equal(t, sREDACT, result["string_val"])
+	assert.Equal(t, sREDACT, result["bytes_val"])
+	assert.Equal(t, "public", result["normal_val"])
+
+	// Test with ShowRedacted option - unpack into struct to properly handle []byte
+	cfgUnredacted, err := NewFrom(input, ShowRedacted)
+	require.NoError(t, err)
+
+	var resultUnredacted testConfig
+	err = cfgUnredacted.Unpack(&resultUnredacted)
+	require.NoError(t, err)
+
+	// Original values should be preserved
+	assert.Equal(t, "secret-string", resultUnredacted.StringVal)
+	assert.Equal(t, []byte("secret-bytes"), resultUnredacted.BytesVal)
+	assert.Equal(t, "public", resultUnredacted.NormalVal)
 }
 
 func TestRedactWithInline(t *testing.T) {
