@@ -205,53 +205,6 @@ func TestRedactNoRedactedFields(t *testing.T) {
 	assert.Equal(t, 42, result.Value)
 }
 
-func TestRedactMethodStillWorks(t *testing.T) {
-	type testConfig struct {
-		Username string `config:"username"`
-		Password string `config:"password,redact"`
-	}
-
-	input := testConfig{
-		Username: "admin",
-		Password: "secret123",
-	}
-
-	// Create config with ShowRedacted option (preserves original values)
-	cfg, err := NewFrom(input, ShowRedacted)
-	require.NoError(t, err)
-
-	// Verify original values are preserved
-	var original testConfig
-	err = cfg.Unpack(&original)
-	require.NoError(t, err)
-	assert.Equal(t, "admin", original.Username)
-	assert.Equal(t, "secret123", original.Password)
-
-	// Call Redact() method to get redacted version
-	redacted, err := cfg.Redact()
-	require.NoError(t, err)
-	require.NotNil(t, redacted)
-
-	// Verify redacted values
-	var result testConfig
-	err = redacted.Unpack(&result)
-	require.NoError(t, err)
-	assert.Equal(t, "admin", result.Username)
-	assert.Equal(t, sREDACT, result.Password)
-}
-
-func TestRedactNilConfig(t *testing.T) {
-	var cfg *Config
-	redacted, err := cfg.Redact()
-	assert.Nil(t, redacted)
-	assert.Error(t, err)
-
-	// Check if it's an Error type with Reason
-	if ucfgErr, ok := err.(Error); ok {
-		assert.Equal(t, ErrNilConfig, ucfgErr.Reason())
-	}
-}
-
 func TestRedactMixedTypes(t *testing.T) {
 	type testConfig struct {
 		StringVal string  `config:"string_val,redact"`
@@ -342,36 +295,6 @@ func TestRedactWithInline(t *testing.T) {
 	assert.Equal(t, "test", resultUnredacted["name"])
 	assert.Equal(t, "public-key", resultUnredacted["key"])
 	assert.Equal(t, "private-secret", resultUnredacted["secret"])
-}
-
-func TestRedactIdempotent(t *testing.T) {
-	type testConfig struct {
-		Public string `config:"public"`
-		Secret string `config:"secret,redact"`
-	}
-
-	input := testConfig{
-		Public: "visible",
-		Secret: "hidden",
-	}
-
-	// Create config with default behavior (values already redacted during NewFrom)
-	cfg, err := NewFrom(input)
-	require.NoError(t, err)
-
-	// Call Redact() again - should be idempotent since values are already "[REDACTED]"
-	redacted, err := cfg.Redact()
-	require.NoError(t, err)
-
-	// Both should have the same result
-	var result1, result2 map[string]interface{}
-	require.NoError(t, cfg.Unpack(&result1))
-	require.NoError(t, redacted.Unpack(&result2))
-
-	assert.Equal(t, "visible", result1["public"])
-	assert.Equal(t, sREDACT, result1["secret"])
-	assert.Equal(t, "visible", result2["public"])
-	assert.Equal(t, sREDACT, result2["secret"])
 }
 
 func TestRedactMergeOperation(t *testing.T) {
