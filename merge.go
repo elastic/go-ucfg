@@ -463,24 +463,16 @@ func normalizeValue(
 ) (value, Error) {
 	v = chaseValue(v)
 
-	// Handle redaction based on tag and option
-	// Redaction only applies to string and []byte types
+	// Mark metadata for redacted fields
+	// Redaction applies to string, []byte, and []rune types
+	// Actual redaction happens during Unpack
 	meta := opts.meta
-	if tagOpts.redact && (v.Kind() == reflect.String || (v.Kind() == reflect.Slice && v.Type().Elem().Kind() == reflect.Uint8)) {
-		if !opts.showRedacted {
-			// Default behavior: replace with redaction string
-			// Keep metadata with redacted flag
-			redactedMeta := opts.meta
-			if redactedMeta == nil {
-				redactedMeta = &Meta{Redacted: true}
-			} else {
-				metaCopy := *redactedMeta
-				metaCopy.Redacted = true
-				redactedMeta = &metaCopy
-			}
-			return newString(ctx, redactedMeta, sREDACT), nil
-		} else {
-			// ShowRedacted option: preserve original value but mark metadata
+	if tagOpts.redact {
+		isRedactableType := v.Kind() == reflect.String ||
+			(v.Kind() == reflect.Slice && (v.Type().Elem().Kind() == reflect.Uint8 || v.Type().Elem().Kind() == reflect.Int32))
+		
+		if isRedactableType {
+			// Mark metadata as redacted, but preserve original value
 			if meta == nil {
 				meta = &Meta{Redacted: true}
 			} else {
@@ -519,6 +511,13 @@ func normalizeValue(
 	case reflect.String:
 		return normalizeString(ctx, opts, meta, v.String())
 	case reflect.Array, reflect.Slice:
+		// For arrays/slices, we need to pass the updated metadata
+		if meta != opts.meta {
+			// Create new options with updated metadata
+			newOpts := *opts
+			newOpts.meta = meta
+			return normalizeArray(&newOpts, tagOpts, ctx, v)
+		}
 		return normalizeArray(opts, tagOpts, ctx, v)
 	case reflect.Map:
 		return normalizeMapValue(opts, ctx, v)

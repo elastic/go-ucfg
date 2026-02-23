@@ -395,6 +395,13 @@ func reifyValue(
 	val value,
 ) (reflect.Value, Error) {
 	if t.Kind() == reflect.Interface && t.NumMethod() == 0 {
+		// Apply redaction for interface{} targets
+		meta := val.meta()
+		if meta != nil && meta.Redacted && !opts.opts.showRedacted {
+			// Return redacted value
+			return reflect.ValueOf(sREDACT), nil
+		}
+		
 		reified, err := val.reify(opts.opts)
 		if err != nil {
 			ctx := val.Context()
@@ -578,6 +585,22 @@ func reifySliceMerge(
 	tTo reflect.Type,
 	val value,
 ) (reflect.Value, Error) {
+	// Apply redaction for []byte and []rune if metadata indicates redacted and showRedacted option is not set
+	meta := val.meta()
+	if meta != nil && meta.Redacted && !opts.opts.showRedacted {
+		elemKind := tTo.Elem().Kind()
+		if elemKind == reflect.Uint8 || elemKind == reflect.Int32 {
+			// This is []byte or []rune
+			if elemKind == reflect.Uint8 {
+				// []byte
+				return reflect.ValueOf([]byte(sREDACT)).Convert(tTo), nil
+			} else {
+				// []rune
+				return reflect.ValueOf([]rune(sREDACT)).Convert(tTo), nil
+			}
+		}
+	}
+
 	arr, err := castArr(opts.opts, val)
 	if err != nil {
 		return reflect.Value{}, err
@@ -745,6 +768,28 @@ func doReifyPrimitive(
 		return reflect.Value{}, raisePathErr(err, val.meta(), "", ctx.path("."))
 	}
 	opts.opts.activeFields = previous
+
+	// Apply redaction if metadata indicates redacted and showRedacted option is not set
+	meta := val.meta()
+	if meta != nil && meta.Redacted && !opts.opts.showRedacted {
+		// Check if target type is string, []byte, or []rune
+		kind := baseType.Kind()
+		isRedactableTarget := kind == reflect.String ||
+			(kind == reflect.Slice && (baseType.Elem().Kind() == reflect.Uint8 || baseType.Elem().Kind() == reflect.Int32))
+		
+		if isRedactableTarget {
+			// Return redacted value
+			if kind == reflect.String {
+				return reflect.ValueOf(sREDACT).Convert(baseType), nil
+			} else if kind == reflect.Slice && baseType.Elem().Kind() == reflect.Uint8 {
+				// []byte
+				return reflect.ValueOf([]byte(sREDACT)).Convert(baseType), nil
+			} else if kind == reflect.Slice && baseType.Elem().Kind() == reflect.Int32 {
+				// []rune
+				return reflect.ValueOf([]rune(sREDACT)).Convert(baseType), nil
+			}
+		}
+	}
 
 	// try primitive conversion
 	kind := baseType.Kind()
