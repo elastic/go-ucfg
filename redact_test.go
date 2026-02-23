@@ -397,4 +397,3 @@ func TestRedactMergeOperation(t *testing.T) {
 	assert.Equal(t, "admin", result2["username"])
 	assert.Equal(t, "secret123", result2["password"])
 }
-
