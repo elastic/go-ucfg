@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRedactBasic(t *testing.T) {
+func TestRedactDefaultBehavior(t *testing.T) {
 	type testConfig struct {
 		Username string `config:"username"`
 		Password string `config:"password,redact"`
@@ -39,21 +39,48 @@ func TestRedactBasic(t *testing.T) {
 		Host:     "localhost",
 	}
 
+	// Default behavior: redacted fields are automatically replaced
 	cfg, err := NewFrom(input)
 	require.NoError(t, err)
 
-	redacted, err := cfg.Redact()
-	require.NoError(t, err)
-	require.NotNil(t, redacted)
-
 	// Unpack into a map to verify values
 	result := make(map[string]interface{})
-	err = redacted.Unpack(&result)
+	err = cfg.Unpack(&result)
 	require.NoError(t, err)
 
 	assert.Equal(t, "admin", result["username"])
 	assert.Equal(t, sREDACT, result["password"])
 	assert.Equal(t, sREDACT, result["api_key"])
+	assert.Equal(t, "localhost", result["host"])
+}
+
+func TestRedactWithShowRedactedOption(t *testing.T) {
+	type testConfig struct {
+		Username string `config:"username"`
+		Password string `config:"password,redact"`
+		APIKey   string `config:"api_key,redact"`
+		Host     string `config:"host"`
+	}
+
+	input := testConfig{
+		Username: "admin",
+		Password: "secret123",
+		APIKey:   "key-abc-123",
+		Host:     "localhost",
+	}
+
+	// With ShowRedacted option: original values are preserved
+	cfg, err := NewFrom(input, ShowRedacted)
+	require.NoError(t, err)
+
+	// Unpack into a map to verify values
+	result := make(map[string]interface{})
+	err = cfg.Unpack(&result)
+	require.NoError(t, err)
+
+	assert.Equal(t, "admin", result["username"])
+	assert.Equal(t, "secret123", result["password"])
+	assert.Equal(t, "key-abc-123", result["api_key"])
 	assert.Equal(t, "localhost", result["host"])
 }
 
@@ -78,22 +105,31 @@ func TestRedactNested(t *testing.T) {
 		APIToken: "token-xyz-789",
 	}
 
+	// Test default behavior (redacted)
 	cfg, err := NewFrom(input)
 	require.NoError(t, err)
 
-	redacted, err := cfg.Redact()
-	require.NoError(t, err)
-	require.NotNil(t, redacted)
-
-	// Unpack to verify
 	var result testConfig
-	err = redacted.Unpack(&result)
+	err = cfg.Unpack(&result)
 	require.NoError(t, err)
 
 	assert.Equal(t, "myapp", result.AppName)
 	assert.Equal(t, "db.example.com", result.Database.Host)
 	assert.Equal(t, sREDACT, result.Database.Password)
 	assert.Equal(t, sREDACT, result.APIToken)
+
+	// Test with ShowRedacted option
+	cfgUnredacted, err := NewFrom(input, ShowRedacted)
+	require.NoError(t, err)
+
+	var resultUnredacted testConfig
+	err = cfgUnredacted.Unpack(&resultUnredacted)
+	require.NoError(t, err)
+
+	assert.Equal(t, "myapp", resultUnredacted.AppName)
+	assert.Equal(t, "db.example.com", resultUnredacted.Database.Host)
+	assert.Equal(t, "dbpass123", resultUnredacted.Database.Password)
+	assert.Equal(t, "token-xyz-789", resultUnredacted.APIToken)
 }
 
 func TestRedactArray(t *testing.T) {
@@ -115,16 +151,12 @@ func TestRedactArray(t *testing.T) {
 		},
 	}
 
+	// Test default behavior (redacted)
 	cfg, err := NewFrom(input)
 	require.NoError(t, err)
 
-	redacted, err := cfg.Redact()
-	require.NoError(t, err)
-	require.NotNil(t, redacted)
-
-	// Unpack to verify
 	var result testConfig
-	err = redacted.Unpack(&result)
+	err = cfg.Unpack(&result)
 	require.NoError(t, err)
 
 	assert.Equal(t, "test", result.Name)
@@ -133,6 +165,21 @@ func TestRedactArray(t *testing.T) {
 	assert.Equal(t, sREDACT, result.Creds[0].Password)
 	assert.Equal(t, "user2", result.Creds[1].Username)
 	assert.Equal(t, sREDACT, result.Creds[1].Password)
+
+	// Test with ShowRedacted option
+	cfgUnredacted, err := NewFrom(input, ShowRedacted)
+	require.NoError(t, err)
+
+	var resultUnredacted testConfig
+	err = cfgUnredacted.Unpack(&resultUnredacted)
+	require.NoError(t, err)
+
+	assert.Equal(t, "test", resultUnredacted.Name)
+	require.Len(t, resultUnredacted.Creds, 2)
+	assert.Equal(t, "user1", resultUnredacted.Creds[0].Username)
+	assert.Equal(t, "pass1", resultUnredacted.Creds[0].Password)
+	assert.Equal(t, "user2", resultUnredacted.Creds[1].Username)
+	assert.Equal(t, "pass2", resultUnredacted.Creds[1].Password)
 }
 
 func TestRedactNoRedactedFields(t *testing.T) {
@@ -149,17 +196,48 @@ func TestRedactNoRedactedFields(t *testing.T) {
 	cfg, err := NewFrom(input)
 	require.NoError(t, err)
 
-	redacted, err := cfg.Redact()
-	require.NoError(t, err)
-	require.NotNil(t, redacted)
-
 	// Unpack to verify nothing changed
 	var result testConfig
-	err = redacted.Unpack(&result)
+	err = cfg.Unpack(&result)
 	require.NoError(t, err)
 
 	assert.Equal(t, "test", result.Name)
 	assert.Equal(t, 42, result.Value)
+}
+
+func TestRedactMethodStillWorks(t *testing.T) {
+	type testConfig struct {
+		Username string `config:"username"`
+		Password string `config:"password,redact"`
+	}
+
+	input := testConfig{
+		Username: "admin",
+		Password: "secret123",
+	}
+
+	// Create config with ShowRedacted option (preserves original values)
+	cfg, err := NewFrom(input, ShowRedacted)
+	require.NoError(t, err)
+
+	// Verify original values are preserved
+	var original testConfig
+	err = cfg.Unpack(&original)
+	require.NoError(t, err)
+	assert.Equal(t, "admin", original.Username)
+	assert.Equal(t, "secret123", original.Password)
+
+	// Call Redact() method to get redacted version
+	redacted, err := cfg.Redact()
+	require.NoError(t, err)
+	require.NotNil(t, redacted)
+
+	// Verify redacted values
+	var result testConfig
+	err = redacted.Unpack(&result)
+	require.NoError(t, err)
+	assert.Equal(t, "admin", result.Username)
+	assert.Equal(t, sREDACT, result.Password)
 }
 
 func TestRedactNilConfig(t *testing.T) {
@@ -191,16 +269,12 @@ func TestRedactMixedTypes(t *testing.T) {
 		NormalVal: "public",
 	}
 
+	// Test default behavior (all redacted)
 	cfg, err := NewFrom(input)
 	require.NoError(t, err)
 
-	redacted, err := cfg.Redact()
-	require.NoError(t, err)
-	require.NotNil(t, redacted)
-
-	// Unpack into a map to verify values
 	result := make(map[string]interface{})
-	err = redacted.Unpack(&result)
+	err = cfg.Unpack(&result)
 	require.NoError(t, err)
 
 	// All redacted fields should be "[REDACTED]" regardless of original type
@@ -209,6 +283,21 @@ func TestRedactMixedTypes(t *testing.T) {
 	assert.Equal(t, sREDACT, result["bool_val"])
 	assert.Equal(t, sREDACT, result["float_val"])
 	assert.Equal(t, "public", result["normal_val"])
+
+	// Test with ShowRedacted option
+	cfgUnredacted, err := NewFrom(input, ShowRedacted)
+	require.NoError(t, err)
+
+	resultUnredacted := make(map[string]interface{})
+	err = cfgUnredacted.Unpack(&resultUnredacted)
+	require.NoError(t, err)
+
+	// Original values should be preserved
+	assert.Equal(t, "secret", resultUnredacted["string_val"])
+	assert.Equal(t, uint64(12345), resultUnredacted["int_val"])
+	assert.Equal(t, true, resultUnredacted["bool_val"])
+	assert.Equal(t, 3.14, resultUnredacted["float_val"])
+	assert.Equal(t, "public", resultUnredacted["normal_val"])
 }
 
 func TestRedactWithInline(t *testing.T) {
@@ -230,21 +319,29 @@ func TestRedactWithInline(t *testing.T) {
 		},
 	}
 
+	// Test default behavior
 	cfg, err := NewFrom(input)
 	require.NoError(t, err)
 
-	redacted, err := cfg.Redact()
-	require.NoError(t, err)
-	require.NotNil(t, redacted)
-
-	// Unpack to verify
 	result := make(map[string]interface{})
-	err = redacted.Unpack(&result)
+	err = cfg.Unpack(&result)
 	require.NoError(t, err)
 
 	assert.Equal(t, "test", result["name"])
 	assert.Equal(t, "public-key", result["key"])
 	assert.Equal(t, sREDACT, result["secret"])
+
+	// Test with ShowRedacted option
+	cfgUnredacted, err := NewFrom(input, ShowRedacted)
+	require.NoError(t, err)
+
+	resultUnredacted := make(map[string]interface{})
+	err = cfgUnredacted.Unpack(&resultUnredacted)
+	require.NoError(t, err)
+
+	assert.Equal(t, "test", resultUnredacted["name"])
+	assert.Equal(t, "public-key", resultUnredacted["key"])
+	assert.Equal(t, "private-secret", resultUnredacted["secret"])
 }
 
 func TestRedactIdempotent(t *testing.T) {
@@ -258,24 +355,60 @@ func TestRedactIdempotent(t *testing.T) {
 		Secret: "hidden",
 	}
 
+	// Create config with default behavior (already redacted)
 	cfg, err := NewFrom(input)
 	require.NoError(t, err)
 
-	// Redact once
-	redacted1, err := cfg.Redact()
-	require.NoError(t, err)
-
-	// Redact again
-	redacted2, err := redacted1.Redact()
+	// Redact again (should be idempotent)
+	redacted, err := cfg.Redact()
 	require.NoError(t, err)
 
 	// Both should have the same result
 	var result1, result2 map[string]interface{}
-	require.NoError(t, redacted1.Unpack(&result1))
-	require.NoError(t, redacted2.Unpack(&result2))
+	require.NoError(t, cfg.Unpack(&result1))
+	require.NoError(t, redacted.Unpack(&result2))
 
 	assert.Equal(t, "visible", result1["public"])
 	assert.Equal(t, sREDACT, result1["secret"])
 	assert.Equal(t, "visible", result2["public"])
 	assert.Equal(t, sREDACT, result2["secret"])
 }
+
+func TestRedactMergeOperation(t *testing.T) {
+	type testConfig struct {
+		Username string `config:"username"`
+		Password string `config:"password,redact"`
+	}
+
+	input1 := testConfig{
+		Username: "admin",
+		Password: "secret123",
+	}
+
+	// Create base config
+	cfg := New()
+
+	// Merge with default behavior (redacted)
+	err := cfg.Merge(input1)
+	require.NoError(t, err)
+
+	result := make(map[string]interface{})
+	err = cfg.Unpack(&result)
+	require.NoError(t, err)
+
+	assert.Equal(t, "admin", result["username"])
+	assert.Equal(t, sREDACT, result["password"])
+
+	// Create another config and merge with ShowRedacted option
+	cfg2 := New()
+	err = cfg2.Merge(input1, ShowRedacted)
+	require.NoError(t, err)
+
+	result2 := make(map[string]interface{})
+	err = cfg2.Unpack(&result2)
+	require.NoError(t, err)
+
+	assert.Equal(t, "admin", result2["username"])
+	assert.Equal(t, "secret123", result2["password"])
+}
+

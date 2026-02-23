@@ -471,6 +471,11 @@ func normalizeValue(
 			metaCopy.Redacted = true
 			meta = &metaCopy
 		}
+
+		// If showRedacted option is not set, replace value with redaction string
+		if !opts.showRedacted {
+			return newString(ctx, meta, sREDACT), nil
+		}
 	}
 
 	switch v.Type() {

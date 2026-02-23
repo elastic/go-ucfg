@@ -59,6 +59,7 @@ type options struct {
 	configuredFields *fieldSet
 
 	ignoreCommas bool
+	showRedacted bool // When true, shows unredacted values for fields marked with redact tag
 }
 
 type valueCache map[string]spliceValue
@@ -193,6 +194,15 @@ func doResolveNOOP(o *options) {
 	o.resolvers = append(o.resolvers, func(name string) (string, parse.Config, error) {
 		return "${" + name + "}", parse.NoopConfig, nil
 	})
+}
+
+// ShowRedacted option disables automatic redaction of fields marked with the `redact` tag.
+// By default, fields with the `redact` tag are automatically replaced with "[REDACTED]"
+// during Merge/NewFrom operations. Use this option to preserve the original unredacted values.
+var ShowRedacted Option = doShowRedacted
+
+func doShowRedacted(o *options) {
+	o.showRedacted = true
 }
 
 var (
