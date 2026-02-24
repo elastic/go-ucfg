@@ -196,9 +196,10 @@ func doResolveNOOP(o *options) {
 	})
 }
 
-// ShowRedacted option disables automatic redaction of fields marked with the `redact` tag.
-// By default, fields with the `redact` tag are automatically replaced with "[REDACTED]"
-// during Merge/NewFrom operations. Use this option to preserve the original unredacted values.
+// ShowRedacted option disables automatic redaction during Unpack for fields marked with the `redact` tag.
+// By default, when unpacking, fields with the `redact` tag are replaced with "[REDACTED]".
+// Use this option with Unpack to preserve and return the original unredacted values.
+// The redact tag applies to string, []byte, and []rune types only.
 var ShowRedacted Option = doShowRedacted
 
 func doShowRedacted(o *options) {
