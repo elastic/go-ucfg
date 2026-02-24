@@ -27,7 +27,7 @@ import (
 // and pointers as necessary.
 //
 // Unpack supports the options: PathSep, StructTag, ValidatorTag, Env, Resolve,
-// ResolveEnv, ReplaceValues, AppendValues, PrependValues.
+// ResolveEnv, ReplaceValues, AppendValues, PrependValues, ShowRedacted.
 //
 // When unpacking into a value, Unpack first will try to call Unpack if the
 // value implements the Unpacker interface. Otherwise, Unpack tries to convert
@@ -76,6 +76,9 @@ import (
 //	If the tag sets the `,ignore` flag, the field will not be overwritten.
 //	If the tag sets the `,inline` or `,squash` flag, Unpack will apply the current
 //	configuration namespace to the fields.
+//	If the tag sets the `,redact` flag, the field will be replaced with "[REDACTED]"
+//	during Unpack (unless the ShowRedacted option is used, which preserves the original value).
+//	The redact flag only applies to string, []byte, and []rune types.
 //	If the tag option `replace` is configured, arrays and *ucfg.Config
 //	convertible fields are replaced by the new values.
 //	If the tag options `append` or `prepend` is used, arrays will be merged by
@@ -395,6 +398,13 @@ func reifyValue(
 	val value,
 ) (reflect.Value, Error) {
 	if t.Kind() == reflect.Interface && t.NumMethod() == 0 {
+		// Apply redaction for interface{} targets
+		meta := val.meta()
+		if meta != nil && meta.Redacted && !opts.opts.showRedacted {
+			// Return redacted value
+			return reflect.ValueOf(sREDACT), nil
+		}
+
 		reified, err := val.reify(opts.opts)
 		if err != nil {
 			ctx := val.Context()
@@ -578,6 +588,18 @@ func reifySliceMerge(
 	tTo reflect.Type,
 	val value,
 ) (reflect.Value, Error) {
+	// Apply redaction for []byte and []rune if metadata indicates redacted and showRedacted option is not set
+	meta := val.meta()
+	if meta != nil && meta.Redacted && !opts.opts.showRedacted {
+		elemKind := tTo.Elem().Kind()
+		switch elemKind {
+		case reflect.Uint8: // []byte
+			return reflect.ValueOf([]byte(sREDACT)).Convert(tTo), nil
+		case reflect.Int32: // []rune
+			return reflect.ValueOf([]rune(sREDACT)).Convert(tTo), nil
+		}
+	}
+
 	arr, err := castArr(opts.opts, val)
 	if err != nil {
 		return reflect.Value{}, err
@@ -745,6 +767,24 @@ func doReifyPrimitive(
 		return reflect.Value{}, raisePathErr(err, val.meta(), "", ctx.path("."))
 	}
 	opts.opts.activeFields = previous
+
+	// Apply redaction if metadata indicates redacted and showRedacted option is not set
+	meta := val.meta()
+	if meta != nil && meta.Redacted && !opts.opts.showRedacted {
+		// Check if target type is string, []byte, or []rune
+		kind := baseType.Kind()
+		switch kind {
+		case reflect.String:
+			return reflect.ValueOf(sREDACT).Convert(baseType), nil
+		case reflect.Slice:
+			switch baseType.Elem().Kind() {
+			case reflect.Uint8: // []byte
+				return reflect.ValueOf([]byte(sREDACT)).Convert(baseType), nil
+			case reflect.Int32: // []rune
+				return reflect.ValueOf([]rune(sREDACT)).Convert(baseType), nil
+			}
+		}
+	}
 
 	// try primitive conversion
 	kind := baseType.Kind()

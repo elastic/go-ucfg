@@ -59,6 +59,7 @@ type options struct {
 	configuredFields *fieldSet
 
 	ignoreCommas bool
+	showRedacted bool // When true, shows unredacted values for fields marked with redact tag
 }
 
 type valueCache map[string]spliceValue
@@ -193,6 +194,16 @@ func doResolveNOOP(o *options) {
 	o.resolvers = append(o.resolvers, func(name string) (string, parse.Config, error) {
 		return "${" + name + "}", parse.NoopConfig, nil
 	})
+}
+
+// ShowRedacted option disables automatic redaction during Unpack for fields marked with the `redact` tag.
+// By default, when unpacking, fields with the `redact` tag are replaced with "[REDACTED]".
+// Use this option with Unpack to preserve and return the original unredacted values.
+// The redact tag applies to string, []byte, and []rune types only.
+var ShowRedacted Option = doShowRedacted
+
+func doShowRedacted(o *options) {
+	o.showRedacted = true
 }
 
 var (
