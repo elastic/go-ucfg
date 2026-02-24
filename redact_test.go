@@ -381,3 +381,49 @@ func TestUnpackRedactsAfterMerge(t *testing.T) {
 	assert.Equal(t, "admin", result2["username"])
 	assert.Equal(t, "secret123", result2["password"])
 }
+
+func TestUnpackRedactsCustomTypes(t *testing.T) {
+	// Define custom types based on string, []byte, and []rune
+	type CustomByteString []byte
+	type CustomString string
+	type CustomRuneString []rune
+
+	type CustomStruct struct {
+		CustomB CustomByteString `config:"custom_b,redact"`
+		CustomS CustomString     `config:"custom_s,redact"`
+		CustomR CustomRuneString `config:"custom_r,redact"`
+		Normal  string           `config:"normal"`
+	}
+
+	input := CustomStruct{
+		CustomB: CustomByteString("secret-bytes"),
+		CustomS: CustomString("secret-string"),
+		CustomR: CustomRuneString("secret-rune"),
+		Normal:  "public",
+	}
+
+	// Test default behavior (custom types redacted during Unpack)
+	cfg, err := NewFrom(input)
+	require.NoError(t, err)
+
+	var result CustomStruct
+	err = cfg.Unpack(&result)
+	require.NoError(t, err)
+
+	// All custom redactable types should be redacted
+	assert.Equal(t, CustomString(sREDACT), result.CustomS)
+	assert.Equal(t, CustomByteString(sREDACT), result.CustomB)
+	assert.Equal(t, CustomRuneString(sREDACT), result.CustomR)
+	assert.Equal(t, "public", result.Normal)
+
+	// Test with ShowRedacted option (unredacted during Unpack)
+	var resultUnredacted CustomStruct
+	err = cfg.Unpack(&resultUnredacted, ShowRedacted)
+	require.NoError(t, err)
+
+	// Original values should be preserved for custom types
+	assert.Equal(t, CustomString("secret-string"), resultUnredacted.CustomS)
+	assert.Equal(t, CustomByteString("secret-bytes"), resultUnredacted.CustomB)
+	assert.Equal(t, CustomRuneString("secret-rune"), resultUnredacted.CustomR)
+	assert.Equal(t, "public", resultUnredacted.Normal)
+}
