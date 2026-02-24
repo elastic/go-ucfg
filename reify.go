@@ -404,7 +404,7 @@ func reifyValue(
 			// Return redacted value
 			return reflect.ValueOf(sREDACT), nil
 		}
-		
+
 		reified, err := val.reify(opts.opts)
 		if err != nil {
 			ctx := val.Context()
@@ -592,15 +592,11 @@ func reifySliceMerge(
 	meta := val.meta()
 	if meta != nil && meta.Redacted && !opts.opts.showRedacted {
 		elemKind := tTo.Elem().Kind()
-		if elemKind == reflect.Uint8 || elemKind == reflect.Int32 {
-			// This is []byte or []rune
-			if elemKind == reflect.Uint8 {
-				// []byte
-				return reflect.ValueOf([]byte(sREDACT)).Convert(tTo), nil
-			} else {
-				// []rune
-				return reflect.ValueOf([]rune(sREDACT)).Convert(tTo), nil
-			}
+		switch elemKind {
+		case reflect.Uint8: // []byte
+			return reflect.ValueOf([]byte(sREDACT)).Convert(tTo), nil
+		case reflect.Int32: // []rune
+			return reflect.ValueOf([]rune(sREDACT)).Convert(tTo), nil
 		}
 	}
 
@@ -777,18 +773,14 @@ func doReifyPrimitive(
 	if meta != nil && meta.Redacted && !opts.opts.showRedacted {
 		// Check if target type is string, []byte, or []rune
 		kind := baseType.Kind()
-		isRedactableTarget := kind == reflect.String ||
-			(kind == reflect.Slice && (baseType.Elem().Kind() == reflect.Uint8 || baseType.Elem().Kind() == reflect.Int32))
-		
-		if isRedactableTarget {
-			// Return redacted value
-			if kind == reflect.String {
-				return reflect.ValueOf(sREDACT).Convert(baseType), nil
-			} else if kind == reflect.Slice && baseType.Elem().Kind() == reflect.Uint8 {
-				// []byte
+		switch kind {
+		case reflect.String:
+			return reflect.ValueOf(sREDACT).Convert(baseType), nil
+		case reflect.Slice:
+			switch baseType.Elem().Kind() {
+			case reflect.Uint8: // []byte
 				return reflect.ValueOf([]byte(sREDACT)).Convert(baseType), nil
-			} else if kind == reflect.Slice && baseType.Elem().Kind() == reflect.Int32 {
-				// []rune
+			case reflect.Int32: // []rune
 				return reflect.ValueOf([]rune(sREDACT)).Convert(baseType), nil
 			}
 		}

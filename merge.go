@@ -471,17 +471,15 @@ func normalizeValue(
 	if tagOpts.redact {
 		isRedactableType := v.Kind() == reflect.String ||
 			(v.Kind() == reflect.Slice && (v.Type().Elem().Kind() == reflect.Uint8 || v.Type().Elem().Kind() == reflect.Int32))
-		
+
 		if isRedactableType {
-			// Mark metadata as redacted, but preserve original value
-			if meta == nil {
-				meta = &Meta{Redacted: true}
-			} else {
-				// Create a copy to avoid modifying shared metadata
-				metaCopy := *meta
-				metaCopy.Redacted = true
-				meta = &metaCopy
+			var metaCopy Meta
+			if meta != nil {
+				metaCopy = *meta
 			}
+
+			metaCopy.Redacted = true
+			meta = &metaCopy
 		}
 	}
 
