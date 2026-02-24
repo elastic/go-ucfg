@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAutoRedactOnNewFrom(t *testing.T) {
+func TestDefaultUnpackRedactsFields(t *testing.T) {
 	type testConfig struct {
 		Username string `config:"username"`
 		Password string `config:"password,redact"`
@@ -54,7 +54,7 @@ func TestAutoRedactOnNewFrom(t *testing.T) {
 	assert.Equal(t, "localhost", result["host"])
 }
 
-func TestRedactWithShowRedactedOption(t *testing.T) {
+func TestUnpackWithShowRedactedOption(t *testing.T) {
 	type testConfig struct {
 		Username string `config:"username"`
 		Password string `config:"password,redact"`
@@ -84,7 +84,7 @@ func TestRedactWithShowRedactedOption(t *testing.T) {
 	assert.Equal(t, "localhost", result["host"])
 }
 
-func TestRedactNested(t *testing.T) {
+func TestUnpackRedactsNestedStructs(t *testing.T) {
 	type database struct {
 		Host     string `config:"host"`
 		Password string `config:"password,redact"`
@@ -129,7 +129,7 @@ func TestRedactNested(t *testing.T) {
 	assert.Equal(t, "token-xyz-789", resultUnredacted.APIToken)
 }
 
-func TestRedactArray(t *testing.T) {
+func TestUnpackRedactsArrayElements(t *testing.T) {
 	type credentials struct {
 		Username string `config:"username"`
 		Password string `config:"password,redact"`
@@ -176,7 +176,7 @@ func TestRedactArray(t *testing.T) {
 	assert.Equal(t, "pass2", resultUnredacted.Creds[1].Password)
 }
 
-func TestRedactNoRedactedFields(t *testing.T) {
+func TestUnpackWithNoRedactedFields(t *testing.T) {
 	type testConfig struct {
 		Name  string `config:"name"`
 		Value int    `config:"value"`
@@ -199,7 +199,7 @@ func TestRedactNoRedactedFields(t *testing.T) {
 	assert.Equal(t, 42, result.Value)
 }
 
-func TestRedactMixedTypes(t *testing.T) {
+func TestUnpackRedactsMultipleStrings(t *testing.T) {
 	type testConfig struct {
 		StringVal1 string `config:"string_val1,redact"`
 		StringVal2 string `config:"string_val2,redact"`
@@ -236,7 +236,7 @@ func TestRedactMixedTypes(t *testing.T) {
 	assert.Equal(t, "public", resultUnredacted["normal_val"])
 }
 
-func TestRedactOnlyStringsAndBytes(t *testing.T) {
+func TestUnpackRedactsOnlyStringsByteRune(t *testing.T) {
 	type testConfig struct {
 		StringVal string  `config:"string_val,redact"`
 		IntVal    int     `config:"int_val,redact"`
@@ -267,7 +267,7 @@ func TestRedactOnlyStringsAndBytes(t *testing.T) {
 	assert.Equal(t, 3.14, result["float_val"])
 }
 
-func TestRedactByteSlice(t *testing.T) {
+func TestUnpackRedactsAllSupportedTypes(t *testing.T) {
 	type testConfig struct {
 		StringVal string `config:"string_val,redact"`
 		BytesVal  []byte `config:"bytes_val,redact"`
@@ -308,7 +308,7 @@ func TestRedactByteSlice(t *testing.T) {
 	assert.Equal(t, "public", resultUnredacted.NormalVal)
 }
 
-func TestRedactWithInline(t *testing.T) {
+func TestUnpackRedactsInlineStructs(t *testing.T) {
 	type inline struct {
 		Key    string `config:"key"`
 		Secret string `config:"secret,redact"`
@@ -349,7 +349,7 @@ func TestRedactWithInline(t *testing.T) {
 	assert.Equal(t, "private-secret", resultUnredacted["secret"])
 }
 
-func TestRedactMergeOperation(t *testing.T) {
+func TestUnpackRedactsAfterMerge(t *testing.T) {
 	type testConfig struct {
 		Username string `config:"username"`
 		Password string `config:"password,redact"`

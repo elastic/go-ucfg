@@ -27,7 +27,7 @@ import (
 // and pointers as necessary.
 //
 // Unpack supports the options: PathSep, StructTag, ValidatorTag, Env, Resolve,
-// ResolveEnv, ReplaceValues, AppendValues, PrependValues.
+// ResolveEnv, ReplaceValues, AppendValues, PrependValues, ShowRedacted.
 //
 // When unpacking into a value, Unpack first will try to call Unpack if the
 // value implements the Unpacker interface. Otherwise, Unpack tries to convert
@@ -76,6 +76,9 @@ import (
 //	If the tag sets the `,ignore` flag, the field will not be overwritten.
 //	If the tag sets the `,inline` or `,squash` flag, Unpack will apply the current
 //	configuration namespace to the fields.
+//	If the tag sets the `,redact` flag, the field will be replaced with "[REDACTED]"
+//	during Unpack (unless the ShowRedacted option is used, which preserves the original value).
+//	The redact flag only applies to string, []byte, and []rune types.
 //	If the tag option `replace` is configured, arrays and *ucfg.Config
 //	convertible fields are replaced by the new values.
 //	If the tag options `append` or `prepend` is used, arrays will be merged by
