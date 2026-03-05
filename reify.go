@@ -315,8 +315,15 @@ func reifyStruct(opts *options, orig reflect.Value, cfg *Config) Error {
 					return raiseInlineNeedsObject(cfg, fInfo.name, fInfo.value.Type())
 				}
 			} else {
+				// Non-inline fields live in their own config namespace, so
+				// configuredFields from the parent struct must not filter
+				// keys inside nested maps.
+				savedConfigured := fInfo.options.configuredFields
+				fInfo.options.configuredFields = nil
 				fopts := fieldOptions{opts: fInfo.options, tag: fInfo.tagOptions, validators: fInfo.validatorTags}
-				if err := reifyGetField(cfg, fopts, fInfo.name, fInfo.value, fInfo.ftype); err != nil {
+				err := reifyGetField(cfg, fopts, fInfo.name, fInfo.value, fInfo.ftype)
+				fInfo.options.configuredFields = savedConfigured
+				if err != nil {
 					return err
 				}
 			}
