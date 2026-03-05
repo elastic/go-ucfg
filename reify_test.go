@@ -583,6 +583,163 @@ func TestUnpackInlineMapExcludesNamedFields(t *testing.T) {
 	}
 }
 
+// Regression tests for https://github.com/elastic/go-ucfg/issues/226
+// configuredFields must not leak into non-inline map unpacking.
+
+func TestUnpackNamedMapKeysNotFilteredByConfiguredFields(t *testing.T) {
+	type Config struct {
+		Enabled *bool                  `config:"enabled"`
+		Var     map[string]interface{} `config:"var"`
+		Input   map[string]interface{} `config:"input"`
+	}
+
+	c, err := NewFrom(map[string]interface{}{
+		"enabled": true,
+		"var": map[string]interface{}{
+			"input":   "file",
+			"enabled": "some_flag",
+			"paths":   []string{"/var/log/test.log"},
+		},
+		"input": map[string]interface{}{
+			"close_eof": true,
+		},
+	})
+	require.NoError(t, err)
+
+	var cfg Config
+	err = c.Unpack(&cfg)
+	require.NoError(t, err)
+
+	require.NotNil(t, cfg.Enabled)
+	assert.True(t, *cfg.Enabled)
+
+	assert.Equal(t, "file", cfg.Var["input"])
+	assert.Equal(t, "some_flag", cfg.Var["enabled"])
+	assert.NotNil(t, cfg.Var["paths"])
+	assert.Equal(t, true, cfg.Input["close_eof"])
+}
+
+func TestUnpackNamedStringMapKeysNotFilteredByConfiguredFields(t *testing.T) {
+	type Config struct {
+		Name   string            `config:"name"`
+		Labels map[string]string `config:"labels"`
+	}
+
+	c, err := NewFrom(map[string]interface{}{
+		"name": "test",
+		"labels": map[string]interface{}{
+			"name":  "label-value",
+			"other": "other-value",
+		},
+	})
+	require.NoError(t, err)
+
+	var cfg Config
+	err = c.Unpack(&cfg)
+	require.NoError(t, err)
+
+	assert.Equal(t, "test", cfg.Name)
+	assert.Equal(t, "label-value", cfg.Labels["name"])
+	assert.Equal(t, "other-value", cfg.Labels["other"])
+}
+
+func TestUnpackInlineMapCoexistsWithNamedMap(t *testing.T) {
+	// Inline map should still exclude named field keys,
+	// but the named map must keep all its keys.
+	type Config struct {
+		Name   string                 `config:"name"`
+		Params map[string]interface{} `config:"params"`
+		Extra  map[string]interface{} `config:",inline"`
+	}
+
+	c, err := NewFrom(map[string]interface{}{
+		"name":  "alice",
+		"color": "blue",
+		"params": map[string]interface{}{
+			"name":  "param-name",
+			"color": "param-color",
+		},
+	})
+	require.NoError(t, err)
+
+	var cfg Config
+	err = c.Unpack(&cfg)
+	require.NoError(t, err)
+
+	assert.Equal(t, "alice", cfg.Name)
+	// Inline map should exclude "name" and "params" keys
+	assert.Equal(t, "blue", cfg.Extra["color"])
+	assert.Nil(t, cfg.Extra["name"])
+	assert.Nil(t, cfg.Extra["params"])
+	// Named map must retain all its keys, even colliding ones
+	assert.Equal(t, "param-name", cfg.Params["name"])
+	assert.Equal(t, "param-color", cfg.Params["color"])
+}
+
+func TestUnpackNestedStructNamedMapNotFiltered(t *testing.T) {
+	type Inner struct {
+		Count  int                    `config:"count"`
+		Values map[string]interface{} `config:"values"`
+	}
+	type Outer struct {
+		Count int   `config:"count"`
+		Inner Inner `config:"inner"`
+	}
+
+	c, err := NewFrom(map[string]interface{}{
+		"count": 10,
+		"inner": map[string]interface{}{
+			"count": 20,
+			"values": map[string]interface{}{
+				"count": "thirty",
+				"inner": "nested-ref",
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	var cfg Outer
+	err = c.Unpack(&cfg)
+	require.NoError(t, err)
+
+	assert.Equal(t, 10, cfg.Count)
+	assert.Equal(t, 20, cfg.Inner.Count)
+	assert.Equal(t, "thirty", cfg.Inner.Values["count"])
+	assert.Equal(t, "nested-ref", cfg.Inner.Values["inner"])
+}
+
+func TestUnpackConfiguredFieldsRestoredAfterNamedMap(t *testing.T) {
+	// After unpacking a named map field, configuredFields must be
+	// restored so inline maps still exclude named keys.
+	type Config struct {
+		Name   string                 `config:"name"`
+		Params map[string]interface{} `config:"params"`
+		Extra  map[string]interface{} `config:",inline"`
+	}
+
+	c, err := NewFrom(map[string]interface{}{
+		"name":  "alice",
+		"color": "blue",
+		"params": map[string]interface{}{
+			"name": "param-name",
+		},
+	})
+	require.NoError(t, err)
+
+	var cfg Config
+	err = c.Unpack(&cfg)
+	require.NoError(t, err)
+
+	// Named map keeps colliding key
+	assert.Equal(t, "param-name", cfg.Params["name"])
+	// Inline map still correctly excludes named field keys
+	assert.Equal(t, "blue", cfg.Extra["color"])
+	_, hasName := cfg.Extra["name"]
+	_, hasParams := cfg.Extra["params"]
+	assert.False(t, hasName, "inline map must exclude 'name'")
+	assert.False(t, hasParams, "inline map must exclude 'params'")
+}
+
 func TestUnpackUnknown(t *testing.T) {
 	c := New()
 
