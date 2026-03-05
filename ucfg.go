@@ -53,7 +53,8 @@ type fields struct {
 
 // Meta holds additional meta data per config value.
 type Meta struct {
-	Source string
+	Source   string
+	Redacted bool
 }
 
 var (
@@ -76,6 +77,8 @@ var (
 	tDuration = reflect.TypeOf(time.Duration(0))
 	tRegexp   = reflect.TypeOf(regexp.Regexp{})
 )
+
+const sREDACT = "[REDACTED]"
 
 // New creates a new empty Config object.
 func New() *Config {

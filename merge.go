@@ -62,6 +62,10 @@ import (
 //	// field is ignored by Merge
 //	Field string `config:",ignore"`
 //
+//	// field is marked as redacted; Unpack will return "[REDACTED]" by default
+//	// (use ShowRedacted option on Unpack to see original value)
+//	Field string `config:",redact"`
+//
 // Returns an error if merging fails to normalize and validate the from value.
 // If duplicate setting names are detected in the input, merging fails as well.
 //
@@ -460,33 +464,59 @@ func normalizeValue(
 ) (value, Error) {
 	v = chaseValue(v)
 
+	// Mark metadata for redacted fields
+	// Redaction applies to string, []byte, and []rune types
+	// Actual redaction happens during Unpack
+	meta := opts.meta
+	if tagOpts.redact {
+		isRedactableType := v.Kind() == reflect.String ||
+			(v.Kind() == reflect.Slice && (v.Type().Elem().Kind() == reflect.Uint8 || v.Type().Elem().Kind() == reflect.Int32))
+
+		if isRedactableType {
+			var metaCopy Meta
+			if meta != nil {
+				metaCopy = *meta
+			}
+
+			metaCopy.Redacted = true
+			meta = &metaCopy
+		}
+	}
+
 	switch v.Type() {
 	case tDuration:
 		d := v.Interface().(time.Duration)
-		return newString(ctx, opts.meta, d.String()), nil
+		return newString(ctx, meta, d.String()), nil
 	case tRegexp:
 		r := v.Addr().Interface().(*regexp.Regexp)
-		return newString(ctx, opts.meta, r.String()), nil
+		return newString(ctx, meta, r.String()), nil
 	}
 
 	// handle primitives
 	switch v.Kind() {
 	case reflect.Bool:
-		return newBool(ctx, opts.meta, v.Bool()), nil
+		return newBool(ctx, meta, v.Bool()), nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		i := v.Int()
 		if i > 0 {
-			return newUint(ctx, opts.meta, uint64(i)), nil
+			return newUint(ctx, meta, uint64(i)), nil
 		}
-		return newInt(ctx, opts.meta, i), nil
+		return newInt(ctx, meta, i), nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return newUint(ctx, opts.meta, v.Uint()), nil
+		return newUint(ctx, meta, v.Uint()), nil
 	case reflect.Float32, reflect.Float64:
 		f := v.Float()
-		return newFloat(ctx, opts.meta, f), nil
+		return newFloat(ctx, meta, f), nil
 	case reflect.String:
-		return normalizeString(ctx, opts, v.String())
+		return normalizeString(ctx, opts, meta, v.String())
 	case reflect.Array, reflect.Slice:
+		// For arrays/slices, we need to pass the updated metadata
+		if meta != opts.meta {
+			// Create new options with updated metadata
+			newOpts := *opts
+			newOpts.meta = meta
+			return normalizeArray(&newOpts, tagOpts, ctx, v)
+		}
 		return normalizeArray(opts, tagOpts, ctx, v)
 	case reflect.Map:
 		return normalizeMapValue(opts, ctx, v)
@@ -503,30 +533,30 @@ func normalizeValue(
 		return normalizeStructValue(opts, ctx, v)
 	default:
 		if v.IsNil() {
-			return &cfgNil{cfgPrimitive{ctx, opts.meta}}, nil
+			return &cfgNil{cfgPrimitive{ctx, meta}}, nil
 		}
-		return nil, raiseUnsupportedInputType(ctx, opts.meta, v)
+		return nil, raiseUnsupportedInputType(ctx, meta, v)
 	}
 }
 
-func normalizeString(ctx context, opts *options, str string) (value, Error) {
+func normalizeString(ctx context, opts *options, meta *Meta, str string) (value, Error) {
 	if !opts.varexp {
-		return newString(ctx, opts.meta, str), nil
+		return newString(ctx, meta, str), nil
 	}
 
 	varexp, err := parseSplice(str, opts.pathSep, opts.maxIdx, opts.enableNumKeys, opts.escapePath)
 	if err != nil {
-		return nil, raiseParseSplice(ctx, opts.meta, err)
+		return nil, raiseParseSplice(ctx, meta, err)
 	}
 
 	switch p := varexp.(type) {
 	case constExp:
-		return newString(ctx, opts.meta, string(p)), nil
+		return newString(ctx, meta, string(p)), nil
 	case *reference:
-		return newRef(ctx, opts.meta, p), nil
+		return newRef(ctx, meta, p), nil
 	}
 
-	return newSplice(ctx, opts.meta, varexp), nil
+	return newSplice(ctx, meta, varexp), nil
 }
 
 func fieldOptsOverride(opts *options, fieldName string, idx int) (*options, Error) {
