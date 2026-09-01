@@ -252,7 +252,10 @@ func (c *Config) SetChild(name string, idx int, value *Config, opts ...Option) e
 
 // getField supports the options: PathSep, Env, Resolve, ResolveEnv
 func (c *Config) getField(name string, idx int, opts *options) (value, Error) {
-	p := parsePathIdx(name, idx, opts)
+	p, err := parsePathIdx(name, idx, opts)
+	if err != nil {
+		return nil, err
+	}
 	v, err := p.GetValue(c, opts)
 	if err != nil {
 		return v, err
@@ -267,9 +270,12 @@ func (c *Config) getField(name string, idx int, opts *options) (value, Error) {
 // setField supports the options: PathSep, MetaData
 func (c *Config) setField(name string, idx int, v value, options []Option) Error {
 	opts := makeOptions(options)
-	p := parsePathIdx(name, idx, opts)
+	p, err := parsePathIdx(name, idx, opts)
+	if err != nil {
+		return err
+	}
 
-	err := p.SetValue(c, opts, v)
+	err = p.SetValue(c, opts, v)
 	if err != nil {
 		return err
 	}
