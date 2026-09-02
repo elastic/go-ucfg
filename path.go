@@ -44,12 +44,15 @@ type idxField struct {
 	i int
 }
 
-func parsePathIdx(in string, idx int, opts *options) cfgPath {
+func parsePathIdx(in string, idx int, opts *options) (cfgPath, Error) {
 	if in == "" {
+		if idx < 0 {
+			return cfgPath{}, raiseErr(ErrIndexOutOfRange, "empty path requires a non-negative index")
+		}
 		return cfgPath{
 			sep:    opts.pathSep,
 			fields: []field{idxField{idx}},
-		}
+		}, nil
 	}
 
 	p := parsePathWithOpts(in, opts)
@@ -57,7 +60,7 @@ func parsePathIdx(in string, idx int, opts *options) cfgPath {
 		p.fields = append(p.fields, idxField{idx})
 	}
 
-	return p
+	return p, nil
 }
 
 const (

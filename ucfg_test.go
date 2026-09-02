@@ -373,6 +373,12 @@ func TestHas(t *testing.T) {
 			fail: true,
 			path: "a.b.c", idx: -1,
 		},
+		"empty path without index": {
+			cfg:  map[string]interface{}{"a": 1},
+			has:  false,
+			fail: true,
+			path: "", idx: -1,
+		},
 	}
 
 	for name, test := range cases {
