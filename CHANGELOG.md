@@ -4,6 +4,19 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.2]
+
+### Fixed
+- Return an error instead of panicking when config access uses an empty
+  field name together with a negative index. #232
+
+## [0.9.1]
+
+### Fixed
+- Fix `Unpack` duplicating named field keys into inline maps of child
+  structs, by no longer propagating `configuredFields` beyond the current
+  squash struct. #227
+
 ## [0.9.0]
 
 ### Added
@@ -305,7 +318,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Introduced CHANGELOG.md for documenting changes to ucfg.
 
 
-[Unreleased]: https://github.com/elastic/go-ucfg/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/elastic/go-ucfg/compare/v0.9.2...HEAD
+[0.9.2]: https://github.com/elastic/go-ucfg/compare/v0.9.1...v0.9.2
+[0.9.1]: https://github.com/elastic/go-ucfg/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/elastic/go-ucfg/compare/v0.8.8...v0.9.0
 [0.8.8]: https://github.com/elastic/go-ucfg/compare/v0.8.7...v0.8.8
 [0.8.7]: https://github.com/elastic/go-ucfg/compare/v0.8.6...v0.8.7
