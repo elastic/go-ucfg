@@ -1219,6 +1219,49 @@ func TestUnpackCustomPrimitiveTypes(t *testing.T) {
 	assert.Equal(t, CustomString("hello"), out.S)
 }
 
+func TestUnpackEmptyConfigValidatesNestedInterfaceMaps(t *testing.T) {
+	type Deployment struct {
+		Configurations []map[string]interface{} `config:"configurations"`
+	}
+
+	var deployment Deployment
+	empty, err := NewFrom(map[string]interface{}{})
+	require.NoError(t, err)
+	require.NoError(t, empty.Unpack(&deployment))
+
+	filled, err := NewFrom(map[string]interface{}{
+		"configurations": []interface{}{
+			map[string]interface{}{
+				"name": "foo",
+				"body": map[string]interface{}{
+					"env": map[string]interface{}{"v": 1},
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.NoError(t, filled.Unpack(&deployment))
+
+	again, err := NewFrom(map[string]interface{}{
+		"configurations": []interface{}{
+			map[string]interface{}{
+				"name": "bar",
+				"body": map[string]interface{}{
+					"env": map[string]interface{}{"v": 1},
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.NoError(t, again.Unpack(&deployment))
+
+	missing, err := NewFrom(map[string]interface{}{})
+	require.NoError(t, err)
+	require.NoError(t, missing.Unpack(&deployment))
+	require.Len(t, deployment.Configurations, 1)
+	assert.Equal(t, "bar", deployment.Configurations[0]["name"])
+}
+
 func assertConfig(t *testing.T, config *Config, expected interface{}) {
 	var actual interface{}
 
