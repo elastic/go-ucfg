@@ -1,22 +1,23 @@
 {{- define "depInfo" -}}
 {{- range $i, $dep := . }}
 {{ "-" | line }}
-Module  : {{ $dep.Name }}
-Version : {{ $dep.Version }}
-Time    : {{ $dep.VersionTime }}
-Licence : {{ $dep.LicenceType }}
+Dependency : {{ $dep.Name }}
+Version: {{ $dep.Version }}
+Licence type (autodetected): {{ $dep.LicenceType }}
+{{ "-" | line }}
 
 {{ $dep | licenceText }}
 {{ end }}
 {{- end -}}
 
+Elastic go-ucfg
 Copyright 2016-{{ currentYear }} Elasticsearch BV
 
 This product includes software developed by The Apache Software
 Foundation (http://www.apache.org/).
 
 {{ "=" | line }}
-Third party libraries used by the go-ucfg project
+Third party libraries used by the Elastic go-ucfg project:
 {{ "=" | line }}
 
 {{ template "depInfo" .Direct }}
@@ -25,5 +26,5 @@ Third party libraries used by the go-ucfg project
 {{ "=" | line }}
 Indirect dependencies
 
-{{ template "depInfo" .Indirect }}
-{{ end }}
+{{ template "depInfo" .Indirect -}}
+{{- end}}

@@ -1,18 +1,19 @@
+Elastic go-ucfg
 Copyright 2016-2026 Elasticsearch BV
 
 This product includes software developed by The Apache Software
 Foundation (http://www.apache.org/).
 
 ================================================================================
-Third party libraries used by the go-ucfg project
+Third party libraries used by the Elastic go-ucfg project:
 ================================================================================
 
 
 --------------------------------------------------------------------------------
-Module  : github.com/davecgh/go-spew
-Version : v1.1.1
-Time    : 2018-02-21T23:26:28Z
-Licence : ISC
+Dependency : github.com/davecgh/go-spew
+Version: v1.1.1
+Licence type (autodetected): ISC
+--------------------------------------------------------------------------------
 
 Contents of probable licence file $GOMODCACHE/github.com/davecgh/go-spew@v1.1.1/LICENSE:
 
@@ -34,16 +35,16 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-Module  : github.com/stretchr/testify
-Version : v1.4.0
-Time    : 2019-07-12T00:01:36Z
-Licence : MIT
+Dependency : github.com/stretchr/testify
+Version: v1.12.1
+Licence type (autodetected): MIT
+--------------------------------------------------------------------------------
 
-Contents of probable licence file $GOMODCACHE/github.com/stretchr/testify@v1.4.0/LICENSE:
+Contents of probable licence file $GOMODCACHE/github.com/stretchr/testify@v1.12.1/LICENSE:
 
 MIT License
 
-Copyright (c) 2012-2018 Mat Ryer and Tyler Bunnell
+Copyright (c) 2012-2020 Mat Ryer, Tyler Bunnell and contributors.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -65,43 +66,12 @@ SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-Module  : gopkg.in/hjson/hjson-go.v3
-Version : v3.0.1
-Time    : 2019-11-06T16:53:36Z
-Licence : MIT
-
-Contents of probable licence file $GOMODCACHE/gopkg.in/hjson/hjson-go.v3@v3.0.1/LICENSE:
-
-MIT License
-
-Copyright (c) 2016, 2017 Christian Zangl
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-
+Dependency : go.yaml.in/yaml/v2
+Version: v2.4.4
+Licence type (autodetected): Apache-2.0
 --------------------------------------------------------------------------------
-Module  : gopkg.in/yaml.v2
-Version : v2.2.8
-Time    : 2020-01-21T17:19:40Z
-Licence : Apache-2.0
 
-Contents of probable licence file $GOMODCACHE/gopkg.in/yaml.v2@v2.2.8/LICENSE:
+Contents of probable licence file $GOMODCACHE/go.yaml.in/yaml/v2@v2.4.4/LICENSE:
 
                                  Apache License
                            Version 2.0, January 2004
@@ -306,6 +276,37 @@ Contents of probable licence file $GOMODCACHE/gopkg.in/yaml.v2@v2.2.8/LICENSE:
    limitations under the License.
 
 
+--------------------------------------------------------------------------------
+Dependency : gopkg.in/hjson/hjson-go.v3
+Version: v3.0.1
+Licence type (autodetected): MIT
+--------------------------------------------------------------------------------
+
+Contents of probable licence file $GOMODCACHE/gopkg.in/hjson/hjson-go.v3@v3.0.1/LICENSE:
+
+MIT License
+
+Copyright (c) 2016, 2017 Christian Zangl
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
 
 
 ================================================================================
@@ -313,133 +314,62 @@ Indirect dependencies
 
 
 --------------------------------------------------------------------------------
-Module  : github.com/kr/text
-Version : v0.1.0
-Time    : 2018-05-06T08:24:08Z
-Licence : MIT
+Dependency : go.yaml.in/yaml/v3
+Version: v3.0.5
+Licence type (autodetected): MIT
+--------------------------------------------------------------------------------
 
-Contents of probable licence file $GOMODCACHE/github.com/kr/text@v0.1.0/License:
+Contents of probable licence file $GOMODCACHE/go.yaml.in/yaml/v3@v3.0.5/LICENSE:
 
-Copyright 2012 Keith Rarick
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This project is covered by two different licenses: MIT and Apache.
 
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
+#### MIT License ####
+
+The following files were ported to Go from C files of libyaml, and thus
+are still covered by their original MIT license, with the additional
+copyright staring in 2011 when the project was ported over:
+
+    apic.go emitterc.go parserc.go readerc.go scannerc.go
+    writerc.go yamlh.go yamlprivateh.go
+
+Copyright (c) 2006-2010 Kirill Simonov
+Copyright (c) 2006-2011 Kirill Simonov
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
+### Apache License ###
 
---------------------------------------------------------------------------------
-Module  : github.com/niemeyer/pretty
-Version : v0.0.0-20200227124842-a10e7caefd8e
-Time    : 2020-02-27T12:48:42Z
-Licence : MIT
+All the remaining project files are covered by the Apache license:
 
-Contents of probable licence file $GOMODCACHE/github.com/niemeyer/pretty@v0.0.0-20200227124842-a10e7caefd8e/License:
+Copyright (c) 2011-2019 Canonical Ltd
 
-Copyright 2012 Keith Rarick
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+    http://www.apache.org/licenses/LICENSE-2.0
 
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-
-
---------------------------------------------------------------------------------
-Module  : github.com/pmezard/go-difflib
-Version : v1.0.0
-Time    : 2016-01-10T10:55:54Z
-Licence : BSD-3-Clause
-
-Contents of probable licence file $GOMODCACHE/github.com/pmezard/go-difflib@v1.0.0/LICENSE:
-
-Copyright (c) 2013, Patrick Mezard
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-
-    Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-    Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-    The names of its contributors may not be used to endorse or promote
-products derived from this software without specific prior written
-permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
-TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-
---------------------------------------------------------------------------------
-Module  : gopkg.in/check.v1
-Version : v1.0.0-20200227125254-8fa46927fb4f
-Time    : 2020-02-27T12:52:54Z
-Licence : BSD-2-Clause
-
-Contents of probable licence file $GOMODCACHE/gopkg.in/check.v1@v1.0.0-20200227125254-8fa46927fb4f/LICENSE:
-
-Gocheck - A rich testing framework for Go
- 
-Copyright (c) 2010-2013 Gustavo Niemeyer <gustavo@niemeyer.net>
-
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met: 
-
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer. 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution. 
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 
