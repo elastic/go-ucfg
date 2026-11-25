@@ -18,9 +18,9 @@
 package yaml
 
 import (
-	"io/ioutil"
+	"os"
 
-	"gopkg.in/yaml.v2"
+	"go.yaml.in/yaml/v2"
 
 	"github.com/elastic/go-ucfg"
 )
@@ -37,7 +37,7 @@ func NewConfig(in []byte, opts ...ucfg.Option) (*ucfg.Config, error) {
 
 // NewConfigWithFile loads a new configuration object from an external YAML file.
 func NewConfigWithFile(name string, opts ...ucfg.Option) (*ucfg.Config, error) {
-	input, err := ioutil.ReadFile(name)
+	input, err := os.ReadFile(name)
 	if err != nil {
 		return nil, err
 	}
