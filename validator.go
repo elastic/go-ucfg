@@ -157,13 +157,16 @@ func tryRecursiveValidate(val reflect.Value, opts *options, validators []validat
 	}
 
 	var err error
-	switch chaseValue(val).Kind() {
+	// MapKeys and Len panic on an interface value. Nested objects are stored
+	// in interface{} after unpack, so validate the concrete value.
+	concrete := chaseValue(val)
+	switch concrete.Kind() {
 	case reflect.Struct:
-		err = validateStruct(val, opts)
+		err = validateStruct(concrete, opts)
 	case reflect.Map:
-		err = validateMap(val, opts)
+		err = validateMap(concrete, opts)
 	case reflect.Array, reflect.Slice:
-		err = validateArray(val, opts)
+		err = validateArray(concrete, opts)
 	}
 
 	if err != nil {
