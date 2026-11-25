@@ -98,11 +98,13 @@ func parseField(in string, maxIdx int64, enableNumKeys bool) field {
 	// If numeric keys are not enabled, fallback to the original implementation
 	if !enableNumKeys {
 		idx, err := strconv.ParseInt(in, 0, 64)
-		// Limit index value to the configurable max.
+		// Limit index value to the range [0, opts.maxIdx].
 		// If the idx > opts.maxIdx treat it as a regular named field.
 		// This preserves the current behavour for small index fields values (<= opts.maxIdx)
-		// and prevents large memory allocations or OOM if the string is large numeric value
-		if err == nil && idx <= int64(maxIdx) {
+		// and prevents large memory allocations or OOM if the string is large numeric value.
+		// A negative idx is never a valid array index, so it is treated as a regular named
+		// field too. Accessing the array with it would panic with an index out of range.
+		if err == nil && idx >= 0 && idx <= int64(maxIdx) {
 			return idxField{int(idx)}
 		}
 	}

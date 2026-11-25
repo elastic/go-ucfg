@@ -67,3 +67,51 @@ func Test_parsePathWithOpts(t *testing.T) {
 		})
 	}
 }
+
+func Test_parsePathWithOpts_negativeIndex(t *testing.T) {
+	opts := &options{pathSep: ".", maxIdx: defaultMaxIdx}
+
+	tests := []struct {
+		name string
+		in   string
+		want cfgPath
+	}{
+		{
+			name: "negative segment in the middle is a named field",
+			in:   "a.-1.b",
+			want: cfgPath{fields: []field{namedField{"a"}, namedField{"-1"}, namedField{"b"}}, sep: "."},
+		},
+		{
+			name: "negative last segment is a named field",
+			in:   "a.-1",
+			want: cfgPath{fields: []field{namedField{"a"}, namedField{"-1"}}, sep: "."},
+		},
+		{
+			name: "single negative segment is a named field",
+			in:   "-1",
+			want: cfgPath{fields: []field{namedField{"-1"}}, sep: "."},
+		},
+		{
+			name: "negative segment in another base is a named field",
+			in:   "a.-0x1.b",
+			want: cfgPath{fields: []field{namedField{"a"}, namedField{"-0x1"}, namedField{"b"}}, sep: "."},
+		},
+		{
+			name: "non-negative segment is still an index",
+			in:   "a.1.b",
+			want: cfgPath{fields: []field{namedField{"a"}, idxField{1}, namedField{"b"}}, sep: "."},
+		},
+		{
+			name: "zero is still an index",
+			in:   "a.0",
+			want: cfgPath{fields: []field{namedField{"a"}, idxField{0}}, sep: "."},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := parsePathWithOpts(tt.in, opts); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("parsePathWithOpts(%q) = %v, want %v", tt.in, got, tt.want)
+			}
+		})
+	}
+}
