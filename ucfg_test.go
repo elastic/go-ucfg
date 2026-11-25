@@ -585,3 +585,129 @@ func TestNewFromWithMaxIdxAndEnableNumKeys(t *testing.T) {
 		assert.Equal(t, tc.want, m)
 	}
 }
+
+// A negative numeric path segment must not panic. It is not a valid array index, so it is
+// handled as a regular field name, the same way a segment above MaxIdx is.
+func TestNegativePathIndexIsNamedField(t *testing.T) {
+	optionSets := map[string][]Option{
+		"path sep":              {PathSep(".")},
+		"path sep and num keys": {PathSep("."), EnableNumKeys(true)},
+		"path sep, append values and escape path": {PathSep("."), AppendValues, EscapePath()},
+	}
+
+	tests := []struct {
+		name     string
+		in, want map[string]interface{}
+	}{
+		{
+			name: "negative segment in a dotted key",
+			in:   map[string]interface{}{"a.-1.b": "x"},
+			want: map[string]interface{}{"a": map[string]interface{}{"-1": map[string]interface{}{"b": "x"}}},
+		},
+		{
+			name: "negative last segment in a dotted key",
+			in:   map[string]interface{}{"a.-1": "x"},
+			want: map[string]interface{}{"a": map[string]interface{}{"-1": "x"}},
+		},
+		{
+			name: "single negative key",
+			in:   map[string]interface{}{"-1": "x"},
+			want: map[string]interface{}{"-1": "x"},
+		},
+		{
+			name: "negative key in a nested map",
+			in:   map[string]interface{}{"a": map[string]interface{}{"-1": map[string]interface{}{"b": "x"}}},
+			want: map[string]interface{}{"a": map[string]interface{}{"-1": map[string]interface{}{"b": "x"}}},
+		},
+		{
+			name: "negative segment deep in a nested map",
+			in:   map[string]interface{}{"a": map[string]interface{}{"b.-2.c": "x"}},
+			want: map[string]interface{}{"a": map[string]interface{}{"b": map[string]interface{}{"-2": map[string]interface{}{"c": "x"}}}},
+		},
+		{
+			name: "non-negative segment is still an array index",
+			in:   map[string]interface{}{"a.1.b": "x"},
+			want: map[string]interface{}{"a": []interface{}{nil, map[string]interface{}{"b": "x"}}},
+		},
+	}
+
+	for setName, opts := range optionSets {
+		for _, tc := range tests {
+			t.Run(setName+"/"+tc.name, func(t *testing.T) {
+				cfg, err := NewFrom(tc.in, opts...)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				var got map[string]interface{}
+				if err := cfg.Unpack(&got, opts...); err != nil {
+					t.Fatal(err)
+				}
+
+				assert.Equal(t, tc.want, got)
+			})
+		}
+	}
+}
+
+func TestNegativePathIndexAccess(t *testing.T) {
+	opts := []Option{PathSep(".")}
+
+	cfg, err := NewFrom(map[string]interface{}{"a.-1.b": "x"}, opts...)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("get", func(t *testing.T) {
+		got, err := cfg.String("a.-1.b", -1, opts...)
+		assert.NoError(t, err)
+		assert.Equal(t, "x", got)
+	})
+
+	t.Run("has", func(t *testing.T) {
+		has, err := cfg.Has("a.-1.b", -1, opts...)
+		assert.NoError(t, err)
+		assert.True(t, has)
+	})
+
+	t.Run("has a missing negative key", func(t *testing.T) {
+		has, err := cfg.Has("a.-2.b", -1, opts...)
+		assert.NoError(t, err)
+		assert.False(t, has)
+	})
+
+	t.Run("set", func(t *testing.T) {
+		c := New()
+		assert.NoError(t, c.SetString("a.-1.b", -1, "y", opts...))
+
+		got, err := c.String("a.-1.b", -1, opts...)
+		assert.NoError(t, err)
+		assert.Equal(t, "y", got)
+	})
+
+	t.Run("remove", func(t *testing.T) {
+		c, err := NewFrom(map[string]interface{}{"a.-1.b": "x"}, opts...)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		removed, err := c.Remove("a.-1.b", -1, opts...)
+		assert.NoError(t, err)
+		assert.True(t, removed)
+
+		has, err := c.Has("a.-1.b", -1, opts...)
+		assert.NoError(t, err)
+		assert.False(t, has)
+	})
+
+	t.Run("variable reference", func(t *testing.T) {
+		c, err := NewFrom(map[string]interface{}{"a.-1": "x", "ref": "${a.-1}"}, append(opts, VarExp)...)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		got, err := c.String("ref", -1, append(opts, VarExp)...)
+		assert.NoError(t, err)
+		assert.Equal(t, "x", got)
+	})
+}
