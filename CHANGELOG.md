@@ -6,7 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 - Treat a negative numeric path segment such as `-1` in `a.-1.b` as a regular
-  field name instead of panicking with `index out of range`. #236
+  field name instead of panicking with `index out of range`. #237
 
 ## [0.9.2]
 
